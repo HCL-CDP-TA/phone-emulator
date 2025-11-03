@@ -2,6 +2,8 @@
 
 A realistic smartphone emulator built with Next.js, designed for demonstrating martech software (SMS campaigns, push notifications, mobile web experiences) using a desktop browser. No real phone or mobile emulator required!## Getting Started
 
+[![Version](https://img.shields.io/github/v/release/HCL-CDP-TA/phone-emulator)](https://github.com/HCL-CDP-TA/phone-emulator/releases)
+
 ![Phone Emulator](https://img.shields.io/badge/Next.js-16.0.1-black?logo=next.js) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-blue?logo=tailwindcss) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)First, run the development server:
 
 ## ✨ Features```bash
