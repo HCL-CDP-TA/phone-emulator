@@ -56,7 +56,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
+ENV PORT=3003
 ENV HOSTNAME="0.0.0.0"
 
 # Add labels for metadata
@@ -68,11 +68,11 @@ LABEL org.opencontainers.image.source="https://github.com/HCL-CDP-TA/phone-emula
 USER nextjs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3003
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3003/ || exit 1
 
 # Start the application
 CMD ["node", "server.js"]

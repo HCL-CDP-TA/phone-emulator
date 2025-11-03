@@ -27,7 +27,7 @@ Deploy the latest version:
 ./deploy.sh
 ```
 
-This will deploy the `main` branch in `production` mode on port **3100**.
+This will deploy the `main` branch in `production` mode on port **3003**.
 
 ## Deployment Options
 
@@ -69,7 +69,7 @@ This is useful for testing local changes before pushing to GitHub.
 ./deploy.sh main production
 ```
 
-- Port: 3100
+- Port: 3003
 - Environment: production
 - Node environment: production
 - Auto-restart: enabled
@@ -80,7 +80,7 @@ This is useful for testing local changes before pushing to GitHub.
 ./deploy.sh main development
 ```
 
-- Port: 3100
+- Port: 3003
 - Environment: development
 - Node environment: development
 - Auto-restart: enabled
@@ -91,7 +91,7 @@ This is useful for testing local changes before pushing to GitHub.
 ./deploy.sh main staging
 ```
 
-- Port: 3100
+- Port: 3003
 - Environment: production
 - Node environment: production
 - Auto-restart: enabled
@@ -131,7 +131,7 @@ chmod +x deploy.sh
 After successful deployment, the application will be available at:
 
 ```
-http://localhost:3100
+http://localhost:3003
 ```
 
 ## Managing the Container
@@ -178,7 +178,7 @@ docker logs phone-emulator
 
 ### Port Already in Use
 
-If port 3100 is already in use, you can modify the PORT variable in the deploy.sh script or stop the conflicting service.
+If port 3003 is already in use, you can modify the PORT variable in the deploy.sh script or stop the conflicting service.
 
 ### Docker Not Running
 
@@ -194,7 +194,7 @@ The deploy script waits up to 60 seconds for the application to respond. If it f
 
 1. Check if the container is running: `docker ps`
 2. Check the logs: `docker logs phone-emulator`
-3. Try accessing manually: `curl http://localhost:3100`
+3. Try accessing manually: `curl http://localhost:3003`
 
 ## Deployment Script Details
 
@@ -219,7 +219,7 @@ Edit the deploy.sh script and modify the PORT variable in the environment-specif
 ```bash
 case "$ENVIRONMENT" in
     "production")
-        PORT=3100  # Change this to your desired port
+        PORT=3003  # Change this to your desired port
         ...
 ```
 
@@ -242,7 +242,7 @@ chmod +x deploy.sh
 
 ## Security Notes
 
-- The application runs on port 3100 by default (not exposed to the internet by default)
+- The application runs on port 3003 by default (not exposed to the internet by default)
 - No sensitive configuration is required
 - Container runs with standard Docker security settings
 
@@ -252,7 +252,7 @@ For issues or questions:
 
 1. Check the logs: `docker logs phone-emulator`
 2. Verify Docker is running: `docker info`
-3. Ensure port 3100 is available: `lsof -i :3100`
+3. Ensure port 3003 is available: `lsof -i :3003`
 4. Review the deployment script output for errors
 
 ## Version History

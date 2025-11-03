@@ -160,19 +160,19 @@ log_success "Docker image built successfully"
 # Determine port and environment variables based on environment
 case "$ENVIRONMENT" in
     "production")
-        PORT=3100
+        PORT=3003
         NODE_ENV="production"
         ;;
     "staging")
-        PORT=3100
+        PORT=3003
         NODE_ENV="production"
         ;;
     "development")
-        PORT=3100
+        PORT=3003
         NODE_ENV="development"
         ;;
     *)
-        PORT=3100
+        PORT=3003
         NODE_ENV="production"
         ;;
 esac
@@ -182,9 +182,9 @@ log_info "Starting new container on port $PORT"
 docker run -d \
     --name "$CONTAINER_NAME" \
     --restart unless-stopped \
-    -p "$PORT:3000" \
+    -p "$PORT:3003" \
     -e NODE_ENV="$NODE_ENV" \
-    -e PORT=3000 \
+    -e PORT=3003 \
     --label "app=$APP_NAME" \
     --label "environment=$ENVIRONMENT" \
     --label "version=$VERSION" \
