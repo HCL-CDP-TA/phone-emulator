@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.4...v1.0.5) (2025-11-03)
+
+
+### Bug Fixes
+
+* deploy fix ([0265f8e](https://github.com/HCL-CDP-TA/phone-emulator/commit/0265f8e0eeed6ffa9ae6996cfb4d020b93d4ac4c))
+
 ## [1.0.4](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.3...v1.0.4) (2025-11-03)
 
 
