@@ -70,9 +70,6 @@ ENV HOSTNAME="0.0.0.0"
 LABEL org.opencontainers.image.title="Phone Emulator"
 LABEL org.opencontainers.image.description="Realistic smartphone emulator for demonstrating martech software"
 LABEL org.opencontainers.image.source="https://github.com/HCL-CDP-TA/phone-emulator"
-LABEL org.opencontainers.image.created=$BUILD_DATE
-LABEL org.opencontainers.image.revision=$VCS_REF
-LABEL org.opencontainers.image.version=$VERSION
 
 # Switch to non-root user
 USER nextjs

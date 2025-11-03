@@ -1,60 +1,40 @@
-# Phone Emulator for MarTech DemosThis is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Phone Emulator for MarTech Demos
 
-A realistic smartphone emulator built with Next.js, designed for demonstrating martech software (SMS campaigns, push notifications, mobile web experiences) using a desktop browser. No real phone or mobile emulator required!## Getting Started
+A realistic smartphone emulator built with Next.js, designed for demonstrating martech software (SMS campaigns, push notifications, mobile web experiences) using a desktop browser. No real phone or mobile emulator required!
 
-[![Version](https://img.shields.io/github/v/release/HCL-CDP-TA/phone-emulator)](https://github.com/HCL-CDP-TA/phone-emulator/releases)
+![Phone Emulator](https://img.shields.io/badge/Next.js-16.0.1-black?logo=next.js) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-blue?logo=tailwindcss) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
 
-![Phone Emulator](https://img.shields.io/badge/Next.js-16.0.1-black?logo=next.js) ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-blue?logo=tailwindcss) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)First, run the development server:
+## ✨ Features
 
-## ✨ Features```bash
+### Core Capabilities
 
-npm run dev
-
-### Core Capabilities# or
-
-yarn dev
-
-- **📱 Realistic Phone UI** - Generic smartphone design (not iOS/Android specific)# or
-
-- **💬 SMS/Messages App** - Receive SMS via API, display notifications, clickable linkspnpm dev
-
-- **🌐 Browser App** - Full web browsing with address bar using native browser rendering# or
-
-- **🔔 Push Notifications** - Banner notifications that can be clicked to open appsbun dev
-
-- **📲 Modular App System** - Extensible framework for adding new apps```
-
+- **📱 Realistic Phone UI** - Generic smartphone design (not iOS/Android specific)
+- **💬 SMS/Messages App** - Receive SMS via API, display notifications, clickable links
+- **🌐 Browser App** - Full web browsing with address bar using native browser rendering
+- **🔔 Push Notifications** - Banner notifications that can be clicked to open apps
+- **📲 Modular App System** - Extensible framework for adding new apps
 - **⏰ System UI** - Status bar with time, battery, signal strength
+- **🎨 Home Screen** - Realistic app grid with dummy apps for authentic look
 
-- **🎨 Home Screen** - Realistic app grid with dummy apps for authentic lookOpen [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Included Apps
 
-### Included AppsYou can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-**Functional Apps:**This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Functional Apps:**
 
 - **Messages** - Display SMS, handle notifications, clickable URLs
+- **Browser** - Address bar + iframe-based web viewing
 
-- **Browser** - Address bar + iframe-based web viewing## Learn More
-
-**Dummy Apps (UI only):**To learn more about Next.js, take a look at the following resources:
+**Dummy Apps (UI only):**
 
 - Camera, Photos, Clock, Calculator, Maps, Music, Contacts, Settings
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+## 🚀 Getting Started
 
-## 🚀 Getting Started- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Prerequisites
 
-### PrerequisitesYou can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-- Node.js 18+ ## Deploy on Vercel
-
+- Node.js 18+
 - npm, yarn, pnpm, or bun
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
 ### Installation
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 ```bash
 # Install dependencies

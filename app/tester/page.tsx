@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { sendSMSToPhone } from "@/hooks/useSMSReceiver"
 import { useSearchParams } from "next/navigation"
 
-export default function TesterPage() {
+function TesterContent() {
   const searchParams = useSearchParams()
   const [sender, setSender] = useState("Demo Company")
   const [message, setMessage] = useState(
@@ -145,3 +145,12 @@ export default function TesterPage() {
     </div>
   )
 }
+
+export default function TesterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-100 flex items-center justify-center">Loading...</div>}>
+      <TesterContent />
+    </Suspense>
+  )
+}
+
