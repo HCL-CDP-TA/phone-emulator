@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.2...v1.0.3) (2025-11-03)
+
+
+### Bug Fixes
+
+* update node version to 22 ([e3d32c2](https://github.com/HCL-CDP-TA/phone-emulator/commit/e3d32c244592332aaa25ca6618615258067fa267))
+
 ## [1.0.2](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.1...v1.0.2) (2025-11-03)
 
 
