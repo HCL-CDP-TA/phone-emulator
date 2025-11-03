@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Phone body -->
+  <rect x="8" y="2" width="16" height="28" rx="2" fill="#1F2937" stroke="#374151" stroke-width="1"/>
+  
+  <!-- Screen -->
+  <rect x="9.5" y="4.5" width="13" height="21" rx="0.5" fill="#3B82F6"/>
+  
+  <!-- Home indicator -->
+  <rect x="13" y="27" width="6" height="1.5" rx="0.75" fill="#9CA3AF"/>
+  
+  <!-- Status bar icons (simplified) -->
+  <circle cx="11" cy="6" r="0.5" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="12.5" cy="6" r="0.5" fill="#FFFFFF" opacity="0.8"/>
+  <rect x="19.5" y="5.5" width="2" height="1" rx="0.25" fill="#FFFFFF" opacity="0.8"/>
+  
+  <!-- Message notification dot -->
+  <circle cx="20" cy="10" r="1.5" fill="#10B981"/>
+</svg>
