@@ -48,17 +48,10 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Copy built application from standalone output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy configuration files needed for runtime
-COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
-
-# Copy production dependencies
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Set environment variables
 ENV NODE_ENV=production
