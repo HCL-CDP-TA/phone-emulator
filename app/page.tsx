@@ -10,7 +10,7 @@ function PhoneEmulator() {
 
   const handleOpenTester = () => {
     const testerUrl = `/tester?session=${encodeURIComponent(sessionId)}`
-    window.open(testerUrl, "_blank", "width=800,height=900")
+    window.open(testerUrl, "_blank")
   }
 
   return (
