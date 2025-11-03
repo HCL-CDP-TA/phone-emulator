@@ -47,7 +47,7 @@ fi
 
 PR_NUMBER=$1
 
-# If no PR number provided, try to detect from current branch
+# If no PR number provided, try to detect from current branch or show list
 if [ -z "$PR_NUMBER" ]; then
     log_info "No PR number provided, detecting from current branch..."
     
@@ -55,21 +55,49 @@ if [ -z "$PR_NUMBER" ]; then
     CURRENT_BRANCH=$(git branch --show-current)
     
     if [ "$CURRENT_BRANCH" = "main" ]; then
-        log_error "Currently on main branch. Please provide a PR number or switch to a feature branch."
-        exit 1
+        log_info "On main branch. Here are the open PRs:"
+        echo ""
+        
+        # Get list of PRs with details
+        PR_LIST=$(gh pr list --json number,title,headRefName,updatedAt --jq '.[] | "\(.number)|\(.title)|\(.headRefName)|\(.updatedAt)"' 2>/dev/null)
+        
+        if [ -z "$PR_LIST" ]; then
+            log_error "No open PRs found."
+            exit 1
+        fi
+        
+        # Display PRs in a nice format
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        printf "%-6s %-50s %s\n" "PR #" "Title" "Branch"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        
+        echo "$PR_LIST" | while IFS='|' read -r number title branch updated; do
+            printf "%-6s %-50s %s\n" "#$number" "${title:0:47}..." "$branch"
+        done
+        
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        
+        # Prompt for PR number
+        read -p "Enter PR number to merge: " PR_NUMBER
+        
+        if [ -z "$PR_NUMBER" ]; then
+            log_error "No PR number provided."
+            exit 1
+        fi
+    else
+        # Try to find PR for current branch
+        PR_NUMBER=$(gh pr list --head "$CURRENT_BRANCH" --json number --jq '.[0].number' 2>/dev/null)
+        
+        if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            log_error "No open PR found for branch: $CURRENT_BRANCH"
+            log_info "Available PRs:"
+            gh pr list
+            exit 1
+        fi
+        
+        log_info "Found PR #${PR_NUMBER} for branch: $CURRENT_BRANCH"
     fi
-    
-    # Try to find PR for current branch
-    PR_NUMBER=$(gh pr list --head "$CURRENT_BRANCH" --json number --jq '.[0].number' 2>/dev/null)
-    
-    if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
-        log_error "No open PR found for branch: $CURRENT_BRANCH"
-        log_info "Available PRs:"
-        gh pr list
-        exit 1
-    fi
-    
-    log_info "Found PR #${PR_NUMBER} for branch: $CURRENT_BRANCH"
 fi
 
 # Get PR details
