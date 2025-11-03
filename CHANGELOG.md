@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.3...v1.0.4) (2025-11-03)
+
+
+### Bug Fixes
+
+* dockerfile fix ([581e0af](https://github.com/HCL-CDP-TA/phone-emulator/commit/581e0af851439f663614540848062bb4c5011513))
+
 ## [1.0.3](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.2...v1.0.3) (2025-11-03)
 
 
