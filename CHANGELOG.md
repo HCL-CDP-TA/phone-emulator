@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.6](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.5...v1.0.6) (2025-11-04)
+
+
+### Bug Fixes
+
+* release script fix ([195bae4](https://github.com/HCL-CDP-TA/phone-emulator/commit/195bae42b7267813d5733ce1da154e56919d54aa))
+* sending fixes, chrome icon ([f6f5585](https://github.com/HCL-CDP-TA/phone-emulator/commit/f6f558501954c2594bd2ea6237a42d1eaf6942e4))
+
 ## [1.0.5](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.4...v1.0.5) (2025-11-03)
 
 
