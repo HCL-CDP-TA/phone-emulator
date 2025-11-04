@@ -1,12 +1,79 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Phone from "@/components/phone/Phone"
 import SMSTester from "@/components/SMSTester"
-import { PhoneProvider } from "@/contexts/PhoneContext"
+import PhoneNumberLogin from "@/components/phone/PhoneNumberLogin"
+import { PhoneProvider, usePhone } from "@/contexts/PhoneContext"
 import { useSMSReceiver } from "@/hooks/useSMSReceiver"
 
 function PhoneEmulator() {
   const sessionId = useSMSReceiver()
+  const { addSMS } = usePhone()
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(() => {
+    // Load from localStorage on initial render
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("phone-number")
+    }
+    return null
+  })
+
+  // Save phone number to localStorage when it changes
+  useEffect(() => {
+    if (phoneNumber) {
+      localStorage.setItem("phone-number", phoneNumber)
+    }
+  }, [phoneNumber])
+
+  // Poll for remote SMS messages when logged in with a phone number
+  useEffect(() => {
+    if (!phoneNumber || phoneNumber === "skip") return
+
+    let lastPollTime = Date.now()
+
+    const pollForMessages = async () => {
+      try {
+        const response = await fetch(
+          `/api/sms/poll?phoneNumber=${encodeURIComponent(phoneNumber)}&since=${lastPollTime}`,
+        )
+        if (response.ok) {
+          const data = await response.json()
+          if (data.messages && data.messages.length > 0) {
+            data.messages.forEach((msg: { sender: string; message: string }) => {
+              addSMS({ sender: msg.sender, message: msg.message })
+            })
+            lastPollTime = Date.now()
+          }
+        }
+      } catch (error) {
+        console.error("Failed to poll for messages:", error)
+      }
+    }
+
+    // Poll every 2 seconds
+    const interval = setInterval(pollForMessages, 2000)
+    // Also poll immediately
+    pollForMessages()
+
+    return () => clearInterval(interval)
+  }, [phoneNumber, addSMS])
+
+  const handleLogin = (number: string) => {
+    setPhoneNumber(number || "skip") // "skip" means no phone number (anonymous mode)
+  }
+
+  const handleLogout = () => {
+    setPhoneNumber(null)
+    localStorage.removeItem("phone-number")
+  }
+
+  if (phoneNumber === null) {
+    return <PhoneNumberLogin onLogin={handleLogin} />
+  }
+
+  // Anonymous mode (skipped login)
+  const isAnonymous = phoneNumber === "skip"
+  const displayPhoneNumber = isAnonymous ? null : phoneNumber
 
   const handleOpenTester = () => {
     const testerUrl = `/tester?session=${encodeURIComponent(sessionId)}`
@@ -19,21 +86,62 @@ function PhoneEmulator() {
         <Phone />
         <SMSTester />
 
-        {/* Tester Link */}
-        <button
-          onClick={handleOpenTester}
-          className="fixed top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2"
-          title="Open SMS Tester in new window">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-          SMS Tester
-        </button>
+        {/* Phone Number & Tester Link */}
+        <div className="fixed top-4 right-4 flex items-center gap-3">
+          {/* Phone Number Display - only show if logged in with a number */}
+          {displayPhoneNumber && (
+            <div className="bg-white rounded-lg shadow-lg px-4 py-2 text-sm flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                </svg>
+                <span className="font-mono font-medium text-gray-900">{displayPhoneNumber}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-gray-400 hover:text-red-600 transition-colors"
+                title="Logout">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* Anonymous mode indicator */}
+          {isAnonymous && (
+            <div className="bg-gray-100 rounded-lg shadow-lg px-4 py-2 text-sm flex items-center gap-2">
+              <span className="text-gray-600">Local Mode</span>
+              <button
+                onClick={handleLogout}
+                className="text-gray-400 hover:text-blue-600 transition-colors text-xs underline"
+                title="Login with phone number">
+                Login
+              </button>
+            </div>
+          )}
+
+          {/* SMS Tester Button */}
+          <button
+            onClick={handleOpenTester}
+            className="bg-white rounded-lg shadow-lg px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2"
+            title="Open SMS Tester in new window">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            SMS Tester
+          </button>
+        </div>
       </div>
     </div>
   )

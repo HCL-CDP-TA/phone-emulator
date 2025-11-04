@@ -116,20 +116,51 @@ function TesterContent() {
 
           <div className="mt-8 pt-8 border-t border-gray-200">
             <h2 className="text-lg font-semibold mb-3">API Documentation</h2>
-            <p className="text-sm text-gray-600 mb-3">You can also send SMS via API:</p>
-            <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm">
-              <div className="text-green-400">POST</div>
-              <div className="mt-2">/api/sms</div>
-              <div className="mt-2 text-gray-400">{"{"}</div>
-              <div className="ml-4">
-                <span className="text-blue-400">"sender"</span>: <span className="text-yellow-400">"Demo Company"</span>
-                ,
+            <p className="text-sm text-gray-600 mb-3">Send SMS via API from external systems:</p>
+
+            {/* Same-browser delivery */}
+            <div className="mb-4">
+              <p className="text-xs font-medium text-gray-700 mb-2">For same-browser delivery (using session ID):</p>
+              <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm">
+                <div className="text-green-400">POST</div>
+                <div className="mt-2">/api/sms</div>
+                <div className="mt-2 text-gray-400">{"{"}</div>
+                <div className="ml-4">
+                  <span className="text-blue-400">"sender"</span>:{" "}
+                  <span className="text-yellow-400">"Demo Company"</span>,
+                </div>
+                <div className="ml-4">
+                  <span className="text-blue-400">"message"</span>:{" "}
+                  <span className="text-yellow-400">"Your message here"</span>
+                </div>
+                <div className="text-gray-400">{"}"}</div>
               </div>
-              <div className="ml-4">
-                <span className="text-blue-400">"message"</span>:{" "}
-                <span className="text-yellow-400">"Your message here"</span>
+            </div>
+
+            {/* Remote delivery */}
+            <div>
+              <p className="text-xs font-medium text-gray-700 mb-2">For remote delivery (from external systems):</p>
+              <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm">
+                <div className="text-green-400">POST</div>
+                <div className="mt-2">/api/sms</div>
+                <div className="mt-2 text-gray-400">{"{"}</div>
+                <div className="ml-4">
+                  <span className="text-blue-400">"phoneNumber"</span>:{" "}
+                  <span className="text-yellow-400">"+12345678901"</span>,
+                </div>
+                <div className="ml-4">
+                  <span className="text-blue-400">"sender"</span>:{" "}
+                  <span className="text-yellow-400">"Demo Company"</span>,
+                </div>
+                <div className="ml-4">
+                  <span className="text-blue-400">"message"</span>:{" "}
+                  <span className="text-yellow-400">"Your message here"</span>
+                </div>
+                <div className="text-gray-400">{"}"}</div>
               </div>
-              <div className="text-gray-400">{"}"}</div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 The phone must be logged in with the specified phone number to receive the message.
+              </p>
             </div>
           </div>
 

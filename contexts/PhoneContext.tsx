@@ -102,22 +102,22 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         timestamp: new Date(),
         read: false,
       }
-      
+
       // Check for duplicate message (same sender and message within last second)
       setSmsMessages(prev => {
         const recentDuplicate = prev.find(
           existingSms =>
             existingSms.sender === newSMS.sender &&
             existingSms.message === newSMS.message &&
-            new Date(existingSms.timestamp).getTime() > Date.now() - 1000
+            new Date(existingSms.timestamp).getTime() > Date.now() - 1000,
         )
-        
+
         // If duplicate found, don't add it
         if (recentDuplicate) {
           console.log("Duplicate SMS detected, skipping")
           return prev
         }
-        
+
         return [newSMS, ...prev]
       })
 

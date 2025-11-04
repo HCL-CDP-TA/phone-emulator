@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
+import { queueMessage } from "./poll/route"
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { sender, message } = body
+    const { sender, message, phoneNumber } = body
 
     // Validate required fields
     if (!sender || !message) {
@@ -15,14 +16,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "sender and message must be strings" }, { status: 400 })
     }
 
-    // The actual SMS delivery happens on the client side via BroadcastChannel
-    // This endpoint just validates and triggers the event
+    if (phoneNumber && typeof phoneNumber !== "string") {
+      return NextResponse.json({ error: "phoneNumber must be a string" }, { status: 400 })
+    }
+
     const smsData = {
       sender: sender.trim(),
       message: message.trim(),
       timestamp: new Date().toISOString(),
     }
 
+    // If phoneNumber provided, queue the message for remote delivery
+    if (phoneNumber) {
+      queueMessage(phoneNumber, smsData.sender, smsData.message)
+      return NextResponse.json(
+        {
+          success: true,
+          message: "SMS queued for delivery",
+          phoneNumber,
+          data: smsData,
+        },
+        { status: 200 },
+      )
+    }
+
+    // Otherwise, return success (client-side BroadcastChannel handles delivery)
     return NextResponse.json(
       {
         success: true,
