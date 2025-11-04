@@ -6,9 +6,9 @@ import { useSearchParams } from "next/navigation"
 
 function TesterContent() {
   const searchParams = useSearchParams()
-  const [sender, setSender] = useState("Demo Company")
+  const [sender, setSender] = useState("Unitel")
   const [message, setMessage] = useState(
-    "Hello! Check out our amazing offer: https://example.com/black-friday-sale?promo=sms10&utm_source=text",
+    "Hello! Check out our amazing offer: https://telco.demo.now.hclsoftware.cloud/en-US/unitel&utm_source=sms&utm_medium=sms&utm_campaign=summer-sale",
   )
   const [status, setStatus] = useState("")
   const [sessionId] = useState(() => searchParams.get("session") || "")
@@ -153,4 +153,3 @@ export default function TesterPage() {
     </Suspense>
   )
 }
-

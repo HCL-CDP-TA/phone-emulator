@@ -30,12 +30,16 @@ export function useSMSReceiver() {
 
     channel.onmessage = event => {
       const { sender, message, targetSession } = event.data
+      console.log("[BroadcastChannel] Received:", { sender, message, targetSession, mySession: sessionId })
 
       // Only process if message is for this session (or broadcast to all)
       if (targetSession === sessionId || targetSession === "*") {
         if (sender && message) {
+          console.log("[BroadcastChannel] Processing SMS")
           addSMS({ sender, message })
         }
+      } else {
+        console.log("[BroadcastChannel] Ignoring - not for this session")
       }
     }
 
@@ -43,7 +47,9 @@ export function useSMSReceiver() {
     const handleSMSEvent = (event: Event) => {
       const customEvent = event as CustomEvent
       const { sender, message } = customEvent.detail
+      console.log("[CustomEvent] Received:", { sender, message })
       if (sender && message) {
+        console.log("[CustomEvent] Processing SMS")
         addSMS({ sender, message })
       }
     }
@@ -61,20 +67,27 @@ export function useSMSReceiver() {
 
 // Global function to send SMS (can be called from tester page or API)
 export function sendSMSToPhone(sender: string, message: string, targetSession?: string) {
-  // Use BroadcastChannel to send to other tabs
-  const channel = new BroadcastChannel("phone-sms-channel")
-  channel.postMessage({
-    sender,
-    message,
-    targetSession: targetSession || getSessionId(),
-  })
-  channel.close()
+  console.log("[sendSMSToPhone] Called with:", { sender, message, targetSession })
 
-  // Also dispatch local event for same-window
-  const event = new CustomEvent("sms-received", {
-    detail: { sender, message },
-  })
-  window.dispatchEvent(event)
+  // If no targetSession specified, use CustomEvent (same window - on-page tester)
+  // If targetSession provided, use BroadcastChannel (different window - separate tab tester)
+  if (!targetSession) {
+    console.log("[sendSMSToPhone] No targetSession - using CustomEvent (same window)")
+    const event = new CustomEvent("sms-received", {
+      detail: { sender, message },
+    })
+    window.dispatchEvent(event)
+  } else {
+    // Targeting a different session - use BroadcastChannel only
+    console.log("[sendSMSToPhone] Has targetSession - using BroadcastChannel (different window):", targetSession)
+    const channel = new BroadcastChannel("phone-sms-channel")
+    channel.postMessage({
+      sender,
+      message,
+      targetSession: targetSession,
+    })
+    channel.close()
+  }
 }
 
 // Make it available globally

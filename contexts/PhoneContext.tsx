@@ -25,11 +25,32 @@ function loadSMSFromStorage(): SMS[] {
     const stored = localStorage.getItem("phone-sms-messages")
     if (stored) {
       const parsed = JSON.parse(stored)
-      // Convert timestamp strings back to Date objects
-      return parsed.map((sms: SMS) => ({
+      // Convert timestamp strings back to Date objects and deduplicate
+      const messages = parsed.map((sms: SMS) => ({
         ...sms,
         timestamp: new Date(sms.timestamp),
       }))
+
+      // Deduplicate messages with same ID (keep the first occurrence)
+      const seen = new Set<string>()
+      const deduped = messages.filter((sms: SMS) => {
+        if (seen.has(sms.id)) {
+          return false
+        }
+        seen.add(sms.id)
+        return true
+      })
+
+      // If duplicates were found, regenerate IDs for safety
+      if (deduped.length < messages.length) {
+        console.warn("Duplicate message IDs found, regenerating...")
+        return deduped.map((sms: SMS) => ({
+          ...sms,
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        }))
+      }
+
+      return deduped
     }
   } catch (error) {
     console.error("Failed to load SMS from localStorage:", error)
@@ -63,7 +84,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
   const addNotification = useCallback((notification: Omit<Notification, "id" | "timestamp">) => {
     const newNotification: Notification = {
       ...notification,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       timestamp: new Date(),
     }
     setNotifications(prev => [newNotification, ...prev])
@@ -77,11 +98,28 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     (sms: Omit<SMS, "id" | "timestamp" | "read">) => {
       const newSMS: SMS = {
         ...sms,
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         timestamp: new Date(),
         read: false,
       }
-      setSmsMessages(prev => [newSMS, ...prev])
+      
+      // Check for duplicate message (same sender and message within last second)
+      setSmsMessages(prev => {
+        const recentDuplicate = prev.find(
+          existingSms =>
+            existingSms.sender === newSMS.sender &&
+            existingSms.message === newSMS.message &&
+            new Date(existingSms.timestamp).getTime() > Date.now() - 1000
+        )
+        
+        // If duplicate found, don't add it
+        if (recentDuplicate) {
+          console.log("Duplicate SMS detected, skipping")
+          return prev
+        }
+        
+        return [newSMS, ...prev]
+      })
 
       // Also create a notification
       addNotification({

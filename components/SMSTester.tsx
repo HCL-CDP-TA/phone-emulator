@@ -5,8 +5,10 @@ import { sendSMSToPhone } from "@/hooks/useSMSReceiver"
 
 export default function SMSTester() {
   const [isMinimized, setIsMinimized] = useState(true)
-  const [sender, setSender] = useState("Demo Company")
-  const [message, setMessage] = useState("Hello! Check out our amazing offer: https://example.com/special-offer")
+  const [sender, setSender] = useState("Unitel")
+  const [message, setMessage] = useState(
+    "Hello! Check out our amazing offer: https://telco.demo.now.hclsoftware.cloud/en-US/unitel?utm_source=sms&utm_medium=sms&utm_campaign=summer-sale",
+  )
   const [status, setStatus] = useState("")
 
   const handleSendSMS = async () => {
