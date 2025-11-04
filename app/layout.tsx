@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Phone Emulator - MarTech Demo",
-  description: "A smartphone emulator for demonstrating martech software in desktop browsers",
+  title: "Phone Emulator",
+  description: "A smartphone emulator for demonstrating Martech software in desktop browsers",
 }
 
 export default function RootLayout({
