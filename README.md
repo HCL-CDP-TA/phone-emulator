@@ -15,6 +15,8 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 - **📲 Modular App System** - Extensible framework for adding new apps
 - **⏰ System UI** - Status bar with time, battery, signal strength
 - **🎨 Home Screen** - Realistic app grid with dummy apps for authentic look
+- **📞 Phone Number Login** - Optional phone number registration for remote SMS delivery ✨ NEW
+- **⚡ Real-Time Delivery** - Server-Sent Events (SSE) for instant message delivery from external systems ✨ NEW
 
 ### Included Apps
 
@@ -59,6 +61,8 @@ Use the built-in SMS Tester (bottom-right corner) to send a test SMS:
 
 ## 📡 SMS API
 
+### Local Delivery (Same Browser)
+
 Send SMS messages to the phone via HTTP API:
 
 ```bash
@@ -70,19 +74,44 @@ curl -X POST http://localhost:3000/api/sms \
   }'
 ```
 
+### Remote Delivery (Different Browser/Computer) ✨ NEW
+
+Send SMS from marketing automation systems or external applications:
+
+```bash
+curl -X POST http://localhost:3000/api/sms \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "+12345678901",
+    "sender": "Marketing System",
+    "message": "Campaign message here"
+  }'
+```
+
 ```javascript
-// JavaScript example
-await fetch("/api/sms", {
+// JavaScript example for marketing automation
+await fetch("https://your-emulator.com/api/sms", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    sender: "YourCompany",
+    phoneNumber: "+12345678901", // Target phone number
+    sender: "YourBrand",
     message: "Special offer! Visit: https://yoursite.com/offer",
   }),
 })
 ```
 
-📚 **Full API Documentation:** [docs/API.md](docs/API.md)
+**How It Works:**
+
+1. User opens phone emulator and logs in with phone number (e.g., `+12345678901`)
+2. External system sends SMS to that phone number via API
+3. Message delivered **instantly** via Server-Sent Events (SSE)
+4. If phone offline, message queued for delivery when online
+
+📚 **Full Documentation:**
+
+- [docs/API.md](docs/API.md) - Complete API reference
+- [docs/REMOTE_SMS.md](docs/REMOTE_SMS.md) - Remote SMS delivery guide ✨ NEW
 
 ## 🔧 Adding Custom Apps
 
@@ -141,6 +170,15 @@ That's it! Your app appears on the home screen automatically.
 
 Demonstrate SMS campaigns, promotional links, and mobile web experiences without needing a real device.
 
+### Marketing Automation Integration ✨ NEW
+
+Connect real marketing automation platforms (HubSpot, Marketo, Salesforce, etc.) to send SMS to the emulator:
+
+- Login with a fake customer phone number (e.g., `+12345678901`)
+- Trigger campaigns in your marketing system targeting that number
+- Messages appear instantly on the emulator via SSE
+- Perfect for demos, training, and testing
+
 ### User Journey Visualization
 
 Show complete user flows: SMS → Notification → App → Web Browser
@@ -158,24 +196,32 @@ Test mobile marketing integrations in a controlled desktop environment.
 ```
 phone-emulator/
 ├── app/
-│   ├── api/sms/          # SMS API endpoint
-│   ├── page.tsx          # Main page with phone
-│   └── layout.tsx        # Root layout
+│   ├── api/
+│   │   └── sms/
+│   │       ├── route.ts        # Main SMS API (SSE + queue)
+│   │       ├── stream/         # SSE endpoint ✨ NEW
+│   │       └── poll/           # Polling fallback (deprecated)
+│   ├── page.tsx                # Main page with phone number login
+│   └── layout.tsx              # Root layout
 ├── components/
-│   ├── apps/             # Individual app implementations
-│   ├── phone/            # Phone UI components
-│   └── SMSTester.tsx     # Built-in testing tool
+│   ├── apps/                   # Individual app implementations
+│   ├── phone/
+│   │   ├── Phone.tsx           # Phone shell
+│   │   ├── PhoneNumberLogin.tsx # Login screen ✨ NEW
+│   │   └── ...                 # Other phone UI components
+│   └── SMSTester.tsx           # Built-in testing tool
 ├── contexts/
-│   └── PhoneContext.tsx  # Global phone state
+│   └── PhoneContext.tsx        # Global phone state
 ├── hooks/
-│   └── useSMSReceiver.ts # SMS event handling
+│   └── useSMSReceiver.ts       # SMS event handling (SSE + BroadcastChannel)
 ├── lib/
-│   └── appRegistry.tsx   # App registration
+│   └── appRegistry.tsx         # App registration
 ├── types/
-│   └── app.ts            # TypeScript definitions
+│   └── app.ts                  # TypeScript definitions
 └── docs/
-    ├── API.md            # SMS API documentation
-    └── APPS.md           # App development guide
+    ├── API.md                  # SMS API documentation
+    ├── APPS.md                 # App development guide
+    └── REMOTE_SMS.md           # Remote SMS feature guide ✨ NEW
 ```
 
 ## 🎨 Customization
@@ -225,7 +271,10 @@ Edit `components/phone/StatusBar.tsx` to customize time format, battery display,
 ✅ Status bar with time/battery/signal  
 ✅ Mouse-based navigation (no keyboard UI)  
 ✅ API documentation  
-✅ App framework documentation
+✅ App framework documentation  
+✅ Remote SMS delivery from external systems ✨ NEW  
+✅ Real-time message delivery via SSE ✨ NEW  
+✅ Phone number-based targeting ✨ NEW
 
 ## 🚦 Navigation
 

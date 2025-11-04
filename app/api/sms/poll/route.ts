@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
 
+// NOTE: This polling endpoint is DEPRECATED as of the SSE implementation.
+// The client now uses Server-Sent Events (/api/sms/stream) for real-time delivery.
+// This endpoint is kept as a backup/fallback mechanism only.
+// The queueMessage() function is still used when SSE delivery fails (no active connections).
+
 // In-memory message queue (in production, use Redis or a database)
 // Structure: { phoneNumber: [{ sender, message, timestamp }, ...] }
 const messageQueues = new Map<string, Array<{ sender: string; message: string; timestamp: number }>>()
@@ -20,6 +25,7 @@ function cleanupOldMessages() {
 // Run cleanup every minute
 setInterval(cleanupOldMessages, 60 * 1000)
 
+// DEPRECATED: Client no longer uses polling. Kept for backward compatibility.
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -48,8 +54,11 @@ export async function GET(request: Request) {
   }
 }
 
-// Function to add message to queue (called from main SMS API)
+// Function to add message to queue (called from main SMS API as fallback when SSE fails)
+// This is still active and used when no SSE connections are available for a phone number
 export function queueMessage(phoneNumber: string, sender: string, message: string) {
+  console.log(`[Queue] Queueing message for ${phoneNumber} (SSE delivery failed)`)
+
   if (!messageQueues.has(phoneNumber)) {
     messageQueues.set(phoneNumber, [])
   }

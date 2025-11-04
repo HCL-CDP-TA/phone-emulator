@@ -72,9 +72,11 @@ Send SMS to a phone (supports both local and remote delivery)
 - **With phoneNumber**: Message is queued on server for remote delivery
 - **Without phoneNumber**: Message is sent via BroadcastChannel (same-browser only)
 
-### GET /api/sms/poll
+### GET /api/sms/poll (DEPRECATED)
 
-Poll for new messages (used internally by phone emulator)
+⚠️ **This endpoint is deprecated**. The client now uses SSE (`/api/sms/stream`) for real-time delivery. This endpoint is kept as a backup fallback mechanism only.
+
+Poll for new messages (backup mechanism when SSE unavailable)
 
 **Query Parameters:**
 
@@ -98,11 +100,22 @@ Poll for new messages (used internally by phone emulator)
 }
 ```
 
-## Message Queue
+## Delivery Architecture
 
-- **In-memory storage**: Messages are stored in a Map on the server
-- **Auto-cleanup**: Messages older than 5 minutes are automatically deleted
+### Primary: Server-Sent Events (SSE)
+
+- **Real-time connection**: Client opens EventSource to `/api/sms/stream`
+- **Instant delivery**: Messages broadcast immediately when received
+- **Keep-alive**: Heartbeat every 5 seconds detects dead connections
+- **Automatic cleanup**: Closed connections removed from active set
+- **Production ready**: Efficient, scalable for demo use cases
+
+### Fallback: Message Queue (Deprecated)
+
+- **In-memory storage**: Messages stored in Map when SSE delivery fails
+- **Auto-cleanup**: Messages older than 5 minutes automatically deleted
 - **Limit**: Maximum 50 messages per phone number
+- **Usage**: Only when no active SSE connection available
 - **Production**: Replace with Redis or database for persistence
 
 ## Use Cases
@@ -160,26 +173,43 @@ await fetch("https://your-emulator.com/api/sms", {
 
 ## Implementation Details
 
-### Client-Side Polling
+### Client-Side SSE Connection
 
 Located in `/app/page.tsx`:
 
 ```typescript
 useEffect(() => {
-  if (!phoneNumber) return
+  if (!phoneNumber || phoneNumber === "skip") return
 
-  const pollForMessages = async () => {
-    const response = await fetch(`/api/sms/poll?phoneNumber=${phoneNumber}&since=${lastPollTime}`)
-    const data = await response.json()
-    data.messages.forEach(msg => addSMS(msg))
+  const eventSource = new EventSource(`/api/sms/stream?phoneNumber=${encodeURIComponent(phoneNumber)}`)
+
+  eventSource.onmessage = event => {
+    const data = JSON.parse(event.data)
+    if (data.sender && data.message) {
+      addSMS({ sender: data.sender, message: data.message })
+    }
   }
 
-  const interval = setInterval(pollForMessages, 2000)
-  return () => clearInterval(interval)
+  return () => eventSource.close()
 }, [phoneNumber])
 ```
 
-### Server-Side Queue
+### Server-Side SSE Broadcast
+
+Located in `/app/api/sms/stream/route.ts`:
+
+```typescript
+// Track active connections per phone number
+const activeConnections = new Map<string, Set<ReadableStreamDefaultController>>()
+
+// Broadcast to all connections for a phone number
+export function broadcastToPhone(phoneNumber: string, sender: string, message: string) {
+  const connections = activeConnections.get(phoneNumber)
+  // Send SSE message to all active connections
+}
+```
+
+### Fallback Queue (Deprecated)
 
 Located in `/app/api/sms/poll/route.ts`:
 
@@ -187,6 +217,7 @@ Located in `/app/api/sms/poll/route.ts`:
 // In-memory Map: { phoneNumber: [{ sender, message, timestamp }, ...] }
 const messageQueues = new Map()
 
+// Only used when no active SSE connection
 // Messages auto-expire after 5 minutes
 // Maximum 50 messages per phone number
 ```

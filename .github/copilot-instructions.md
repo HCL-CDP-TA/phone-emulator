@@ -17,6 +17,8 @@
 7. **Persistence**: Messages stored locally and survive page refreshes
 8. **Cross-Tab Communication**: SMS can be sent from separate tester page to phone in different tab/window
 9. **Session Isolation**: Multiple users can run the emulator simultaneously without interference
+10. **Remote SMS Delivery**: Phone number-based system for receiving SMS from external systems (marketing automation) ✨ NEW
+11. **Real-time Delivery**: Server-Sent Events (SSE) for instant message delivery without polling ✨ NEW
 
 ## Architecture & Design Patterns
 
@@ -88,6 +90,33 @@ Location: `/hooks/useSMSReceiver.ts`
 
 **Session ID Format**: `session-{timestamp}-{random}`
 
+### 4a. **Server-Sent Events (SSE)** (Real-Time Remote Delivery) ✨ NEW
+
+Location: `/app/api/sms/stream/route.ts`
+
+**Problem Solved**: Marketing automation systems need to send SMS to phone from external systems (different browsers/computers) with instant delivery.
+
+**Solution**:
+
+- Phone logs in with phone number (e.g., `+12345678901`)
+- Client opens EventSource connection to `/api/sms/stream?phoneNumber=...`
+- Server maintains Map of active connections per phone number
+- External API calls (`POST /api/sms` with `phoneNumber`) broadcast instantly via SSE
+- Fallback to message queue if no active SSE connection
+
+**Key Features**:
+
+- Instant delivery (no polling delay)
+- Keep-alive heartbeat every 5 seconds to detect dead connections
+- Automatic cleanup of closed connections
+- Fallback to queue-based delivery when phone offline
+
+**Trade-offs**:
+
+- Development: React Strict Mode creates 2 connections (normal, auto-cleans up)
+- Production: Single connection per phone
+- Server resources: Persistent connections (acceptable for demo use case)
+
 ### 5. **Compound Component Pattern** (Phone Shell)
 
 Location: `/components/phone/Phone.tsx`
@@ -117,34 +146,41 @@ Location: `/contexts/PhoneContext.tsx` (lines 20-48)
 
 ```
 /app
-  /page.tsx                 - Main entry point, phone emulator with session display
-  /tester/page.tsx          - SMS tester page (opens in new window)
-  /api/sms/route.ts         - SMS API endpoint
-  /globals.css              - Custom cursor CSS, animations
+  /page.tsx                     - Main entry point with phone number login & SSE connection
+  /tester/page.tsx              - SMS tester page (opens in new window)
+  /api
+    /sms/route.ts               - Main SMS API (tries SSE, falls back to queue)
+    /sms/stream/route.ts        - SSE endpoint for real-time delivery ✨ NEW
+    /sms/poll/route.ts          - DEPRECATED polling endpoint (backup only)
+  /globals.css                  - Custom cursor CSS, animations
 
 /components
   /phone
-    /Phone.tsx              - Main phone shell (handles padding, home button)
-    /StatusBar.tsx          - Top status bar (time, battery, signal)
-    /HomeScreen.tsx         - App grid, home indicator
-    /NotificationBanner.tsx - Sliding notification display
+    /Phone.tsx                  - Main phone shell (handles padding, home button)
+    /PhoneNumberLogin.tsx       - Login screen for phone number entry ✨ NEW
+    /StatusBar.tsx              - Top status bar (time, battery, signal)
+    /HomeScreen.tsx             - App grid, home indicator
+    /NotificationBanner.tsx     - Sliding notification display
   /apps
-    /MessagesApp.tsx        - Conversation-based messaging with avatars
-    /BrowserApp.tsx         - iframe-based web browser
-    /[DummyApps].tsx        - Camera, Photos, Clock, etc.
-  /SMSTester.tsx            - Minimizable SMS tester (embedded)
+    /MessagesApp.tsx            - Conversation-based messaging with avatars
+    /BrowserApp.tsx             - iframe-based web browser
+    /[DummyApps].tsx            - Camera, Photos, Clock, etc.
+  /SMSTester.tsx                - Minimizable SMS tester (embedded)
 
 /contexts
-  /PhoneContext.tsx         - Global state management
+  /PhoneContext.tsx             - Global state management
 
 /hooks
-  /useSMSReceiver.ts        - BroadcastChannel setup, SMS delivery
+  /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
 
 /lib
-  /appRegistry.tsx          - Central app registry (IMPORTANT for extensions)
+  /appRegistry.tsx              - Central app registry (IMPORTANT for extensions)
 
 /types
-  /app.ts                   - TypeScript interfaces
+  /app.ts                       - TypeScript interfaces
+
+/docs
+  /REMOTE_SMS.md                - Comprehensive remote SMS feature documentation ✨ NEW
 ```
 
 ## Key Interfaces
@@ -202,7 +238,30 @@ Each browser tab gets unique session ID in sessionStorage (tab-specific, not sha
 - Targeted SMS delivery to specific phone
 - Demo/testing scenarios with multiple "phones"
 
-### 6. **Custom Mobile Cursor**
+### 6. **Phone Number Login System** ✨ NEW
+
+Users can optionally login with a phone number (e.g., `+12345678901`) to enable remote SMS delivery:
+
+- **Skip mode**: Click "Skip" to use local-only mode (original behavior preserved)
+- **Phone number mode**: Enter number to enable remote API delivery
+- Phone number stored in localStorage, persists across refreshes
+- Logout button to switch phone numbers
+- Validation: Must be +[country code][10-15 digits]
+
+### 7. **SSE Real-Time Delivery** ✨ NEW
+
+Server-Sent Events for instant message delivery:
+
+- Client opens persistent connection to `/api/sms/stream`
+- Server maintains Map of active connections per phone number
+- Messages broadcast instantly when received via API
+- Keep-alive heartbeat every 5 seconds detects dead connections
+- Automatic cleanup of closed connections
+- Fallback to queue if no active connection
+
+**Dev Note**: React Strict Mode creates 2 connections in development (normal behavior). Production has 1 connection.
+
+### 8. **Custom Mobile Cursor**
 
 Location: `/app/globals.css`
 
@@ -212,9 +271,9 @@ Custom CSS cursor (circular touch point) applied to interactive elements for mob
 
 ### POST /api/sms
 
-Send SMS to phone emulator
+Send SMS to phone emulator (supports both local and remote delivery)
 
-**Request**:
+**Request (Local - same browser)**:
 
 ```json
 {
@@ -223,16 +282,83 @@ Send SMS to phone emulator
 }
 ```
 
+**Request (Remote - different browser/computer)** ✨ NEW:
+
+```json
+{
+  "phoneNumber": "+12345678901",
+  "sender": "Demo Company",
+  "message": "Your message here"
+}
+```
+
 **Response**:
 
 ```json
 {
   "success": true,
-  "timestamp": "2024-01-01T12:00:00Z"
+  "message": "SMS delivered via SSE",
+  "deliveryMethod": "sse", // or "queue" if offline
+  "phoneNumber": "+12345678901",
+  "data": {
+    "sender": "Demo Company",
+    "message": "Your message here",
+    "timestamp": "2024-11-04T12:00:00Z"
+  }
 }
 ```
 
-**Delivery**: API call triggers BroadcastChannel message to connected phone(s)
+**Delivery Methods**:
+
+- **No phoneNumber**: BroadcastChannel to same-browser tabs
+- **With phoneNumber + active SSE**: Instant delivery via Server-Sent Events
+- **With phoneNumber + offline**: Queued for polling fallback (deprecated)
+
+### GET /api/sms/stream ✨ NEW
+
+Server-Sent Events endpoint for real-time message delivery
+
+**Usage**:
+
+```javascript
+const eventSource = new EventSource("/api/sms/stream?phoneNumber=%2B12345678901")
+eventSource.onmessage = event => {
+  const { sender, message } = JSON.parse(event.data)
+  // Handle message
+}
+```
+
+**Query Parameters**:
+
+- `phoneNumber` (required): URL-encoded phone number (e.g., `%2B12345678901`)
+
+**Event Stream**:
+
+- Connection message: `{ type: "connected", phoneNumber: "..." }`
+- SMS message: `{ sender: "...", message: "...", timestamp: 1234567890 }`
+- Keep-alive: `: keepalive` (every 5 seconds)
+
+### GET /api/sms/poll (DEPRECATED)
+
+⚠️ **This endpoint is deprecated**. Client now uses SSE for real-time delivery. Kept as backup only.
+
+Polling endpoint for retrieving queued messages (fallback mechanism)
+
+**Query Parameters**:
+
+- `phoneNumber` (required): Phone number
+- `since` (optional): Unix timestamp - only return messages after this time
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "phoneNumber": "+12345678901",
+  "messages": [{ "sender": "...", "message": "...", "timestamp": 1234567890 }],
+  "count": 1
+}
+```
 
 ## Common Tasks
 
