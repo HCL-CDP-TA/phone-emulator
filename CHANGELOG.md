@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.6...v1.1.0) (2025-11-04)
+
+
+### Features
+
+* added recipient capability for to-number sending ([3909119](https://github.com/HCL-CDP-TA/phone-emulator/commit/39091193b60e92273db3c7ff64395f9add4e398e))
+* added SEE (server side events) to replace polling ([fd8964a](https://github.com/HCL-CDP-TA/phone-emulator/commit/fd8964a4e165b72c69238bc5d5b2510db91b7edd))
+
 ## [1.0.6](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.5...v1.0.6) (2025-11-04)
 
 
