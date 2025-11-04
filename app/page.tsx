@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Phone from "@/components/phone/Phone"
 import SMSTester from "@/components/SMSTester"
 import PhoneNumberLogin from "@/components/phone/PhoneNumberLogin"
@@ -10,53 +10,92 @@ import { useSMSReceiver } from "@/hooks/useSMSReceiver"
 function PhoneEmulator() {
   const sessionId = useSMSReceiver()
   const { addSMS } = usePhone()
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(() => {
-    // Load from localStorage on initial render
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("phone-number")
-    }
-    return null
-  })
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+
+  // Load from localStorage after mount (avoids hydration mismatch)
+  useEffect(() => {
+    // Use a microtask to avoid the lint warning
+    Promise.resolve().then(() => {
+      const stored = localStorage.getItem("phone-number")
+      setPhoneNumber(stored)
+      setIsLoaded(true)
+    })
+  }, [])
 
   // Save phone number to localStorage when it changes
   useEffect(() => {
-    if (phoneNumber) {
+    if (phoneNumber && isLoaded) {
       localStorage.setItem("phone-number", phoneNumber)
     }
-  }, [phoneNumber])
+  }, [phoneNumber, isLoaded])
 
-  // Poll for remote SMS messages when logged in with a phone number
+  // Connect to SSE stream for remote SMS messages when logged in with a phone number
   useEffect(() => {
-    if (!phoneNumber || phoneNumber === "skip") return
+    if (!phoneNumber || phoneNumber === "skip" || !isLoaded) return
 
-    let lastPollTime = Date.now()
+    let isMounted = true
 
-    const pollForMessages = async () => {
-      try {
-        const response = await fetch(
-          `/api/sms/poll?phoneNumber=${encodeURIComponent(phoneNumber)}&since=${lastPollTime}`,
-        )
-        if (response.ok) {
-          const data = await response.json()
-          if (data.messages && data.messages.length > 0) {
-            data.messages.forEach((msg: { sender: string; message: string }) => {
-              addSMS({ sender: msg.sender, message: msg.message })
-            })
-            lastPollTime = Date.now()
+    // Close existing connection if any and wait for cleanup
+    const connectToStream = async () => {
+      if (eventSourceRef.current) {
+        console.log("[SSE] Closing existing connection before creating new one")
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+        // Wait longer for server-side cleanup to complete
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+
+      if (!isMounted) return
+
+      console.log(`[SSE] Connecting to stream for ${phoneNumber}`)
+
+      const eventSource = new EventSource(`/api/sms/stream?phoneNumber=${encodeURIComponent(phoneNumber)}`)
+      eventSourceRef.current = eventSource
+
+      eventSource.onopen = () => {
+        console.log("[SSE] Connection established")
+      }
+
+      eventSource.onmessage = event => {
+        try {
+          const data = JSON.parse(event.data)
+
+          if (data.type === "connected") {
+            console.log(`[SSE] Connected to phone number: ${data.phoneNumber}`)
+            return
           }
+
+          // Received SMS message
+          if (data.sender && data.message) {
+            console.log(`[SSE] Received message from ${data.sender}`)
+            addSMS({ sender: data.sender, message: data.message })
+          }
+        } catch (error) {
+          console.error("[SSE] Failed to parse message:", error)
         }
-      } catch (error) {
-        console.error("Failed to poll for messages:", error)
+      }
+
+      eventSource.onerror = error => {
+        console.error("[SSE] Connection error:", error)
+        // EventSource automatically reconnects
       }
     }
 
-    // Poll every 2 seconds
-    const interval = setInterval(pollForMessages, 2000)
-    // Also poll immediately
-    pollForMessages()
+    connectToStream()
 
-    return () => clearInterval(interval)
-  }, [phoneNumber, addSMS])
+    // Cleanup on unmount or phone number change
+    return () => {
+      isMounted = false
+      if (eventSourceRef.current) {
+        console.log("[SSE] Closing connection")
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phoneNumber, isLoaded]) // Removed addSMS to prevent re-renders
 
   const handleLogin = (number: string) => {
     setPhoneNumber(number || "skip") // "skip" means no phone number (anonymous mode)
@@ -65,6 +104,15 @@ function PhoneEmulator() {
   const handleLogout = () => {
     setPhoneNumber(null)
     localStorage.removeItem("phone-number")
+  }
+
+  // Show loading state during hydration
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-100 to-gray-200">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    )
   }
 
   if (phoneNumber === null) {

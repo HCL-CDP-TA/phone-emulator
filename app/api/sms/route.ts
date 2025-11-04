@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { queueMessage } from "./poll/route"
+import { broadcastToPhone } from "./stream/route"
 
 export async function POST(request: Request) {
   try {
@@ -26,18 +27,36 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     }
 
-    // If phoneNumber provided, queue the message for remote delivery
+    // If phoneNumber provided, try SSE first, fallback to queue
     if (phoneNumber) {
-      queueMessage(phoneNumber, smsData.sender, smsData.message)
-      return NextResponse.json(
-        {
-          success: true,
-          message: "SMS queued for delivery",
-          phoneNumber,
-          data: smsData,
-        },
-        { status: 200 },
-      )
+      const delivered = broadcastToPhone(phoneNumber, smsData.sender, smsData.message)
+
+      if (delivered) {
+        // Message delivered via SSE
+        return NextResponse.json(
+          {
+            success: true,
+            message: "SMS delivered via SSE",
+            phoneNumber,
+            data: smsData,
+            deliveryMethod: "sse",
+          },
+          { status: 200 },
+        )
+      } else {
+        // No active connection, queue for polling fallback
+        queueMessage(phoneNumber, smsData.sender, smsData.message)
+        return NextResponse.json(
+          {
+            success: true,
+            message: "SMS queued for delivery (no active connection)",
+            phoneNumber,
+            data: smsData,
+            deliveryMethod: "queue",
+          },
+          { status: 200 },
+        )
+      }
     }
 
     // Otherwise, return success (client-side BroadcastChannel handles delivery)
