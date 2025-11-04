@@ -7,7 +7,7 @@ import HomeScreen from "./HomeScreen"
 import NotificationBanner from "./NotificationBanner"
 
 export default function Phone() {
-  const { activeApp, closeApp, addNotification } = usePhone()
+  const { activeApp, closeApp, addNotification, location, requestLocation } = usePhone()
 
   const currentApp = activeApp ? getAppById(activeApp) : null
   const AppComponent = currentApp?.component
@@ -23,7 +23,17 @@ export default function Phone() {
 
         {/* App Content or Home Screen */}
         <div className="w-full h-full pt-11">
-          {AppComponent ? <AppComponent onClose={closeApp} onSendNotification={addNotification} /> : <HomeScreen />}
+          {AppComponent ? (
+            <AppComponent
+              onClose={closeApp}
+              onSendNotification={addNotification}
+              location={location.position}
+              locationError={location.error}
+              requestLocation={requestLocation}
+            />
+          ) : (
+            <HomeScreen />
+          )}
         </div>
 
         {/* Notification Banner */}

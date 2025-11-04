@@ -20,6 +20,9 @@ interface App {
 interface AppProps {
   onClose: () => void // Callback to close the app
   onSendNotification?: (notification: Notification) => void // Send notifications
+  location?: GeolocationPosition | null // Current location ✨ NEW
+  locationError?: GeolocationPositionError | null // Location error ✨ NEW
+  requestLocation?: () => void // Request location ✨ NEW
 }
 ```
 
@@ -130,8 +133,63 @@ interface PhoneContextType {
   smsMessages: SMS[] // All SMS messages
   addSMS: (sms) => void // Add new SMS (usually from API)
   markSMSAsRead: (id: string) => void // Mark SMS as read
+  location: LocationState // Current location state ✨ NEW
+  requestLocation: () => void // Request location once ✨ NEW
+  watchLocation: () => number | null // Watch location continuously ✨ NEW
+  clearLocationWatch: (id: number) => void // Stop watching location ✨ NEW
 }
 ```
+
+### Using Location Services ✨ NEW
+
+Apps can access the user's location using the `useLocation` hook:
+
+**Note**: Location is automatically requested when the phone loads, so it's immediately available to all apps.
+
+```tsx
+import { useLocation } from "@/hooks/useLocation"
+
+function YourApp({ onClose }: AppProps) {
+  // Location is already requested - just access it
+  const { position, error, isLoading, requestLocation } = useLocation({
+    watch: false, // Set true for continuous tracking
+  })
+
+  if (isLoading) return <div>Getting location...</div>
+  if (error) return <div>Location error: {error.message}</div>
+
+  return (
+    <div>
+      {position ? (
+        <p>
+          You are at: {position.coords.latitude}, {position.coords.longitude}
+        </p>
+      ) : (
+        <button onClick={requestLocation}>Retry Location</button>
+      )}
+    </div>
+  )
+}
+```
+
+**Location data structure:**
+
+```typescript
+interface GeolocationPosition {
+  coords: {
+    latitude: number // Decimal degrees
+    longitude: number // Decimal degrees
+    accuracy: number // Accuracy in meters
+    altitude: number | null // Meters above sea level
+    altitudeAccuracy: number | null
+    heading: number | null // Direction of travel
+    speed: number | null // Speed in m/s
+  }
+  timestamp: number // Unix timestamp
+}
+```
+
+📚 **Full Location Guide:** [LOCATION.md](./LOCATION.md)
 
 ## App Categories
 

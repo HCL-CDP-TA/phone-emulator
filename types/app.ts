@@ -13,6 +13,16 @@ export interface App {
 export interface AppProps {
   onClose: () => void
   onSendNotification?: (notification: Notification) => void
+  location?: GeolocationPosition | null
+  locationError?: GeolocationPositionError | null
+  requestLocation?: () => void
+}
+
+export interface LocationState {
+  position: GeolocationPosition | null
+  error: GeolocationPositionError | null
+  isLoading: boolean
+  hasPermission: boolean | null
 }
 
 export interface Notification {

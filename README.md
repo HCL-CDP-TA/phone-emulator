@@ -17,6 +17,7 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 - **🎨 Home Screen** - Realistic app grid with dummy apps for authentic look
 - **📞 Phone Number Login** - Optional phone number registration for remote SMS delivery ✨ NEW
 - **⚡ Real-Time Delivery** - Server-Sent Events (SSE) for instant message delivery from external systems ✨ NEW
+- **📍 Location Services** - Browser-based geolocation for location-aware apps ✨ NEW
 
 ### Included Apps
 
@@ -27,7 +28,11 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 
 **Dummy Apps (UI only):**
 
-- Camera, Photos, Clock, Calculator, Maps, Music, Contacts, Settings
+- Camera, Photos, Clock, Calculator, Music, Contacts, Settings
+
+**Location-Enabled Apps:**
+
+- **Maps** - Uses browser geolocation to show current location on OpenStreetMap ✨ NEW
 
 ## 🚀 Getting Started
 
@@ -112,6 +117,7 @@ await fetch("https://your-emulator.com/api/sms", {
 
 - [docs/API.md](docs/API.md) - Complete API reference
 - [docs/REMOTE_SMS.md](docs/REMOTE_SMS.md) - Remote SMS delivery guide ✨ NEW
+- [docs/LOCATION.md](docs/LOCATION.md) - Location services guide ✨ NEW
 
 ## 🔧 Adding Custom Apps
 
@@ -124,8 +130,12 @@ The emulator uses a modular app system. Create custom apps in 3 steps:
 "use client"
 
 import { AppProps } from "@/types/app"
+import { useLocation } from "@/hooks/useLocation" // Optional: for location access
 
 export default function MyApp({ onClose }: AppProps) {
+  // Optional: Access user location (automatically requested on phone load)
+  const { position, error, requestLocation } = useLocation()
+
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="flex items-center justify-between p-4 border-b">
@@ -135,7 +145,15 @@ export default function MyApp({ onClose }: AppProps) {
         <h1 className="text-lg font-semibold">My App</h1>
         <div className="w-16" />
       </div>
-      <div className="flex-1 overflow-y-auto p-4">{/* Your app content */}</div>
+      <div className="flex-1 overflow-y-auto p-4">
+        {/* Your app content */}
+        {position && (
+          <p>
+            Location: {position.coords.latitude}, {position.coords.longitude}
+          </p>
+        )}
+        {error && <button onClick={requestLocation}>Retry Location</button>}
+      </div>
     </div>
   )
 }
@@ -211,9 +229,10 @@ phone-emulator/
 │   │   └── ...                 # Other phone UI components
 │   └── SMSTester.tsx           # Built-in testing tool
 ├── contexts/
-│   └── PhoneContext.tsx        # Global phone state
+│   └── PhoneContext.tsx        # Global phone state (SMS, notifications, location)
 ├── hooks/
-│   └── useSMSReceiver.ts       # SMS event handling (SSE + BroadcastChannel)
+│   ├── useSMSReceiver.ts       # SMS event handling (SSE + BroadcastChannel)
+│   └── useLocation.ts          # Location access hook ✨ NEW
 ├── lib/
 │   └── appRegistry.tsx         # App registration
 ├── types/
@@ -221,7 +240,8 @@ phone-emulator/
 └── docs/
     ├── API.md                  # SMS API documentation
     ├── APPS.md                 # App development guide
-    └── REMOTE_SMS.md           # Remote SMS feature guide ✨ NEW
+    ├── REMOTE_SMS.md           # Remote SMS feature guide ✨ NEW
+    └── LOCATION.md             # Location services guide ✨ NEW
 ```
 
 ## 🎨 Customization
@@ -274,7 +294,8 @@ Edit `components/phone/StatusBar.tsx` to customize time format, battery display,
 ✅ App framework documentation  
 ✅ Remote SMS delivery from external systems ✨ NEW  
 ✅ Real-time message delivery via SSE ✨ NEW  
-✅ Phone number-based targeting ✨ NEW
+✅ Phone number-based targeting ✨ NEW  
+✅ Location services using browser geolocation ✨ NEW
 
 ## 🚦 Navigation
 
@@ -306,6 +327,7 @@ This project was created for MarTech demonstration purposes.
 
 - **API Issues:** Check [docs/API.md](docs/API.md)
 - **App Development:** See [docs/APPS.md](docs/APPS.md)
+- **Location Services:** See [docs/LOCATION.md](docs/LOCATION.md) ✨ NEW
 - **Browser Console:** Check for errors if things don't work
 
 ---

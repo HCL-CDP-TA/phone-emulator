@@ -19,6 +19,7 @@
 9. **Session Isolation**: Multiple users can run the emulator simultaneously without interference
 10. **Remote SMS Delivery**: Phone number-based system for receiving SMS from external systems (marketing automation) ✨ NEW
 11. **Real-time Delivery**: Server-Sent Events (SSE) for instant message delivery without polling ✨ NEW
+12. **Location Services**: Browser-based geolocation for apps that need location access ✨ NEW
 
 ## Architecture & Design Patterns
 
@@ -74,6 +75,9 @@ Central state management for:
 - `markSMSAsRead()` - Marks messages as read
 - `deleteConversation(sender)` - Deletes all messages from sender
 - `addNotification()` - Shows notification banner
+- `requestLocation()` - Request user's location once ✨ NEW
+- `watchLocation()` - Continuously track location ✨ NEW
+- `clearLocationWatch(id)` - Stop location tracking ✨ NEW
 
 ### 4. **BroadcastChannel API** (Cross-Tab Communication)
 
@@ -142,6 +146,45 @@ Location: `/contexts/PhoneContext.tsx` (lines 20-48)
 - Key: `phone-sms-messages`
 - Loaded on PhoneProvider mount
 
+### 7. **Location Services** ✨ NEW
+
+Location: `/contexts/PhoneContext.tsx`, `/hooks/useLocation.ts`
+
+**Problem Solved**: Apps need access to user's real device location for maps, location-based features, etc.
+
+**Solution**:
+
+- Uses browser's native Geolocation API
+- Respects user permission (browser handles permission prompts)
+- Supports both one-time requests and continuous watching
+- Location state managed in PhoneContext, accessible via props or hooks
+
+**Key Features**:
+
+- **Automatic location request on phone mount** - Location available to all apps immediately
+- One-time location request with `requestLocation()` (for retries)
+- Continuous tracking with `watchLocation()`
+- Automatic cleanup of watch subscriptions
+- Permission state tracking (`hasPermission`)
+- Error handling for denied permissions, timeouts, unavailable location
+
+**useLocation Hook**:
+
+```typescript
+// Location is already requested on phone load - just access it
+const { position, error, isLoading, hasPermission, requestLocation } = useLocation({
+  watch: false, // Set true to continuously track position
+})
+```
+
+**Location passed to apps via**:
+
+1. **Props**: `location`, `locationError`, `requestLocation` in AppProps
+2. **Hook**: `useLocation()` hook for convenience (recommended)
+3. **Context**: Direct access via `usePhone().location`
+
+**Important**: Location is automatically requested when `PhoneProvider` mounts. Apps don't need to request it manually unless retrying after an error.
+
 ## File Structure & Key Files
 
 ```
@@ -172,6 +215,7 @@ Location: `/contexts/PhoneContext.tsx` (lines 20-48)
 
 /hooks
   /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
+  /useLocation.ts               - Location access hook ✨ NEW
 
 /lib
   /appRegistry.tsx              - Central app registry (IMPORTANT for extensions)
@@ -181,6 +225,7 @@ Location: `/contexts/PhoneContext.tsx` (lines 20-48)
 
 /docs
   /REMOTE_SMS.md                - Comprehensive remote SMS feature documentation ✨ NEW
+  /LOCATION.md                  - Location services documentation ✨ NEW
 ```
 
 ## Key Interfaces
@@ -190,6 +235,9 @@ Location: `/contexts/PhoneContext.tsx` (lines 20-48)
 interface AppProps {
   onClose: () => void
   onSendNotification: (notification: Omit<Notification, "id" | "timestamp">) => void
+  location?: GeolocationPosition | null // ✨ NEW
+  locationError?: GeolocationPositionError | null // ✨ NEW
+  requestLocation?: () => void // ✨ NEW
 }
 
 // SMS message structure

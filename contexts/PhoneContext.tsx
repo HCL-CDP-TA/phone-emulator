@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react"
-import { Notification, SMS } from "@/types/app"
+import { Notification, SMS, LocationState } from "@/types/app"
 
 interface PhoneContextType {
   activeApp: string | null
@@ -14,6 +14,10 @@ interface PhoneContextType {
   addSMS: (sms: Omit<SMS, "id" | "timestamp" | "read">) => void
   markSMSAsRead: (id: string) => void
   deleteConversation: (sender: string) => void
+  location: LocationState
+  requestLocation: () => void
+  watchLocation: () => number | null
+  clearLocationWatch: (watchId: number) => void
 }
 
 const PhoneContext = createContext<PhoneContextType | undefined>(undefined)
@@ -72,6 +76,12 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
   const [activeApp, setActiveApp] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [smsMessages, setSmsMessages] = useState<SMS[]>(() => loadSMSFromStorage())
+  const [location, setLocation] = useState<LocationState>({
+    position: null,
+    error: null,
+    isLoading: false,
+    hasPermission: null,
+  })
 
   const openApp = useCallback((appId: string) => {
     setActiveApp(appId)
@@ -144,10 +154,135 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     setSmsMessages(prev => prev.filter(sms => sms.sender !== sender))
   }, [])
 
+  // Request location once
+  const requestLocation = useCallback(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocation(prev => ({
+        ...prev,
+        error: {
+          code: 2,
+          message: "Geolocation is not supported by this browser",
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        } as GeolocationPositionError,
+        hasPermission: false,
+      }))
+      return
+    }
+
+    setLocation(prev => ({ ...prev, isLoading: true }))
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        setLocation({
+          position,
+          error: null,
+          isLoading: false,
+          hasPermission: true,
+        })
+      },
+      error => {
+        setLocation({
+          position: null,
+          error,
+          isLoading: false,
+          hasPermission: error.code === 1 ? false : null,
+        })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    )
+  }, [])
+
+  // Watch location continuously
+  const watchLocation = useCallback(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      return null
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      position => {
+        setLocation(prev => ({
+          ...prev,
+          position,
+          error: null,
+          isLoading: false,
+          hasPermission: true,
+        }))
+      },
+      error => {
+        setLocation(prev => ({
+          ...prev,
+          error,
+          isLoading: false,
+          hasPermission: error.code === 1 ? false : null,
+        }))
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    )
+
+    return watchId
+  }, [])
+
+  // Clear location watch
+  const clearLocationWatch = useCallback((watchId: number) => {
+    if (typeof window !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchId)
+    }
+  }, [])
+
   // Persist SMS messages to localStorage whenever they change
   useEffect(() => {
     saveSMSToStorage(smsMessages)
   }, [smsMessages])
+
+  // Request location on mount to make it available to all apps
+  useEffect(() => {
+    // Only request once on initial mount
+    if (typeof window === "undefined" || !navigator.geolocation) return
+
+    // Use setTimeout to avoid cascading render warning
+    const timeoutId = setTimeout(() => {
+      if (navigator.geolocation) {
+        setLocation(prev => ({ ...prev, isLoading: true }))
+
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            setLocation({
+              position,
+              error: null,
+              isLoading: false,
+              hasPermission: true,
+            })
+          },
+          error => {
+            setLocation({
+              position: null,
+              error,
+              isLoading: false,
+              hasPermission: error.code === 1 ? false : null,
+            })
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          },
+        )
+      }
+    }, 0)
+
+    return () => clearTimeout(timeoutId)
+    // Empty dependency array - only run once on mount
+  }, [])
 
   return (
     <PhoneContext.Provider
@@ -162,6 +297,10 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         addSMS,
         markSMSAsRead,
         deleteConversation,
+        location,
+        requestLocation,
+        watchLocation,
+        clearLocationWatch,
       }}>
       {children}
     </PhoneContext.Provider>
