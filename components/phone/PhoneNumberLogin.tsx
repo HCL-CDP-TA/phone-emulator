@@ -1,19 +1,58 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface PhoneNumberLoginProps {
   onLogin: (phoneNumber: string) => void
 }
 
+const STORAGE_KEY = "phone-numbers-history"
+
 export default function PhoneNumberLogin({ onLogin }: PhoneNumberLoginProps) {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [error, setError] = useState("")
+  const [savedNumbers, setSavedNumbers] = useState<string[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  // Load saved phone numbers from localStorage
+  useEffect(() => {
+    const loadSavedNumbers = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          setSavedNumbers(JSON.parse(saved))
+        }
+      } catch (error) {
+        console.error("Failed to load saved phone numbers:", error)
+      }
+    }
+    loadSavedNumbers()
+  }, [])
 
   const validatePhoneNumber = (number: string): boolean => {
     // Must start with + and contain only digits after that
     const regex = /^\+\d{10,15}$/
     return regex.test(number)
+  }
+
+  const savePhoneNumber = (number: string) => {
+    try {
+      const updated = [number, ...savedNumbers.filter(n => n !== number)].slice(0, 10) // Keep max 10 numbers
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      setSavedNumbers(updated)
+    } catch (error) {
+      console.error("Failed to save phone number:", error)
+    }
+  }
+
+  const removePhoneNumber = (numberToRemove: string) => {
+    try {
+      const updated = savedNumbers.filter(n => n !== numberToRemove)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+      setSavedNumbers(updated)
+    } catch (error) {
+      console.error("Failed to remove phone number:", error)
+    }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -25,7 +64,13 @@ export default function PhoneNumberLogin({ onLogin }: PhoneNumberLoginProps) {
       return
     }
 
+    savePhoneNumber(phoneNumber)
     onLogin(phoneNumber)
+  }
+
+  const handleSelectNumber = (number: string) => {
+    setPhoneNumber(number)
+    setShowDropdown(false)
   }
 
   return (
@@ -42,22 +87,71 @@ export default function PhoneNumberLogin({ onLogin }: PhoneNumberLoginProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="relative">
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
               Phone Number
             </label>
-            <input
-              id="phoneNumber"
-              type="text"
-              value={phoneNumber}
-              onChange={e => {
-                setPhoneNumber(e.target.value)
-                setError("")
-              }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="+12345678901"
-              autoFocus
-            />
+            <div className="relative">
+              <input
+                id="phoneNumber"
+                type="text"
+                value={phoneNumber}
+                onChange={e => {
+                  setPhoneNumber(e.target.value)
+                  setError("")
+                }}
+                onFocus={() => savedNumbers.length > 0 && setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="+12345678901"
+                autoFocus
+              />
+              {savedNumbers.length > 0 && (
+                <button
+                  type="button"
+                  onMouseDown={e => e.preventDefault()} // Prevent blur on click
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown with saved numbers */}
+            {showDropdown && savedNumbers.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="p-2">
+                  <div className="text-xs font-medium text-gray-500 px-2 py-1">Previously Used Numbers</div>
+                  {savedNumbers.map(number => (
+                    <div
+                      key={number}
+                      className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 rounded group">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectNumber(number)}
+                        className="flex-1 text-left text-gray-900 font-mono">
+                        {number}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation()
+                          removePhoneNumber(number)
+                        }}
+                        className="ml-2 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
             <p className="mt-2 text-xs text-gray-500">Format: +[country code][number] (e.g., +12345678901)</p>
           </div>
