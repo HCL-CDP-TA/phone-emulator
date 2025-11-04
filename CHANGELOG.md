@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.1.0...v1.2.0) (2025-11-04)
+
+
+### Features
+
+* added history for phone numbers ([7436c43](https://github.com/HCL-CDP-TA/phone-emulator/commit/7436c438ed7fa2b502a0f0b3518b57b288bc5cdb))
+
 ## [1.1.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.0.6...v1.1.0) (2025-11-04)
 
 
