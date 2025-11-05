@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.2.0...v1.3.0) (2025-11-05)
+
+
+### Features
+
+* added location access ([6625102](https://github.com/HCL-CDP-TA/phone-emulator/commit/66251028aa8ad6a5525a788acc6f565378cdc9e9))
+
+
+### Bug Fixes
+
+* consistent navigation across apps ([f8ee9a3](https://github.com/HCL-CDP-TA/phone-emulator/commit/f8ee9a37fe9dd47198c08c79ac8694b93f125185))
+* updated favicon ([b0bb6f3](https://github.com/HCL-CDP-TA/phone-emulator/commit/b0bb6f32671e3f5f9c7daeb7edb172d13d343bce))
+
 ## [1.2.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.1.0...v1.2.0) (2025-11-04)
 
 
