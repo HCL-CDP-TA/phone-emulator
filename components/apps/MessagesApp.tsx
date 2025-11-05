@@ -206,13 +206,10 @@ export default function MessagesApp({ onClose }: AppProps) {
       <div className="flex flex-col h-full bg-white">
         {/* Conversation Header */}
         <div className="flex items-center gap-3 p-4 bg-gray-100 border-b">
-          <button
-            onClick={handleBackToList}
-            className="text-blue-500 font-medium flex items-center gap-1 hover:text-blue-600">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <button onClick={handleBackToList} className="text-blue-500 hover:text-blue-600 p-1">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            <span>Back</span>
           </button>
           <Avatar name={conversation.sender} size="md" />
           <div className="flex-1">
@@ -300,9 +297,11 @@ export default function MessagesApp({ onClose }: AppProps) {
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-gray-100 border-b">
-        <svg className="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
-        </svg>
+        <button onClick={onClose} className="text-blue-500 hover:text-blue-600 p-1">
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
         <h1 className="text-lg font-semibold">Messages</h1>
         <div className="w-6"></div>
       </div>

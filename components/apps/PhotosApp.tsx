@@ -6,8 +6,10 @@ export default function PhotosApp({ onClose }: AppProps) {
   return (
     <div className="flex flex-col h-full bg-white">
       <div className="flex items-center justify-between p-4 border-b">
-        <button onClick={onClose} className="text-blue-500 font-medium">
-          ← Back
+        <button onClick={onClose} className="text-blue-500 hover:text-blue-600 p-1">
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
         <h1 className="text-lg font-semibold">Photos</h1>
         <div className="w-16" />
