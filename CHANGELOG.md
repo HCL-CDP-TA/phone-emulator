@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.3.0...v1.4.0) (2025-11-05)
+
+
+### Features
+
+* remote sending from the tester page and number dropdown ([9e4d440](https://github.com/HCL-CDP-TA/phone-emulator/commit/9e4d4408f86bd546721280bcadc003326c54ea9a))
+
+
+### Bug Fixes
+
+* pass through geolocation to browser ([067953d](https://github.com/HCL-CDP-TA/phone-emulator/commit/067953d9118f53496c1cfd090445bcad219a1d15))
+* select all on enter the URL ([be53776](https://github.com/HCL-CDP-TA/phone-emulator/commit/be53776503ef7127cd2114f20432ba1a266d4f78))
+
 ## [1.3.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.2.0...v1.3.0) (2025-11-05)
 
 
