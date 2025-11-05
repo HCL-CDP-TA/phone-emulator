@@ -68,19 +68,12 @@ export default function BrowserApp({ onClose }: AppProps) {
           </svg>
         </button>
         <div className="flex-1 flex items-center bg-white border border-gray-300 rounded-full px-4 py-2">
-          <svg className="w-4 h-4 text-gray-400 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
-          </svg>
           <input
             ref={inputRef}
             type="text"
             value={url}
             onChange={e => setUrl(e.target.value)}
+            onFocus={e => e.target.select()}
             placeholder="Enter URL"
             className="flex-1 outline-none text-sm"
           />
