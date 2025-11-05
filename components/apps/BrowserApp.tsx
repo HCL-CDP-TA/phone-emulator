@@ -95,6 +95,7 @@ export default function BrowserApp({ onClose }: AppProps) {
             src={currentUrl}
             className="w-full h-full border-0"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+            allow="geolocation"
             title="Browser content"
           />
         ) : (
