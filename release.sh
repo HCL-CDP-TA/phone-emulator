@@ -1,9 +1,11 @@
 #!/bin/bash
 
-# Phone Emulator Release Script
+# GitHub Release Script
+# Merges a PR, deletes its branch, and checks for release-please automation
+#
 # Usage: ./release.sh [pr-number]
 # Example: ./release.sh 42
-# If no PR number provided, uses current branch's PR
+# If no PR number provided, uses current branch's PR or shows list to choose from
 
 set -e  # Exit on any error
 
