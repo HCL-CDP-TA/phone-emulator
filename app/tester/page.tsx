@@ -10,7 +10,7 @@ function TesterContent() {
   const searchParams = useSearchParams()
   const [sender, setSender] = useState("Unitel")
   const [message, setMessage] = useState(
-    "Hello! Check out our amazing offer: https://telco.demo.now.hclsoftware.cloud/en-US/unitel&utm_source=sms&utm_medium=sms&utm_campaign=summer-sale",
+    "Hello! Check out our amazing offer: https://telco.demo.now.hclsoftware.cloud/en-US/unitel?utm_source=sms&utm_medium=sms&utm_campaign=summer-sale",
   )
   const [status, setStatus] = useState("")
   const [sessionId] = useState(() => searchParams.get("session") || "")
