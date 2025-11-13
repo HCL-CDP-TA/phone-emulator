@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS messages via API, displaying notifications, and running modular apps including a functional web browser.
+A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS and HTML emails via API, displaying notifications, and running modular apps including a functional web browser.
 
 **Key Design Principle**: The emulator uses a modular architecture where new apps can be added without modifying core infrastructure - just create a component and register it.
 
@@ -46,11 +46,12 @@ Global phone state managed through React Context:
 
 - Active app tracking
 - SMS messages with localStorage persistence
+- Email messages with localStorage persistence
 - Notifications
 - Location services (geolocation)
 - App navigation (open/close)
 
-Key functions: `openApp()`, `closeApp()`, `addSMS()`, `markSMSAsRead()`, `deleteConversation()`, `addNotification()`, `requestLocation()`, `watchLocation()`
+Key functions: `openApp()`, `closeApp()`, `addSMS()`, `markSMSAsRead()`, `deleteConversation()`, `addEmail()`, `markEmailAsRead()`, `deleteEmail()`, `addNotification()`, `requestLocation()`, `watchLocation()`
 
 **3. Dual Delivery System for SMS**
 
@@ -94,6 +95,19 @@ interface SMS {
   read: boolean
 }
 
+// Email message structure
+interface Email {
+  id: string
+  from: string // email address
+  fromName?: string // display name (optional)
+  to: string // recipient email
+  subject: string
+  htmlContent?: string // HTML email body (sanitized with DOMPurify)
+  textContent: string // plain text fallback
+  timestamp: Date
+  read: boolean
+}
+
 // App registry entry
 interface App {
   id: string
@@ -109,11 +123,14 @@ interface App {
 
 ```
 /app
-  /page.tsx                     - Main entry: phone number login + SSE connection
+  /page.tsx                     - Main entry: phone number login + SSE connection + tester dropdown
   /tester/page.tsx              - SMS tester (opens in new window)
+  /email-tester/page.tsx        - Email tester (opens in new window)
   /api/sms/route.ts             - Main SMS API (SSE + queue fallback)
   /api/sms/stream/route.ts      - SSE endpoint for real-time delivery
   /api/sms/poll/route.ts        - DEPRECATED polling fallback
+  /api/email/route.ts           - Email API endpoint
+  /api/email/stream/route.ts    - Email SSE endpoint for real-time delivery
 
 /components
   /phone
@@ -124,16 +141,17 @@ interface App {
     /NotificationBanner.tsx     - Sliding notification display
   /apps
     /MessagesApp.tsx            - Conversation-based messaging with avatars
+    /EmailApp.tsx               - HTML email with DOMPurify sanitization, notifications
     /BrowserApp.tsx             - iframe-based web browser with address bar
     /MapsApp.tsx                - Location-enabled maps using OpenStreetMap
     /[DummyApps].tsx            - Camera, Photos, Clock, Calculator, etc.
-  /SMSTester.tsx                - Minimizable SMS tester component
 
 /contexts
   /PhoneContext.tsx             - Global state management
 
 /hooks
   /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
+  /useEmailReceiver.ts          - Email SSE connection hook
   /useLocation.ts               - Location access hook
 
 /lib
@@ -261,6 +279,35 @@ Delivery methods:
 ### GET /api/sms/stream
 
 Server-Sent Events endpoint for real-time message delivery. Phone establishes persistent connection on load with phone number. Messages sent via POST /api/sms are instantly broadcast to connected clients.
+
+Query params: `phoneNumber` (required, URL-encoded)
+
+### POST /api/email
+
+Send email to phone emulator. Supports both local and remote delivery.
+
+**Request**:
+
+```json
+{
+  "phoneNumber": "+12345678901",
+  "from": "marketing@company.com",
+  "fromName": "Marketing Team",
+  "to": "customer@example.com",
+  "subject": "Special Offer",
+  "htmlContent": "<h1>Hello!</h1><p>Check our <a href='https://example.com'>offer</a></p>",
+  "textContent": "Hello! Check our offer: https://example.com"
+}
+```
+
+Delivery methods:
+
+- With `phoneNumber` + active SSE connection: Instant delivery via Server-Sent Events
+- With `phoneNumber` + offline: 404 with warning (no queue for emails)
+
+### GET /api/email/stream
+
+Server-Sent Events endpoint for real-time email delivery. Works identically to SMS stream but for emails.
 
 Query params: `phoneNumber` (required, URL-encoded)
 

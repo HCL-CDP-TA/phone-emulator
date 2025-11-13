@@ -70,7 +70,9 @@ export default function EmailTesterPage() {
       } else {
         // Handle 404 specifically for no active connection
         if (response.status === 404 && data.deliveryMethod === "none") {
-          setStatus(`⚠️ Phone not connected: No active SSE connection for ${phoneNumber}. Make sure the phone is logged in with this number.`)
+          setStatus(
+            `⚠️ Phone not connected: No active SSE connection for ${phoneNumber}. Make sure the phone is logged in with this number.`,
+          )
         } else {
           setStatus(`❌ Error: ${data.error || data.message || "Failed to send email"}`)
         }

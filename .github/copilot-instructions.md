@@ -20,6 +20,7 @@
 10. **Remote SMS Delivery**: Phone number-based system for receiving SMS from external systems (marketing automation) ✨ NEW
 11. **Real-time Delivery**: Server-Sent Events (SSE) for instant message delivery without polling ✨ NEW
 12. **Location Services**: Browser-based geolocation for apps that need location access ✨ NEW
+13. **Email App**: Full HTML email support with notifications, sender display, and browser link integration ✨ NEW
 
 ## Architecture & Design Patterns
 
@@ -191,10 +192,13 @@ const { position, error, isLoading, hasPermission, requestLocation } = useLocati
 /app
   /page.tsx                     - Main entry point with phone number login & SSE connection
   /tester/page.tsx              - SMS tester page (opens in new window)
+  /email-tester/page.tsx        - Email tester page (opens in new window) ✨ NEW
   /api
     /sms/route.ts               - Main SMS API (tries SSE, falls back to queue)
     /sms/stream/route.ts        - SSE endpoint for real-time delivery ✨ NEW
     /sms/poll/route.ts          - DEPRECATED polling endpoint (backup only)
+    /email/route.ts             - Email API endpoint ✨ NEW
+    /email/stream/route.ts      - Email SSE endpoint for real-time delivery ✨ NEW
   /globals.css                  - Custom cursor CSS, animations
 
 /components
@@ -203,18 +207,19 @@ const { position, error, isLoading, hasPermission, requestLocation } = useLocati
     /PhoneNumberLogin.tsx       - Login screen for phone number entry ✨ NEW
     /StatusBar.tsx              - Top status bar (time, battery, signal)
     /HomeScreen.tsx             - App grid, home indicator
-    /NotificationBanner.tsx     - Sliding notification display
+    /NotificationBanner.tsx     - Sliding notification display with dismiss button
   /apps
     /MessagesApp.tsx            - Conversation-based messaging with avatars
+    /EmailApp.tsx               - HTML email with sanitization, notifications ✨ NEW
     /BrowserApp.tsx             - iframe-based web browser
     /[DummyApps].tsx            - Camera, Photos, Clock, etc.
-  /SMSTester.tsx                - Minimizable SMS tester (embedded)
 
 /contexts
   /PhoneContext.tsx             - Global state management
 
 /hooks
   /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
+  /useEmailReceiver.ts          - Email SSE connection hook ✨ NEW
   /useLocation.ts               - Location access hook ✨ NEW
 
 /lib
@@ -226,6 +231,7 @@ const { position, error, isLoading, hasPermission, requestLocation } = useLocati
 /docs
   /REMOTE_SMS.md                - Comprehensive remote SMS feature documentation ✨ NEW
   /LOCATION.md                  - Location services documentation ✨ NEW
+  /EMAIL_IMPLEMENTATION.md      - Email app feature documentation ✨ NEW
 ```
 
 ## Key Interfaces
@@ -245,6 +251,19 @@ interface SMS {
   id: string
   sender: string
   message: string
+  timestamp: Date
+  read: boolean
+}
+
+// Email message structure ✨ NEW
+interface Email {
+  id: string
+  from: string // email address
+  fromName?: string // display name (optional)
+  to: string // recipient email
+  subject: string
+  htmlContent?: string // HTML email body (sanitized)
+  textContent: string // plain text fallback
   timestamp: Date
   read: boolean
 }

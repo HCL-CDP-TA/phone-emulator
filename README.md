@@ -10,12 +10,13 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 
 - **📱 Realistic Phone UI** - Generic smartphone design (not iOS/Android specific)
 - **💬 SMS/Messages App** - Receive SMS via API, display notifications, clickable links
+- **📧 Email App** - Full HTML email with sanitization, notifications, sender display, browser link integration ✨ NEW
 - **🌐 Browser App** - Full web browsing with address bar using native browser rendering
-- **🔔 Push Notifications** - Banner notifications that can be clicked to open apps
+- **🔔 Push Notifications** - Banner notifications that can be clicked to open apps (with dismiss button)
 - **📲 Modular App System** - Extensible framework for adding new apps
 - **⏰ System UI** - Status bar with time, battery, signal strength
 - **🎨 Home Screen** - Realistic app grid with dummy apps for authentic look
-- **📞 Phone Number Login** - Optional phone number registration for remote SMS delivery ✨ NEW
+- **📞 Phone Number Login** - Optional phone number registration for remote SMS/Email delivery ✨ NEW
 - **⚡ Real-Time Delivery** - Server-Sent Events (SSE) for instant message delivery from external systems ✨ NEW
 - **📍 Location Services** - Browser-based geolocation for location-aware apps ✨ NEW
 
@@ -24,6 +25,7 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 **Functional Apps:**
 
 - **Messages** - Display SMS, handle notifications, clickable URLs
+- **Email** - Full HTML email display with sanitization, sender name/email, notifications, link-to-browser integration ✨ NEW
 - **Browser** - Address bar + iframe-based web viewing
 
 **Dummy Apps (UI only):**
@@ -117,7 +119,36 @@ await fetch("https://your-emulator.com/api/sms", {
 
 - [docs/API.md](docs/API.md) - Complete API reference
 - [docs/REMOTE_SMS.md](docs/REMOTE_SMS.md) - Remote SMS delivery guide ✨ NEW
+- [docs/EMAIL_IMPLEMENTATION.md](docs/EMAIL_IMPLEMENTATION.md) - Email app feature guide ✨ NEW
 - [docs/LOCATION.md](docs/LOCATION.md) - Location services guide ✨ NEW
+
+## 📧 Email API
+
+Send HTML or plain text emails to the phone via HTTP API:
+
+```bash
+curl -X POST http://localhost:3000/api/email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "+12345678901",
+    "from": "marketing@company.com",
+    "fromName": "Marketing Team",
+    "to": "customer@example.com",
+    "subject": "Special Offer!",
+    "htmlContent": "<h1>Hello!</h1><p>Check out our <a href=\"https://example.com\">special offer</a></p>",
+    "textContent": "Hello! Check out our special offer: https://example.com"
+  }'
+```
+
+**Features:**
+
+- HTML content with DOMPurify sanitization (safe subset of tags)
+- Sender name + email display
+- Links in emails open in Browser app
+- Real-time delivery via SSE
+- Email tester tool included
+
+📚 **Full Email Documentation:** [docs/EMAIL_IMPLEMENTATION.md](docs/EMAIL_IMPLEMENTATION.md)
 
 ## 🔧 Adding Custom Apps
 
@@ -215,32 +246,44 @@ Test mobile marketing integrations in a controlled desktop environment.
 phone-emulator/
 ├── app/
 │   ├── api/
-│   │   └── sms/
-│   │       ├── route.ts        # Main SMS API (SSE + queue)
-│   │       ├── stream/         # SSE endpoint ✨ NEW
-│   │       └── poll/           # Polling fallback (deprecated)
-│   ├── page.tsx                # Main page with phone number login
+│   │   ├── sms/
+│   │   │   ├── route.ts        # Main SMS API (SSE + queue)
+│   │   │   ├── stream/         # SSE endpoint ✨ NEW
+│   │   │   └── poll/           # Polling fallback (deprecated)
+│   │   └── email/
+│   │       ├── route.ts        # Email API endpoint ✨ NEW
+│   │       └── stream/         # Email SSE endpoint ✨ NEW
+│   ├── page.tsx                # Main page with phone number login + tester dropdown
+│   ├── tester/page.tsx         # SMS tester
+│   ├── email-tester/page.tsx   # Email tester ✨ NEW
 │   └── layout.tsx              # Root layout
 ├── components/
-│   ├── apps/                   # Individual app implementations
-│   ├── phone/
-│   │   ├── Phone.tsx           # Phone shell
-│   │   ├── PhoneNumberLogin.tsx # Login screen ✨ NEW
-│   │   └── ...                 # Other phone UI components
-│   └── SMSTester.tsx           # Built-in testing tool
+│   ├── apps/
+│   │   ├── MessagesApp.tsx     # SMS conversations
+│   │   ├── EmailApp.tsx        # HTML email display ✨ NEW
+│   │   ├── BrowserApp.tsx      # Web browser
+│   │   ├── MapsApp.tsx         # Location-enabled maps
+│   │   └── ...                 # Other apps
+│   └── phone/
+│       ├── Phone.tsx           # Phone shell
+│       ├── PhoneNumberLogin.tsx # Login screen ✨ NEW
+│       ├── NotificationBanner.tsx # Notifications with dismiss button
+│       └── ...                 # Other phone UI components
 ├── contexts/
-│   └── PhoneContext.tsx        # Global phone state (SMS, notifications, location)
+│   └── PhoneContext.tsx        # Global phone state (SMS, Email, notifications, location)
 ├── hooks/
 │   ├── useSMSReceiver.ts       # SMS event handling (SSE + BroadcastChannel)
+│   ├── useEmailReceiver.ts     # Email SSE connection ✨ NEW
 │   └── useLocation.ts          # Location access hook ✨ NEW
 ├── lib/
 │   └── appRegistry.tsx         # App registration
 ├── types/
 │   └── app.ts                  # TypeScript definitions
 └── docs/
-    ├── API.md                  # SMS API documentation
+    ├── API.md                  # SMS & Email API documentation
     ├── APPS.md                 # App development guide
     ├── REMOTE_SMS.md           # Remote SMS feature guide ✨ NEW
+    ├── EMAIL_IMPLEMENTATION.md # Email app feature guide ✨ NEW
     └── LOCATION.md             # Location services guide ✨ NEW
 ```
 
@@ -282,17 +325,19 @@ Edit `components/phone/StatusBar.tsx` to customize time format, battery display,
 ## 📋 Requirements Met
 
 ✅ SMS receiving via API with notifications  
-✅ Clickable links in SMS messages  
+✅ Email receiving with HTML support and notifications ✨ NEW  
+✅ Clickable links in SMS/Email messages  
 ✅ Browser app with address bar  
 ✅ Modular app interface for extensibility  
 ✅ Generic smartphone design  
-✅ Push notification system  
+✅ Push notification system with dismiss button  
 ✅ Dummy apps for realistic appearance  
 ✅ Status bar with time/battery/signal  
 ✅ Mouse-based navigation (no keyboard UI)  
+✅ Discrete tester dropdown for SMS & Email ✨ NEW  
 ✅ API documentation  
 ✅ App framework documentation  
-✅ Remote SMS delivery from external systems ✨ NEW  
+✅ Remote SMS/Email delivery from external systems ✨ NEW  
 ✅ Real-time message delivery via SSE ✨ NEW  
 ✅ Phone number-based targeting ✨ NEW  
 ✅ Location services using browser geolocation ✨ NEW
@@ -305,11 +350,16 @@ The phone uses click-based navigation optimized for desktop:
 - **Return Home:** Click the white bar at the bottom of screen (appears when in any app)
 - **Back Button:** Click "← Back" in app headers to return to previous screen
 - **View Notification:** Notification auto-appears at top, click to open app
-- **Dismiss Notification:** Click X on notification
+- **Dismiss Notification:** Click X button on notification banner
+- **Testing Tools:** Click settings gear icon (top-right) → select SMS Tester or Email Tester
 - **Messages:**
   - Conversation list shows grouped messages by sender with unread counts
   - Click any conversation to view the full message thread
   - Click back to return to conversation list
+- **Email:**
+  - Inbox shows emails with sender name, subject, preview
+  - Click email to view full HTML content
+  - Links in emails open in Browser app
 
 ## 🤝 Contributing
 
