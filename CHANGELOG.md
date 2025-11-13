@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.4.0...v1.5.0) (2025-11-13)
+
+
+### Features
+
+* add email app and sending capability ([7e6360e](https://github.com/HCL-CDP-TA/phone-emulator/commit/7e6360e580002465d666d9a1c348256249ef756f))
+
+
+### Bug Fixes
+
+* update default message with correct URL ([75ef801](https://github.com/HCL-CDP-TA/phone-emulator/commit/75ef8019ac2fbf8030cce0f403c1cfb26b7a0985))
+* update documentation with email app ([0e66521](https://github.com/HCL-CDP-TA/phone-emulator/commit/0e665211f4dabe49957008728566e67c964a0d34))
+
 ## [1.4.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.3.0...v1.4.0) (2025-11-05)
 
 
