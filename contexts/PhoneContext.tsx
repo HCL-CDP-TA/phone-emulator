@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react"
-import { Notification, SMS, LocationState } from "@/types/app"
+import { Notification, SMS, Email, LocationState } from "@/types/app"
 
 interface PhoneContextType {
   activeApp: string | null
@@ -14,6 +14,10 @@ interface PhoneContextType {
   addSMS: (sms: Omit<SMS, "id" | "timestamp" | "read">) => void
   markSMSAsRead: (id: string) => void
   deleteConversation: (sender: string) => void
+  emailMessages: Email[]
+  addEmail: (email: Omit<Email, "id" | "timestamp" | "read">) => void
+  markEmailAsRead: (id: string) => void
+  deleteEmail: (id: string) => void
   location: LocationState
   requestLocation: () => void
   watchLocation: () => number | null
@@ -72,10 +76,40 @@ function saveSMSToStorage(messages: SMS[]) {
   }
 }
 
+// Load Email from localStorage
+function loadEmailFromStorage(): Email[] {
+  if (typeof window === "undefined") return []
+  try {
+    const stored = localStorage.getItem("phone-email-messages")
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      // Convert timestamp strings back to Date objects
+      return parsed.map((email: Email) => ({
+        ...email,
+        timestamp: new Date(email.timestamp),
+      }))
+    }
+  } catch (error) {
+    console.error("Failed to load email from localStorage:", error)
+  }
+  return []
+}
+
+// Save Email to localStorage
+function saveEmailToStorage(messages: Email[]) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem("phone-email-messages", JSON.stringify(messages))
+  } catch (error) {
+    console.error("Failed to save email to localStorage:", error)
+  }
+}
+
 export function PhoneProvider({ children }: { children: ReactNode }) {
   const [activeApp, setActiveApp] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [smsMessages, setSmsMessages] = useState<SMS[]>(() => loadSMSFromStorage())
+  const [emailMessages, setEmailMessages] = useState<Email[]>(() => loadEmailFromStorage())
   const [location, setLocation] = useState<LocationState>({
     position: null,
     error: null,
@@ -152,6 +186,56 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
 
   const deleteConversation = useCallback((sender: string) => {
     setSmsMessages(prev => prev.filter(sms => sms.sender !== sender))
+  }, [])
+
+  const addEmail = useCallback(
+    (email: Omit<Email, "id" | "timestamp" | "read">) => {
+      const newEmail: Email = {
+        ...email,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        timestamp: new Date(),
+        read: false,
+      }
+
+      // Check for duplicate email (same from and subject within last second)
+      setEmailMessages(prev => {
+        const recentDuplicate = prev.find(
+          existingEmail =>
+            existingEmail.from === newEmail.from &&
+            existingEmail.subject === newEmail.subject &&
+            new Date(existingEmail.timestamp).getTime() > Date.now() - 1000,
+        )
+
+        // If duplicate found, don't add it
+        if (recentDuplicate) {
+          console.log("Duplicate email detected, skipping")
+          return prev
+        }
+
+        return [newEmail, ...prev]
+      })
+
+      // Also create a notification
+      addNotification({
+        appId: "email",
+        appName: "Mail",
+        title: email.from,
+        message: email.subject,
+        data: { emailId: newEmail.id },
+        onClick: () => {
+          openApp("email")
+        },
+      })
+    },
+    [addNotification, openApp],
+  )
+
+  const markEmailAsRead = useCallback((id: string) => {
+    setEmailMessages(prev => prev.map(email => (email.id === id ? { ...email, read: true } : email)))
+  }, [])
+
+  const deleteEmail = useCallback((id: string) => {
+    setEmailMessages(prev => prev.filter(email => email.id !== id))
   }, [])
 
   // Request location once
@@ -244,6 +328,11 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     saveSMSToStorage(smsMessages)
   }, [smsMessages])
 
+  // Persist email messages to localStorage whenever they change
+  useEffect(() => {
+    saveEmailToStorage(emailMessages)
+  }, [emailMessages])
+
   // Request location on mount to make it available to all apps
   useEffect(() => {
     // Only request once on initial mount
@@ -297,6 +386,10 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         addSMS,
         markSMSAsRead,
         deleteConversation,
+        emailMessages,
+        addEmail,
+        markEmailAsRead,
+        deleteEmail,
         location,
         requestLocation,
         watchLocation,

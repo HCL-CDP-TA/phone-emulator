@@ -1,5 +1,6 @@
 import { App } from "@/types/app"
 import MessagesApp from "@/components/apps/MessagesApp"
+import EmailApp from "@/components/apps/EmailApp"
 import BrowserApp from "@/components/apps/BrowserApp"
 import CameraApp from "@/components/apps/CameraApp"
 import PhotosApp from "@/components/apps/PhotosApp"
@@ -21,6 +22,19 @@ export const appRegistry: App[] = [
     ),
     iconColor: "bg-green-500",
     component: MessagesApp,
+    category: "communication",
+    canSendNotifications: true,
+  },
+  {
+    id: "email",
+    name: "Mail",
+    icon: (
+      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+      </svg>
+    ),
+    iconColor: "bg-blue-500",
+    component: EmailApp,
     category: "communication",
     canSendNotifications: true,
   },

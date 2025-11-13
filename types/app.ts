@@ -44,3 +44,15 @@ export interface SMS {
   timestamp: Date
   read: boolean
 }
+
+export interface Email {
+  id: string
+  from: string
+  fromName?: string
+  to: string
+  subject: string
+  htmlContent?: string
+  textContent: string
+  timestamp: Date
+  read: boolean
+}
