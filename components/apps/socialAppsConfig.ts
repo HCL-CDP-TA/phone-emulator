@@ -17,7 +17,7 @@ export const SOCIAL_APPS = [
   {
     id: "X",
     name: "X",
-    path: "X",
+    path: "x",
     iconName: "X",
     iconColor: "bg-black",
   },
