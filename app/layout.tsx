@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Phone Emulator",
   description: "A smartphone emulator for demonstrating Martech software in desktop browsers",
+  icons: [
+    { rel: "icon", url: "/favicon.svg", type: "image/svg+xml" },
+    { rel: "shortcut icon", url: "/favicon.ico" },
+  ],
 }
 
 export default function RootLayout({

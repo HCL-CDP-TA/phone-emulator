@@ -16,6 +16,19 @@ function PhoneEmulator() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const { closeApp } = usePhone()
+
+  // Escape key closes current app
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        closeApp()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [closeApp])
+
   // Connect to email SSE stream
   useEmailReceiver(phoneNumber && phoneNumber !== "skip" ? phoneNumber : null)
 

@@ -1,249 +1,101 @@
-# Phone Emulator - Copilot Instructions
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-**Purpose**: A realistic smartphone emulator built for demonstrating martech (marketing technology) software on desktop browsers. The primary use case is showcasing SMS marketing campaigns and mobile web experiences without requiring a physical device.
+A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS and HTML emails via API, displaying notifications, and running modular apps including a functional web browser.
 
-**Key Requirement**: The emulator must be easily extensible - new apps can be added without modifying core infrastructure.
+**Key Design Principle**: The emulator uses a modular architecture where new apps can be added without modifying core infrastructure - just create a component and register it.
 
-## Original Requirements
+## Development Commands
 
-1. **Smartphone Replica**: Create a website that replicates a smartphone interface viewable in desktop browsers
-2. **SMS Capability**: Ability to "receive" SMS messages triggered via API, displayed as notifications
-3. **Browser App**: A functional browser app that uses the native browser's rendering engine (iframe-based)
-4. **Modular App System**: All apps must conform to a standard interface to allow easy "installation" of new apps
-5. **Navigation**: Clear navigation between apps and home screen
-6. **Conversational Messaging**: Messages grouped by sender into conversation threads
-7. **Persistence**: Messages stored locally and survive page refreshes
-8. **Cross-Tab Communication**: SMS can be sent from separate tester page to phone in different tab/window
-9. **Session Isolation**: Multiple users can run the emulator simultaneously without interference
-10. **Remote SMS Delivery**: Phone number-based system for receiving SMS from external systems (marketing automation) ✨ NEW
-11. **Real-time Delivery**: Server-Sent Events (SSE) for instant message delivery without polling ✨ NEW
-12. **Location Services**: Browser-based geolocation for apps that need location access ✨ NEW
-13. **Email App**: Full HTML email support with notifications, sender display, and browser link integration ✨ NEW
+```bash
+# Development server (Next.js with hot reload)
+npm run dev
 
-## Architecture & Design Patterns
+# Production build
+npm run build
 
-### 1. **Component Architecture**
+# Start production server
+npm start
 
-- **Framework**: Next.js 15 with App Router, React 19, TypeScript 5
-- **Styling**: Tailwind CSS 4 with custom utilities
-- **Structure**: Modular component-based architecture
-
-### 2. **Registry Pattern** (Core Design Pattern)
-
-Location: `/lib/appRegistry.tsx`
-
-All apps are registered in a central registry:
-
-```typescript
-interface App {
-  id: string
-  name: string
-  icon: ReactNode
-  iconColor: string
-  component: React.ComponentType<AppProps>
-  category: string
-}
+# Lint code
+npm run lint
 ```
 
-**Why**: New apps can be added by simply creating a component and adding an entry to the registry - no changes to core Phone component needed.
+The development server runs on `http://localhost:3000` by default.
 
-**How to add a new app**:
+## Architecture Overview
 
-1. Create component in `/components/apps/YourApp.tsx`
-2. Implement `AppProps` interface (onClose, onSendNotification)
-3. Add entry to `appRegistry` array
-4. App automatically appears on home screen
+### Core Design Patterns
 
-### 3. **Context API Pattern** (Global State)
+**1. Registry Pattern (`/lib/appRegistry.tsx`)**
 
-Location: `/contexts/PhoneContext.tsx`
+All apps are registered centrally. Adding a new app requires:
 
-Central state management for:
+- Creating a component in `/components/apps/YourApp.tsx`
+- Implementing the `AppProps` interface
+- Adding an entry to the `appRegistry` array
+
+The home screen automatically displays all registered apps.
+
+**2. Context-Based State Management (`/contexts/PhoneContext.tsx`)**
+
+Global phone state managed through React Context:
 
 - Active app tracking
 - SMS messages with localStorage persistence
+- Email messages with localStorage persistence
 - Notifications
+- Location services (geolocation)
 - App navigation (open/close)
-- Conversation management (delete conversations)
 
-**Key Functions**:
+Key functions: `openApp()`, `closeApp()`, `addSMS()`, `markSMSAsRead()`, `deleteConversation()`, `addEmail()`, `markEmailAsRead()`, `deleteEmail()`, `addNotification()`, `requestLocation()`, `watchLocation()`
 
-- `openApp(appId)` - Opens an app
-- `closeApp()` - Returns to home screen
-- `addSMS()` - Adds message and creates notification
-- `markSMSAsRead()` - Marks messages as read
-- `deleteConversation(sender)` - Deletes all messages from sender
-- `addNotification()` - Shows notification banner
-- `requestLocation()` - Request user's location once ✨ NEW
-- `watchLocation()` - Continuously track location ✨ NEW
-- `clearLocationWatch(id)` - Stop location tracking ✨ NEW
+**3. Dual Delivery System for SMS**
 
-### 4. **BroadcastChannel API** (Cross-Tab Communication)
+Two communication mechanisms:
 
-Location: `/hooks/useSMSReceiver.ts`
+- **Local (same browser)**: BroadcastChannel API for cross-tab messaging
+- **Remote (different browsers/computers)**: Server-Sent Events (SSE) for real-time delivery via phone number targeting
 
-**Problem Solved**: SMS tester page needs to send messages to phone emulator in different tab/window.
+SSE endpoint (`/app/api/sms/stream/route.ts`) maintains persistent connections and broadcasts messages instantly when received via API.
 
-**Solution**:
+**4. Phone Shell Component Pattern**
 
-- Uses browser's BroadcastChannel API for same-origin communication
-- Each phone tab gets unique session ID (stored in sessionStorage)
-- Messages are targeted to specific session ID
-- Falls back to CustomEvent for same-window compatibility
-
-**Session ID Format**: `session-{timestamp}-{random}`
-
-### 4a. **Server-Sent Events (SSE)** (Real-Time Remote Delivery) ✨ NEW
-
-Location: `/app/api/sms/stream/route.ts`
-
-**Problem Solved**: Marketing automation systems need to send SMS to phone from external systems (different browsers/computers) with instant delivery.
-
-**Solution**:
-
-- Phone logs in with phone number (e.g., `+12345678901`)
-- Client opens EventSource connection to `/api/sms/stream?phoneNumber=...`
-- Server maintains Map of active connections per phone number
-- External API calls (`POST /api/sms` with `phoneNumber`) broadcast instantly via SSE
-- Fallback to message queue if no active SSE connection
-
-**Key Features**:
-
-- Instant delivery (no polling delay)
-- Keep-alive heartbeat every 5 seconds to detect dead connections
-- Automatic cleanup of closed connections
-- Fallback to queue-based delivery when phone offline
-
-**Trade-offs**:
-
-- Development: React Strict Mode creates 2 connections (normal, auto-cleans up)
-- Production: Single connection per phone
-- Server resources: Persistent connections (acceptable for demo use case)
-
-### 5. **Compound Component Pattern** (Phone Shell)
-
-Location: `/components/phone/Phone.tsx`
-
-Phone component orchestrates:
+The `Phone.tsx` component orchestrates the UI shell:
 
 - StatusBar (always visible, z-40)
-- App content area (with automatic top padding for StatusBar)
-- Home button (visible when app is open)
+- App content area (automatic padding for StatusBar)
+- Home button (visible only when app is open)
 - NotificationBanner
 - HomeScreen (when no app active)
 
-**Design Decision**: Apps don't need to know about StatusBar or home button - Phone component handles all chrome/UI shell concerns.
+**Apps don't manage chrome/shell concerns** - they receive full height and the Phone component handles all padding and navigation UI.
 
-### 6. **localStorage Persistence**
+**5. Social Media Integration**
 
-Location: `/contexts/PhoneContext.tsx` (lines 20-48)
+Social media apps (Facebook, Instagram, X, LinkedIn, TikTok) use a webview-based architecture:
 
-**Implementation**:
+- **Configuration-driven**: Apps defined in `socialAppsConfig.ts` with paths, icon names, and colors
+- **Dynamic URL generation**: `makeSocialAppComponent()` creates app components with URLs including demo key and user identifier (phone number)
+- **Iframe embedding**: `SocialWebviewApp.tsx` embeds external social media content in sandboxed iframes
+- **In-app browser**: PostMessage API enables social apps to open links in an overlay browser within the phone
+- **Environment-based**: Configurable via `NEXT_PUBLIC_SOCIAL_APP_KEY` and `NEXT_PUBLIC_SOCIAL_APP_BASE_URL`
 
-- SMS messages automatically saved to localStorage on every change
-- Timestamps serialized/deserialized properly
-- Key: `phone-sms-messages`
-- Loaded on PhoneProvider mount
+The system supports custom social media backends that can send postMessage events (`type: "open-url"`) to open URLs within the phone interface.
 
-### 7. **Location Services** ✨ NEW
-
-Location: `/contexts/PhoneContext.tsx`, `/hooks/useLocation.ts`
-
-**Problem Solved**: Apps need access to user's real device location for maps, location-based features, etc.
-
-**Solution**:
-
-- Uses browser's native Geolocation API
-- Respects user permission (browser handles permission prompts)
-- Supports both one-time requests and continuous watching
-- Location state managed in PhoneContext, accessible via props or hooks
-
-**Key Features**:
-
-- **Automatic location request on phone mount** - Location available to all apps immediately
-- One-time location request with `requestLocation()` (for retries)
-- Continuous tracking with `watchLocation()`
-- Automatic cleanup of watch subscriptions
-- Permission state tracking (`hasPermission`)
-- Error handling for denied permissions, timeouts, unavailable location
-
-**useLocation Hook**:
-
-```typescript
-// Location is already requested on phone load - just access it
-const { position, error, isLoading, hasPermission, requestLocation } = useLocation({
-  watch: false, // Set true to continuously track position
-})
-```
-
-**Location passed to apps via**:
-
-1. **Props**: `location`, `locationError`, `requestLocation` in AppProps
-2. **Hook**: `useLocation()` hook for convenience (recommended)
-3. **Context**: Direct access via `usePhone().location`
-
-**Important**: Location is automatically requested when `PhoneProvider` mounts. Apps don't need to request it manually unless retrying after an error.
-
-## File Structure & Key Files
-
-```
-/app
-  /page.tsx                     - Main entry point with phone number login & SSE connection
-  /tester/page.tsx              - SMS tester page (opens in new window)
-  /email-tester/page.tsx        - Email tester page (opens in new window) ✨ NEW
-  /api
-    /sms/route.ts               - Main SMS API (tries SSE, falls back to queue)
-    /sms/stream/route.ts        - SSE endpoint for real-time delivery ✨ NEW
-    /sms/poll/route.ts          - DEPRECATED polling endpoint (backup only)
-    /email/route.ts             - Email API endpoint ✨ NEW
-    /email/stream/route.ts      - Email SSE endpoint for real-time delivery ✨ NEW
-  /globals.css                  - Custom cursor CSS, animations
-
-/components
-  /phone
-    /Phone.tsx                  - Main phone shell (handles padding, home button)
-    /PhoneNumberLogin.tsx       - Login screen for phone number entry ✨ NEW
-    /StatusBar.tsx              - Top status bar (time, battery, signal)
-    /HomeScreen.tsx             - App grid, home indicator
-    /NotificationBanner.tsx     - Sliding notification display with dismiss button
-  /apps
-    /MessagesApp.tsx            - Conversation-based messaging with avatars
-    /EmailApp.tsx               - HTML email with sanitization, notifications ✨ NEW
-    /BrowserApp.tsx             - iframe-based web browser
-    /[DummyApps].tsx            - Camera, Photos, Clock, etc.
-
-/contexts
-  /PhoneContext.tsx             - Global state management
-
-/hooks
-  /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
-  /useEmailReceiver.ts          - Email SSE connection hook ✨ NEW
-  /useLocation.ts               - Location access hook ✨ NEW
-
-/lib
-  /appRegistry.tsx              - Central app registry (IMPORTANT for extensions)
-
-/types
-  /app.ts                       - TypeScript interfaces
-
-/docs
-  /REMOTE_SMS.md                - Comprehensive remote SMS feature documentation ✨ NEW
-  /LOCATION.md                  - Location services documentation ✨ NEW
-  /EMAIL_IMPLEMENTATION.md      - Email app feature documentation ✨ NEW
-```
-
-## Key Interfaces
+### Key Interfaces
 
 ```typescript
 // All apps must implement this
 interface AppProps {
   onClose: () => void
   onSendNotification: (notification: Omit<Notification, "id" | "timestamp">) => void
-  location?: GeolocationPosition | null // ✨ NEW
-  locationError?: GeolocationPositionError | null // ✨ NEW
-  requestLocation?: () => void // ✨ NEW
+  location?: GeolocationPosition | null
+  locationError?: GeolocationPositionError | null
+  requestLocation?: () => void
 }
 
 // SMS message structure
@@ -255,14 +107,14 @@ interface SMS {
   read: boolean
 }
 
-// Email message structure ✨ NEW
+// Email message structure
 interface Email {
   id: string
   from: string // email address
   fromName?: string // display name (optional)
   to: string // recipient email
   subject: string
-  htmlContent?: string // HTML email body (sanitized)
+  htmlContent?: string // HTML email body (sanitized with DOMPurify)
   textContent: string // plain text fallback
   timestamp: Date
   read: boolean
@@ -270,204 +122,182 @@ interface Email {
 
 // App registry entry
 interface App {
-  id: string // Unique identifier
-  name: string // Display name
-  icon: ReactNode // JSX icon
-  iconColor: string // Tailwind bg color class
+  id: string
+  name: string
+  icon: ReactNode
+  iconColor: string
   component: ComponentType<AppProps>
-  category: string // For organization
+  category: string
 }
 ```
 
-## Important Design Decisions
+## File Structure
 
-### 1. **No Top Padding in Apps**
+```
+/app
+  /page.tsx                     - Main entry: phone number login + SSE connection + tester dropdown
+  /tester/page.tsx              - SMS tester (opens in new window)
+  /email-tester/page.tsx        - Email tester (opens in new window)
+  /api/sms/route.ts             - Main SMS API (SSE + queue fallback)
+  /api/sms/stream/route.ts      - SSE endpoint for real-time delivery
+  /api/sms/poll/route.ts        - DEPRECATED polling fallback
+  /api/email/route.ts           - Email API endpoint
+  /api/email/stream/route.ts    - Email SSE endpoint for real-time delivery
 
-Apps render with full height. The Phone component adds `pt-11` to the app content wrapper to account for StatusBar. This keeps apps simple and unaware of phone chrome.
+/components
+  /phone
+    /Phone.tsx                  - Phone shell (padding, home button, chrome)
+    /PhoneNumberLogin.tsx       - Phone number entry screen
+    /StatusBar.tsx              - Status bar (time, battery, signal)
+    /HomeScreen.tsx             - App grid
+    /NotificationBanner.tsx     - Sliding notification display
+  /apps
+    /MessagesApp.tsx            - Conversation-based messaging with avatars
+    /EmailApp.tsx               - HTML email with DOMPurify sanitization, notifications
+    /BrowserApp.tsx             - iframe-based web browser with address bar
+    /MapsApp.tsx                - Location-enabled maps using OpenStreetMap
+    /SocialWebviewApp.tsx       - Webview component for social media apps with in-app browser
+    /socialAppsConfig.ts        - Configuration for social media apps (Facebook, Instagram, X, LinkedIn, TikTok)
+    /socialIcons.tsx            - SVG icons for social media apps
+    /[DummyApps].tsx            - Camera, Photos, Clock, Calculator, etc.
 
-### 2. **Home Button Visibility**
+/contexts
+  /PhoneContext.tsx             - Global state management
 
-Home button (white bar at bottom) only appears when an app is active. It's hidden on home screen since it would be redundant.
+/hooks
+  /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
+  /useEmailReceiver.ts          - Email SSE connection hook
+  /useLocation.ts               - Location access hook
 
-### 3. **Conversation-Based Messages**
+/lib
+  /appRegistry.tsx              - Central app registry (CRITICAL for extensions)
 
-Messages are grouped by sender into conversations. You can only delete entire conversations, not individual messages. This matches typical mobile messaging UX.
-
-### 4. **Avatar Colors**
-
-Each sender gets a consistent color based on hash of their name. 17 colors available. Initials are 1-2 letters (first letter of each word, or first 2 letters if single word).
-
-### 5. **Session ID System**
-
-Each browser tab gets unique session ID in sessionStorage (tab-specific, not shared across tabs). This allows:
-
-- Multiple phone instances in different tabs
-- Targeted SMS delivery to specific phone
-- Demo/testing scenarios with multiple "phones"
-
-### 6. **Phone Number Login System** ✨ NEW
-
-Users can optionally login with a phone number (e.g., `+12345678901`) to enable remote SMS delivery:
-
-- **Skip mode**: Click "Skip" to use local-only mode (original behavior preserved)
-- **Phone number mode**: Enter number to enable remote API delivery
-- Phone number stored in localStorage, persists across refreshes
-- Logout button to switch phone numbers
-- Validation: Must be +[country code][10-15 digits]
-
-### 7. **SSE Real-Time Delivery** ✨ NEW
-
-Server-Sent Events for instant message delivery:
-
-- Client opens persistent connection to `/api/sms/stream`
-- Server maintains Map of active connections per phone number
-- Messages broadcast instantly when received via API
-- Keep-alive heartbeat every 5 seconds detects dead connections
-- Automatic cleanup of closed connections
-- Fallback to queue if no active connection
-
-**Dev Note**: React Strict Mode creates 2 connections in development (normal behavior). Production has 1 connection.
-
-### 8. **Custom Mobile Cursor**
-
-Location: `/app/globals.css`
-
-Custom CSS cursor (circular touch point) applied to interactive elements for mobile-feel in desktop browser.
-
-## API Endpoints
-
-### POST /api/sms
-
-Send SMS to phone emulator (supports both local and remote delivery)
-
-**Request (Local - same browser)**:
-
-```json
-{
-  "sender": "Demo Company",
-  "message": "Your message here with optional https://links.com"
-}
+/types
+  /app.ts                       - TypeScript interfaces
 ```
 
-**Request (Remote - different browser/computer)** ✨ NEW:
+## Common Development Tasks
 
-```json
-{
-  "phoneNumber": "+12345678901",
-  "sender": "Demo Company",
-  "message": "Your message here"
-}
-```
+### Adding a New App
 
-**Response**:
+1. **Create the component** (`/components/apps/YourApp.tsx`):
 
-```json
-{
-  "success": true,
-  "message": "SMS delivered via SSE",
-  "deliveryMethod": "sse", // or "queue" if offline
-  "phoneNumber": "+12345678901",
-  "data": {
-    "sender": "Demo Company",
-    "message": "Your message here",
-    "timestamp": "2024-11-04T12:00:00Z"
-  }
-}
-```
-
-**Delivery Methods**:
-
-- **No phoneNumber**: BroadcastChannel to same-browser tabs
-- **With phoneNumber + active SSE**: Instant delivery via Server-Sent Events
-- **With phoneNumber + offline**: Queued for polling fallback (deprecated)
-
-### GET /api/sms/stream ✨ NEW
-
-Server-Sent Events endpoint for real-time message delivery
-
-**Usage**:
-
-```javascript
-const eventSource = new EventSource("/api/sms/stream?phoneNumber=%2B12345678901")
-eventSource.onmessage = event => {
-  const { sender, message } = JSON.parse(event.data)
-  // Handle message
-}
-```
-
-**Query Parameters**:
-
-- `phoneNumber` (required): URL-encoded phone number (e.g., `%2B12345678901`)
-
-**Event Stream**:
-
-- Connection message: `{ type: "connected", phoneNumber: "..." }`
-- SMS message: `{ sender: "...", message: "...", timestamp: 1234567890 }`
-- Keep-alive: `: keepalive` (every 5 seconds)
-
-### GET /api/sms/poll (DEPRECATED)
-
-⚠️ **This endpoint is deprecated**. Client now uses SSE for real-time delivery. Kept as backup only.
-
-Polling endpoint for retrieving queued messages (fallback mechanism)
-
-**Query Parameters**:
-
-- `phoneNumber` (required): Phone number
-- `since` (optional): Unix timestamp - only return messages after this time
-
-**Response**:
-
-```json
-{
-  "success": true,
-  "phoneNumber": "+12345678901",
-  "messages": [{ "sender": "...", "message": "...", "timestamp": 1234567890 }],
-  "count": 1
-}
-```
-
-## Common Tasks
-
-### Add a New App
-
-1. Create `/components/apps/YourApp.tsx`:
-
-```typescript
+```tsx
 "use client"
 import { AppProps } from "@/types/app"
 
 export default function YourApp({ onClose }: AppProps) {
   return (
-    <div className="flex flex-col h-full bg-white">{/* Your app UI - gets full height, don't add top padding */}</div>
+    <div className="flex flex-col h-full bg-white">
+      <div className="flex items-center justify-between p-4 border-b">
+        <button onClick={onClose} className="text-blue-500">
+          ← Back
+        </button>
+        <h1 className="text-lg font-semibold">Your App</h1>
+        <div className="w-16" />
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">{/* App content */}</div>
+    </div>
   )
 }
 ```
 
-2. Add to `/lib/appRegistry.tsx`:
+2. **Register in appRegistry** (`/lib/appRegistry.tsx`):
+
+```tsx
+import YourApp from "@/components/apps/YourApp"
+
+export const appRegistry: App[] = [
+  // ... existing apps
+  {
+    id: "yourapp",
+    name: "Your App",
+    icon: <svg>...</svg>,
+    iconColor: "bg-purple-500",
+    component: YourApp,
+    category: "utility",
+  },
+]
+```
+
+**Important**: Apps receive full height. Don't add top padding - the Phone component adds `pt-11` automatically to account for the StatusBar.
+
+### Adding a Social Media App
+
+Social media apps use a configuration-driven approach. To add a new social platform:
+
+1. **Add configuration** (`/components/apps/socialAppsConfig.ts`):
 
 ```typescript
-{
-  id: 'yourapp',
-  name: 'Your App',
-  icon: <svg>...</svg>,
-  iconColor: 'bg-purple-500',
-  component: YourApp,
-  category: 'utility',
+export const SOCIAL_APPS = [
+  // ... existing apps
+  {
+    id: "newsocial",
+    name: "NewSocial",
+    path: "newsocial", // URL path on backend
+    iconName: "NewSocial",
+    iconColor: "bg-purple-600",
+  },
+]
+```
+
+2. **Add icon** (`/components/apps/socialIcons.tsx`):
+
+```tsx
+export const socialIcons = {
+  // ... existing icons
+  NewSocial: (
+    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+      {/* SVG path */}
+    </svg>
+  ),
 }
 ```
 
-### Access Phone Context in App
+3. **Configure environment variables** (`.env.local`):
 
-```typescript
-import { usePhone } from "@/contexts/PhoneContext"
-
-const { smsMessages, openApp, addNotification } = usePhone()
+```bash
+NEXT_PUBLIC_SOCIAL_APP_KEY=your-demo-key
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://your-backend.com
 ```
 
-### Send Notification from App
+The app will automatically appear on the home screen and open the URL: `${baseUrl}/${path}?demo_key=${key}&user=${phoneNumber}`
 
-```typescript
+**Backend Integration**: The social backend can send postMessage events to open links in the in-app browser:
+
+```javascript
+window.parent.postMessage({ type: "open-url", url: "https://example.com" }, "*")
+```
+
+### Using Location Services
+
+Location is automatically requested when the phone loads. Apps can access it via:
+
+```tsx
+import { useLocation } from "@/hooks/useLocation"
+
+// In your app component:
+const { position, error, isLoading, requestLocation } = useLocation()
+
+if (position) {
+  const { latitude, longitude } = position.coords
+  // Use location data
+}
+```
+
+Or via props: `location`, `locationError`, `requestLocation` are passed to all apps.
+
+### Accessing Phone Context
+
+```tsx
+import { usePhone } from "@/contexts/PhoneContext"
+
+const { smsMessages, openApp, addNotification, location } = usePhone()
+```
+
+### Sending Notifications from Apps
+
+```tsx
 onSendNotification({
   appId: "messages",
   appName: "Messages",
@@ -477,227 +307,195 @@ onSendNotification({
 })
 ```
 
-### Open Tester Page
+## API Endpoints
 
-Click "SMS Tester" button in top-right of phone emulator. Opens in new window with session ID pre-configured.
+### POST /api/sms
 
-## Testing & Development
+Send SMS to phone emulator. Supports both local and remote delivery.
 
-### Local Development
+**Local delivery (same browser - no phone number)**:
 
-```bash
-npm run dev
-# Opens on http://localhost:3000
+```json
+{
+  "sender": "Demo Company",
+  "message": "Your message here"
+}
 ```
 
-### Test SMS Flow
+**Remote delivery (different browser - with phone number)**:
 
-1. Open `http://localhost:3000` (phone)
-2. Click "SMS Tester" button (opens new window)
-3. Send message from tester
-4. Message appears as notification on phone
-5. Click notification or open Messages app
-6. See conversation with avatar and messages
+```json
+{
+  "phoneNumber": "+12345678901",
+  "sender": "Demo Company",
+  "message": "Your message here"
+}
+```
 
-### Test Persistence
+Delivery methods:
 
-1. Send some messages
-2. Refresh page
-3. Messages should persist (localStorage)
+- No `phoneNumber`: Uses BroadcastChannel for same-browser tabs
+- With `phoneNumber` + active SSE connection: Instant delivery via Server-Sent Events
+- With `phoneNumber` + offline: Queued for polling fallback
 
-### Test Cross-Tab
+### GET /api/sms/stream
 
-1. Open phone in Tab A
-2. Open phone in Tab B (different session ID)
-3. Open tester from Tab A
-4. Send message - only Tab A receives it
-5. Open tester from Tab B
-6. Send message - only Tab B receives it
+Server-Sent Events endpoint for real-time message delivery. Phone establishes persistent connection on load with phone number. Messages sent via POST /api/sms are instantly broadcast to connected clients.
 
-## Styling Conventions
+Query params: `phoneNumber` (required, URL-encoded)
 
-- **Tailwind CSS 4**: Use utility classes
-- **Colors**: Status bar icons white, Messages green, Browser blue
-- **Spacing**: Consistent padding (p-4 for cards, p-3 for tight areas)
-- **Rounded**: rounded-lg for cards, rounded-full for buttons/avatars
-- **Shadows**: shadow-lg for elevated elements
-- **Phone Dimensions**: 430x875px (iPhone-like proportions)
-- **Home Button**: w-32 h-1.5, white, rounded-full
-- **Custom Cursor**: Applied globally via globals.css
+### POST /api/email
 
-## Known Limitations
+Send email to phone emulator. Supports both local and remote delivery.
 
-1. **Browser App**: Cannot navigate back within iframe (browser limitation)
-2. **SMS Delivery**: Requires same origin (same domain/port)
-3. **No Server State**: Everything is client-side, no database
-4. **Single Device**: Emulates one phone at a time per tab
-5. **Link Detection**: Simple regex, may not catch all URL formats
+**Request**:
 
-## Future Extension Ideas
+```json
+{
+  "phoneNumber": "+12345678901",
+  "from": "marketing@company.com",
+  "fromName": "Marketing Team",
+  "to": "customer@example.com",
+  "subject": "Special Offer",
+  "htmlContent": "<h1>Hello!</h1><p>Check our <a href='https://example.com'>offer</a></p>",
+  "textContent": "Hello! Check our offer: https://example.com"
+}
+```
 
-- Voice call simulation
-- Push notification simulation
-- Photo gallery with image uploads
-- Settings app with preferences
-- Dark mode support
-- Multiple phone models (different sizes)
-- Record/replay demo scenarios
+Delivery methods:
 
-## Troubleshooting
+- With `phoneNumber` + active SSE connection: Instant delivery via Server-Sent Events
+- With `phoneNumber` + offline: 404 with warning (no queue for emails)
 
-### Messages not appearing
+### GET /api/email/stream
 
-- Check BroadcastChannel is supported (modern browsers)
-- Verify session ID matches between phone and tester
-- Check browser console for errors
+Server-Sent Events endpoint for real-time email delivery. Works identically to SMS stream but for emails.
 
-### Apps not showing
+Query params: `phoneNumber` (required, URL-encoded)
 
-- Verify app is in `appRegistry.tsx`
-- Check component export is default export
-- Ensure AppProps interface is implemented
+## Important Design Decisions
 
-### Home button not visible
+1. **No Top Padding in Apps**: Apps render full height. Phone component adds `pt-11` to wrapper for StatusBar clearance.
 
-- Only shows when app is active (not on home screen)
-- Check z-index (should be z-50)
-- Verify activeApp state in PhoneContext
+2. **Home Button Visibility**: Only appears when app is active (not on home screen).
 
-### Top padding issues
+3. **Conversation-Based Messages**: Messages grouped by sender. Only full conversations can be deleted, not individual messages.
 
-- Apps should NOT add their own top padding
-- Phone.tsx adds pt-11 to app wrapper
-- If content hidden behind StatusBar, check for conflicting padding
+4. **Session ID System**: Each tab gets unique session ID in sessionStorage for local SMS targeting and multi-instance support.
+
+5. **Phone Number Login**: Optional login enables remote SMS delivery. "Skip" button preserves original local-only behavior.
+
+6. **SSE Real-Time Delivery**: Server maintains Map of active SSE connections per phone number. Messages broadcast instantly. Keep-alive heartbeat every 5 seconds detects dead connections. Auto-cleanup on close.
+
+7. **Location Auto-Request**: Location requested automatically on PhoneProvider mount. Available to all apps immediately via props or hooks.
+
+8. **Custom Mobile Cursor**: CSS cursor styling in `/app/globals.css` creates touch-point appearance for desktop browsers.
 
 ## Commit Message Conventions
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated releases with release-please.
-
-**IMPORTANT**: All commits MUST follow this format:
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated releases:
 
 ```
 <type>(<scope>): <subject>
-
-<body>
-
-<footer>
 ```
 
-### Commit Types
+**Types**: `feat`, `fix`, `perf`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`
 
-**ALWAYS use these prefixes** for commits:
+**Scopes**: `messages`, `email`, `browser`, `phone`, `sms`, `social`, `api`, `ui`, `context`, `hooks`
 
-- **feat**: A new feature (triggers minor version bump)
+**Examples**:
 
-  - Example: `feat(messages): add avatar colors to conversations`
-  - Example: `feat(browser): add back and refresh navigation buttons`
+- `feat(messages): add avatar colors to conversations`
+- `fix(phone): correct status bar padding issue`
+- `feat(social): add TikTok integration`
+- `docs: update API documentation`
 
-- **fix**: A bug fix (triggers patch version bump)
+Breaking changes: Add `!` after type or `BREAKING CHANGE:` in footer.
 
-  - Example: `fix(phone): correct status bar padding issue`
-  - Example: `fix(sms): resolve cross-tab message delivery`
+## Technology Stack
 
-- **perf**: Performance improvements
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS 4
+- **Language**: TypeScript 5 (strict mode)
+- **State**: React Context API
+- **Real-time**: Server-Sent Events (SSE)
+- **Cross-tab**: BroadcastChannel API
+- **Storage**: localStorage for message persistence
+- **Social Integration**: Iframe webviews with PostMessage API
 
-  - Example: `perf(messages): optimize conversation list rendering`
+## Social Media Apps
 
-- **docs**: Documentation changes
+The emulator includes five pre-configured social media apps:
 
-  - Example: `docs: update README with setup instructions`
-  - Example: `docs(api): add SMS endpoint documentation`
+1. **Facebook** - Blue icon with Facebook logo
+2. **Instagram** - Gradient icon (yellow/pink/purple) with Instagram logo
+3. **X (Twitter)** - Black icon with X logo
+4. **LinkedIn** - Blue icon with LinkedIn logo
+5. **TikTok** - White icon with TikTok logo
 
-- **style**: Code style changes (formatting, no code logic change)
+Each app:
 
-  - Example: `style: apply prettier formatting`
+- Opens in a sandboxed iframe pointing to external backend
+- Receives phone number as `user` parameter for personalization
+- Requires `demo_key` parameter for authentication
+- Can open external links in an in-app browser overlay via postMessage
 
-- **refactor**: Code refactoring (no functional changes)
+**Environment Configuration** (`.env.local`):
 
-  - Example: `refactor(apps): extract avatar component to shared utility`
+```bash
+# Demo key for social app backend authentication
+NEXT_PUBLIC_SOCIAL_APP_KEY=your-demo-key
 
-- **test**: Adding or updating tests
-
-  - Example: `test(messages): add conversation deletion tests`
-
-- **build**: Build system or dependency updates
-
-  - Example: `build: update Next.js to 15.1.0`
-
-- **ci**: CI/CD configuration changes
-
-  - Example: `ci: add release-please workflow`
-
-- **chore**: Maintenance tasks
-  - Example: `chore: update gitignore`
-
-### Breaking Changes
-
-For breaking changes, add `!` after the type or add `BREAKING CHANGE:` in the footer:
-
-```
-feat(api)!: change SMS endpoint response format
-
-BREAKING CHANGE: The API now returns timestamps in ISO format instead of Unix epoch
+# Backend base URL (defaults to HCL demo server)
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
 ```
 
-### Scope
+## Testing SMS Functionality
 
-The scope should indicate which part of the codebase is affected:
+1. Open `http://localhost:3000` (phone)
+2. Login with phone number (e.g., `+12345678901`) or skip for local mode
+3. Use embedded SMS Tester (bottom-right corner) or separate tester window
+4. Send message - appears as notification on phone
+5. Click notification or open Messages app to view
+6. Messages persist across page refreshes
 
-- `messages` - Messages app
-- `browser` - Browser app
-- `phone` - Phone shell/container
-- `sms` - SMS functionality
-- `api` - API endpoints
-- `ui` - General UI components
-- `context` - Context/state management
-- `hooks` - Custom hooks
+For remote testing, use curl or external system:
 
-### Examples of Good Commits
+```bash
+curl -X POST http://localhost:3000/api/sms \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "+12345678901",
+    "sender": "Marketing System",
+    "message": "Test message"
+  }'
+```
 
-✅ `feat(messages): add delete conversation functionality`
-✅ `fix(phone): adjust padding to prevent content overlap with status bar`
-✅ `feat(sms): implement BroadcastChannel for cross-tab communication`
-✅ `refactor(apps): create centralized app registry pattern`
-✅ `docs: add copilot instructions with architecture details`
-✅ `perf(messages): memoize conversation list calculations`
+## Known Limitations
 
-### Examples of Bad Commits (DON'T USE)
+1. **Browser App**: Cannot navigate back within iframe (browser security limitation)
+2. **SMS Delivery**: Local mode requires same origin (domain/port)
+3. **No Server State**: Client-side only, no database, SSE connections are in-memory
+4. **Single Device Per Tab**: Each browser tab emulates one phone
+5. **Link Detection**: Simple regex for URL parsing
+6. **Social Apps**: Require external backend, iframe sandbox restrictions apply, postMessage only works from same-origin or with proper CORS
 
-❌ `update code` (no type, vague)
-❌ `fixed bug` (no scope, vague)
-❌ `WIP` (not descriptive)
-❌ `changes` (not descriptive)
-❌ `Add feature` (incorrect capitalization)
+## Styling Conventions
 
-### When Making Changes
+- Tailwind CSS 4 utility classes
+- Phone dimensions: 430x875px (iPhone-like proportions)
+- Consistent padding: `p-4` for cards, `p-3` for tight areas
+- Rounded: `rounded-lg` for cards, `rounded-full` for buttons/avatars
+- Shadows: `shadow-lg` for elevation
+- Colors: StatusBar icons white, Messages app green, Browser app multi-color Chrome logo
+- Custom cursor applied via `globals.css`
 
-**Before committing**, ensure your commit message:
+## Path Aliases
 
-1. Starts with a valid type (feat, fix, docs, etc.)
-2. Includes a scope in parentheses when applicable
-3. Has a clear, concise subject in present tense
-4. Subject is lowercase after the type
-5. No period at the end of the subject
+The project uses `@/` as an alias for the root directory (configured in `tsconfig.json`):
 
-## Code Quality Standards
-
-- **TypeScript**: Strict mode, no `any` types
-- **React**: Functional components with hooks
-- **Performance**: Use `useCallback` and `useMemo` for expensive operations
-- **Accessibility**: Include aria-labels on icon buttons
-- **Error Handling**: Try-catch around localStorage operations
-- **Naming**: Descriptive names, follow React conventions (use prefix for hooks)
-- **Commits**: ALWAYS follow Conventional Commits format (see above)
-
-## Getting Help
-
-- Check existing apps for patterns (MessagesApp.tsx is comprehensive example)
-- Review PhoneContext for available state/functions
-- Test with SMS tester page for realistic scenarios
-- Browser DevTools → Application → Storage → sessionStorage to see session ID
-
----
-
-**Last Updated**: November 2025
-**Version**: 1.0
-**Maintainer**: GitHub Copilot Team
+```typescript
+import { usePhone } from "@/contexts/PhoneContext"
+import { AppProps } from "@/types/app"
+import MessagesApp from "@/components/apps/MessagesApp"
+```

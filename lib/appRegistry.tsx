@@ -10,6 +10,28 @@ import CalculatorApp from "@/components/apps/CalculatorApp"
 import MapsApp from "@/components/apps/MapsApp"
 import MusicApp from "@/components/apps/MusicApp"
 import ContactsApp from "@/components/apps/ContactsApp"
+import SocialWebviewApp from "@/components/apps/SocialWebviewApp"
+import { SOCIAL_APPS } from "@/components/apps/socialAppsConfig"
+import { socialIcons } from "@/components/apps/socialIcons"
+// import { usePhone } from "@/contexts/PhoneContext"
+
+// Helper to generate social app component with dynamic URL
+function makeSocialAppComponent(
+  path: string,
+  appName: string,
+  icon: React.ReactNode,
+): React.ComponentType<import("@/types/app").AppProps> {
+  // Return a component that grabs phone number from context
+  return function SocialAppWrapper(props: import("@/types/app").AppProps) {
+    // Use context to get phone number (if available)
+    const phoneNumber =
+      typeof window !== "undefined" && window.localStorage ? localStorage.getItem("phone-number") || "" : ""
+    const key = process.env.NEXT_PUBLIC_SOCIAL_APP_KEY || process.env.SOCIAL_APP_KEY || "changeme"
+    const baseUrl = process.env.NEXT_PUBLIC_SOCIAL_APP_BASE_URL || "https://social.demo.now.hclsoftware.cloud"
+    const url = `${baseUrl}/${path}?demo_key=${encodeURIComponent(key)}&user=${encodeURIComponent(phoneNumber)}`
+    return <SocialWebviewApp url={url} appName={appName} icon={icon} {...props} />
+  }
+}
 
 export const appRegistry: App[] = [
   {
@@ -38,6 +60,15 @@ export const appRegistry: App[] = [
     category: "communication",
     canSendNotifications: true,
   },
+  // Social apps (Facebook, Instagram, X, LinkedIn, TikTok)
+  ...SOCIAL_APPS.map(app => ({
+    id: app.id,
+    name: app.name,
+    icon: socialIcons[app.iconName as keyof typeof socialIcons],
+    iconColor: app.iconColor,
+    component: makeSocialAppComponent(app.path, app.name, socialIcons[app.iconName as keyof typeof socialIcons]),
+    category: "media" as const,
+  })),
   {
     id: "browser",
     name: "Chrome",
@@ -97,8 +128,20 @@ export const appRegistry: App[] = [
     id: "photos",
     name: "Photos",
     icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+      <svg
+        className="w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+        width="30"
+        height="30"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+        <circle cx="9" cy="9" r="2" />
+        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
       </svg>
     ),
     iconColor: "bg-gradient-to-br from-yellow-400 to-pink-500",
@@ -121,8 +164,19 @@ export const appRegistry: App[] = [
     id: "maps",
     name: "Maps",
     icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
+      <svg
+        className="w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+        width="30"
+        height="30"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+        <circle cx="12" cy="10" r="3" />
       </svg>
     ),
     iconColor: "bg-emerald-500",
@@ -145,8 +199,27 @@ export const appRegistry: App[] = [
     id: "calculator",
     name: "Calculator",
     icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5.97 4.06L14.09 6l1.41 1.41L16.91 6l1.06 1.06-1.41 1.41 1.41 1.41-1.06 1.06-1.41-1.4-1.41 1.41-1.06-1.06 1.41-1.41-1.41-1.42zM5 19.5v-2h14v2H5z" />
+      <svg
+        className="w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+        width="30"
+        height="30"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <rect width="16" height="20" x="4" y="2" rx="2" />
+        <line x1="8" x2="16" y1="6" y2="6" />
+        <line x1="16" x2="16" y1="14" y2="18" />
+        <path d="M16 10h.01" />
+        <path d="M12 10h.01" />
+        <path d="M8 10h.01" />
+        <path d="M12 14h.01" />
+        <path d="M8 14h.01" />
+        <path d="M12 18h.01" />
+        <path d="M8 18h.01" />
       </svg>
     ),
     iconColor: "bg-slate-700",
@@ -157,8 +230,20 @@ export const appRegistry: App[] = [
     id: "contacts",
     name: "Contacts",
     icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M20 0H4v2h16V0zM4 24h16v-2H4v2zM20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 2.75c1.24 0 2.25 1.01 2.25 2.25s-1.01 2.25-2.25 2.25S9.75 10.24 9.75 9 10.76 6.75 12 6.75zM17 17H7v-1.5c0-1.67 3.33-2.5 5-2.5s5 .83 5 2.5V17z" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="30"
+        height="30"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <circle cx="9" cy="7" r="4" />
       </svg>
     ),
     iconColor: "bg-gray-500",

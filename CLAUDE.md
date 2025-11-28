@@ -74,6 +74,18 @@ The `Phone.tsx` component orchestrates the UI shell:
 
 **Apps don't manage chrome/shell concerns** - they receive full height and the Phone component handles all padding and navigation UI.
 
+**5. Social Media Integration**
+
+Social media apps (Facebook, Instagram, X, LinkedIn, TikTok) use a webview-based architecture:
+
+- **Configuration-driven**: Apps defined in `socialAppsConfig.ts` with paths, icon names, and colors
+- **Dynamic URL generation**: `makeSocialAppComponent()` creates app components with URLs including demo key and user identifier (phone number)
+- **Iframe embedding**: `SocialWebviewApp.tsx` embeds external social media content in sandboxed iframes
+- **In-app browser**: PostMessage API enables social apps to open links in an overlay browser within the phone
+- **Environment-based**: Configurable via `NEXT_PUBLIC_SOCIAL_APP_KEY` and `NEXT_PUBLIC_SOCIAL_APP_BASE_URL`
+
+The system supports custom social media backends that can send postMessage events (`type: "open-url"`) to open URLs within the phone interface.
+
 ### Key Interfaces
 
 ```typescript
@@ -144,6 +156,9 @@ interface App {
     /EmailApp.tsx               - HTML email with DOMPurify sanitization, notifications
     /BrowserApp.tsx             - iframe-based web browser with address bar
     /MapsApp.tsx                - Location-enabled maps using OpenStreetMap
+    /SocialWebviewApp.tsx       - Webview component for social media apps with in-app browser
+    /socialAppsConfig.ts        - Configuration for social media apps (Facebook, Instagram, X, LinkedIn, TikTok)
+    /socialIcons.tsx            - SVG icons for social media apps
     /[DummyApps].tsx            - Camera, Photos, Clock, Calculator, etc.
 
 /contexts
@@ -206,6 +221,53 @@ export const appRegistry: App[] = [
 ```
 
 **Important**: Apps receive full height. Don't add top padding - the Phone component adds `pt-11` automatically to account for the StatusBar.
+
+### Adding a Social Media App
+
+Social media apps use a configuration-driven approach. To add a new social platform:
+
+1. **Add configuration** (`/components/apps/socialAppsConfig.ts`):
+
+```typescript
+export const SOCIAL_APPS = [
+  // ... existing apps
+  {
+    id: "newsocial",
+    name: "NewSocial",
+    path: "newsocial", // URL path on backend
+    iconName: "NewSocial",
+    iconColor: "bg-purple-600",
+  },
+]
+```
+
+2. **Add icon** (`/components/apps/socialIcons.tsx`):
+
+```tsx
+export const socialIcons = {
+  // ... existing icons
+  NewSocial: (
+    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+      {/* SVG path */}
+    </svg>
+  ),
+}
+```
+
+3. **Configure environment variables** (`.env.local`):
+
+```bash
+NEXT_PUBLIC_SOCIAL_APP_KEY=your-demo-key
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://your-backend.com
+```
+
+The app will automatically appear on the home screen and open the URL: `${baseUrl}/${path}?demo_key=${key}&user=${phoneNumber}`
+
+**Backend Integration**: The social backend can send postMessage events to open links in the in-app browser:
+
+```javascript
+window.parent.postMessage({ type: "open-url", url: "https://example.com" }, "*")
+```
 
 ### Using Location Services
 
@@ -339,12 +401,13 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) f
 
 **Types**: `feat`, `fix`, `perf`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`
 
-**Scopes**: `messages`, `browser`, `phone`, `sms`, `api`, `ui`, `context`, `hooks`
+**Scopes**: `messages`, `email`, `browser`, `phone`, `sms`, `social`, `api`, `ui`, `context`, `hooks`
 
 **Examples**:
 
 - `feat(messages): add avatar colors to conversations`
 - `fix(phone): correct status bar padding issue`
+- `feat(social): add TikTok integration`
 - `docs: update API documentation`
 
 Breaking changes: Add `!` after type or `BREAKING CHANGE:` in footer.
@@ -358,6 +421,33 @@ Breaking changes: Add `!` after type or `BREAKING CHANGE:` in footer.
 - **Real-time**: Server-Sent Events (SSE)
 - **Cross-tab**: BroadcastChannel API
 - **Storage**: localStorage for message persistence
+- **Social Integration**: Iframe webviews with PostMessage API
+
+## Social Media Apps
+
+The emulator includes five pre-configured social media apps:
+
+1. **Facebook** - Blue icon with Facebook logo
+2. **Instagram** - Gradient icon (yellow/pink/purple) with Instagram logo
+3. **X (Twitter)** - Black icon with X logo
+4. **LinkedIn** - Blue icon with LinkedIn logo
+5. **TikTok** - White icon with TikTok logo
+
+Each app:
+- Opens in a sandboxed iframe pointing to external backend
+- Receives phone number as `user` parameter for personalization
+- Requires `demo_key` parameter for authentication
+- Can open external links in an in-app browser overlay via postMessage
+
+**Environment Configuration** (`.env.local`):
+
+```bash
+# Demo key for social app backend authentication
+NEXT_PUBLIC_SOCIAL_APP_KEY=your-demo-key
+
+# Backend base URL (defaults to HCL demo server)
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
+```
 
 ## Testing SMS Functionality
 
@@ -387,6 +477,7 @@ curl -X POST http://localhost:3000/api/sms \
 3. **No Server State**: Client-side only, no database, SSE connections are in-memory
 4. **Single Device Per Tab**: Each browser tab emulates one phone
 5. **Link Detection**: Simple regex for URL parsing
+6. **Social Apps**: Require external backend, iframe sandbox restrictions apply, postMessage only works from same-origin or with proper CORS
 
 ## Styling Conventions
 
