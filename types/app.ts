@@ -33,6 +33,7 @@ export interface Notification {
   message: string
   timestamp: Date
   icon?: ReactNode
+  iconColor?: string
   data?: Record<string, unknown>
   onClick?: () => void
 }
@@ -55,4 +56,24 @@ export interface Email {
   textContent: string
   timestamp: Date
   read: boolean
+}
+
+export interface WhatsAppButton {
+  id: string
+  text: string
+  type?: "quick_reply" | "url" | "phone" | "custom"
+  url?: string
+  phoneNumber?: string
+  payload?: Record<string, unknown>
+}
+
+export interface WhatsAppMessage {
+  id: string
+  sender: string
+  senderNumber?: string
+  profilePictureUrl?: string
+  message: string
+  timestamp: Date
+  read: boolean
+  buttons?: WhatsAppButton[]
 }

@@ -1,7 +1,8 @@
 "use client"
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react"
-import { Notification, SMS, Email, LocationState } from "@/types/app"
+import { Notification, SMS, Email, WhatsAppMessage, LocationState } from "@/types/app"
+import { getAppById } from "@/lib/appRegistry"
 
 interface PhoneContextType {
   activeApp: string | null
@@ -18,6 +19,10 @@ interface PhoneContextType {
   addEmail: (email: Omit<Email, "id" | "timestamp" | "read">) => void
   markEmailAsRead: (id: string) => void
   deleteEmail: (id: string) => void
+  whatsappMessages: WhatsAppMessage[]
+  addWhatsApp: (message: Omit<WhatsAppMessage, "id" | "timestamp" | "read">) => void
+  markWhatsAppAsRead: (id: string) => void
+  deleteWhatsAppConversation: (sender: string) => void
   location: LocationState
   requestLocation: () => void
   watchLocation: () => number | null
@@ -105,11 +110,41 @@ function saveEmailToStorage(messages: Email[]) {
   }
 }
 
+// Load WhatsApp from localStorage
+function loadWhatsAppFromStorage(): WhatsAppMessage[] {
+  if (typeof window === "undefined") return []
+  try {
+    const stored = localStorage.getItem("phone-whatsapp-messages")
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      // Convert timestamp strings back to Date objects
+      return parsed.map((message: WhatsAppMessage) => ({
+        ...message,
+        timestamp: new Date(message.timestamp),
+      }))
+    }
+  } catch (error) {
+    console.error("Failed to load WhatsApp from localStorage:", error)
+  }
+  return []
+}
+
+// Save WhatsApp to localStorage
+function saveWhatsAppToStorage(messages: WhatsAppMessage[]) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem("phone-whatsapp-messages", JSON.stringify(messages))
+  } catch (error) {
+    console.error("Failed to save WhatsApp to localStorage:", error)
+  }
+}
+
 export function PhoneProvider({ children }: { children: ReactNode }) {
   const [activeApp, setActiveApp] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [smsMessages, setSmsMessages] = useState<SMS[]>(() => loadSMSFromStorage())
   const [emailMessages, setEmailMessages] = useState<Email[]>(() => loadEmailFromStorage())
+  const [whatsappMessages, setWhatsappMessages] = useState<WhatsAppMessage[]>(() => loadWhatsAppFromStorage())
   const [location, setLocation] = useState<LocationState>({
     position: null,
     error: null,
@@ -166,11 +201,14 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       })
 
       // Also create a notification
+      const messagesApp = getAppById("messages")
       addNotification({
         appId: "messages",
         appName: "Messages",
         title: sms.sender,
         message: sms.message,
+        icon: messagesApp?.icon,
+        iconColor: messagesApp?.iconColor,
         data: { smsId: newSMS.id },
         onClick: () => {
           openApp("messages")
@@ -216,11 +254,14 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       })
 
       // Also create a notification
+      const emailApp = getAppById("email")
       addNotification({
         appId: "email",
         appName: "Mail",
         title: email.from,
         message: email.subject,
+        icon: emailApp?.icon,
+        iconColor: emailApp?.iconColor,
         data: { emailId: newEmail.id },
         onClick: () => {
           openApp("email")
@@ -236,6 +277,59 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
 
   const deleteEmail = useCallback((id: string) => {
     setEmailMessages(prev => prev.filter(email => email.id !== id))
+  }, [])
+
+  const addWhatsApp = useCallback(
+    (message: Omit<WhatsAppMessage, "id" | "timestamp" | "read">) => {
+      const newMessage: WhatsAppMessage = {
+        ...message,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        timestamp: new Date(),
+        read: false,
+      }
+
+      // Check for duplicate message (same sender and message within last second)
+      setWhatsappMessages(prev => {
+        const recentDuplicate = prev.find(
+          existingMessage =>
+            existingMessage.sender === newMessage.sender &&
+            existingMessage.message === newMessage.message &&
+            new Date(existingMessage.timestamp).getTime() > Date.now() - 1000,
+        )
+
+        // If duplicate found, don't add it
+        if (recentDuplicate) {
+          console.log("Duplicate WhatsApp message detected, skipping")
+          return prev
+        }
+
+        return [newMessage, ...prev]
+      })
+
+      // Also create a notification
+      const whatsappApp = getAppById("whatsapp")
+      addNotification({
+        appId: "whatsapp",
+        appName: "WhatsApp",
+        title: message.sender,
+        message: message.message,
+        icon: whatsappApp?.icon,
+        iconColor: whatsappApp?.iconColor,
+        data: { messageId: newMessage.id },
+        onClick: () => {
+          openApp("whatsapp")
+        },
+      })
+    },
+    [addNotification, openApp],
+  )
+
+  const markWhatsAppAsRead = useCallback((id: string) => {
+    setWhatsappMessages(prev => prev.map(message => (message.id === id ? { ...message, read: true } : message)))
+  }, [])
+
+  const deleteWhatsAppConversation = useCallback((sender: string) => {
+    setWhatsappMessages(prev => prev.filter(message => message.sender !== sender))
   }, [])
 
   // Request location once
@@ -333,6 +427,11 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     saveEmailToStorage(emailMessages)
   }, [emailMessages])
 
+  // Persist WhatsApp messages to localStorage whenever they change
+  useEffect(() => {
+    saveWhatsAppToStorage(whatsappMessages)
+  }, [whatsappMessages])
+
   // Request location on mount to make it available to all apps
   useEffect(() => {
     // Only request once on initial mount
@@ -390,6 +489,10 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         addEmail,
         markEmailAsRead,
         deleteEmail,
+        whatsappMessages,
+        addWhatsApp,
+        markWhatsAppAsRead,
+        deleteWhatsAppConversation,
         location,
         requestLocation,
         watchLocation,

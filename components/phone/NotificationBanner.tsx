@@ -83,7 +83,7 @@ export default function NotificationBanner() {
         onClick={handleClick}
         className="bg-white rounded-2xl shadow-2xl p-4 cursor-pointer active:scale-95 transition-transform">
         <div className="flex items-start gap-3">
-          <div className="shrink-0 w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center text-white">
+          <div className={`shrink-0 w-10 h-10 ${latestNotification.iconColor || "bg-gray-500"} rounded-lg flex items-center justify-center text-white p-2`}>
             {latestNotification.icon || (
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
