@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.6.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.5.0...v1.6.0) (2025-11-30)
+
+
+### Features
+
+* added social apps ([bc6292f](https://github.com/HCL-CDP-TA/phone-emulator/commit/bc6292f9bda68af71f115b24574b40d4a6b24f88))
+* added whatsapp ([73d1b75](https://github.com/HCL-CDP-TA/phone-emulator/commit/73d1b75e16e6ed4e9beac4d1cc3b116c020bab2c))
+
+
+### Bug Fixes
+
+* x url to lowercase ([ccfd674](https://github.com/HCL-CDP-TA/phone-emulator/commit/ccfd6742a58c2416be07cd7548ece7d12b9c46e4))
+
 ## [1.5.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.4.0...v1.5.0) (2025-11-13)
 
 
