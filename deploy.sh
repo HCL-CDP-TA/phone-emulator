@@ -46,6 +46,9 @@ VERSION=${1:-$DEFAULT_VERSION}
 ENVIRONMENT=${2:-$DEFAULT_ENV}
 LOCAL_MODE=false
 
+# Save the directory where the script is run from (for finding .env files)
+SCRIPT_RUN_DIR="$(pwd)"
+
 # Check for --local flag
 for arg in "$@"; do
     if [ "$arg" = "--local" ]; then
@@ -177,21 +180,20 @@ case "$ENVIRONMENT" in
         ;;
 esac
 
-# Load environment variables from current directory first (where deploy.sh is run from)
+# Load environment variables from the directory where deploy.sh was run from
 # This ensures .env.local from the working directory is used even when cloning from git
-DEPLOY_DIR="$(pwd)"
-if [ -f "$DEPLOY_DIR/.env" ]; then
-    log_info "Loading environment variables from $DEPLOY_DIR/.env"
+if [ -f "$SCRIPT_RUN_DIR/.env" ]; then
+    log_info "Loading environment variables from $SCRIPT_RUN_DIR/.env"
     set -a
-    source "$DEPLOY_DIR/.env"
+    source "$SCRIPT_RUN_DIR/.env"
     set +a
-elif [ -f "$DEPLOY_DIR/.env.local" ]; then
-    log_info "Loading environment variables from $DEPLOY_DIR/.env.local"
+elif [ -f "$SCRIPT_RUN_DIR/.env.local" ]; then
+    log_info "Loading environment variables from $SCRIPT_RUN_DIR/.env.local"
     set -a
-    source "$DEPLOY_DIR/.env.local"
+    source "$SCRIPT_RUN_DIR/.env.local"
     set +a
 else
-    log_warning "No .env or .env.local found in $DEPLOY_DIR"
+    log_warning "No .env or .env.local found in $SCRIPT_RUN_DIR"
 fi
 
 # Set defaults if not provided
