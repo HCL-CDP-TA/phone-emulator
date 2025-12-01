@@ -145,34 +145,12 @@ IMAGE_TAG="${VERSION}-${COMMIT_HASH}"
 
 log_info "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
-# Load environment variables from .env.local if it exists
-if [ -f "$BUILD_CONTEXT/.env.local" ]; then
-    log_info "Loading environment variables from .env.local"
-    # Export variables for build
-    export $(grep -v '^#' "$BUILD_CONTEXT/.env.local" | xargs)
-else
-    log_warning ".env.local not found, using default values"
-fi
-
-# Set default values if not provided
-SOCIAL_APP_KEY=${SOCIAL_APP_KEY:-"changeme"}
-NEXT_PUBLIC_SOCIAL_APP_KEY=${NEXT_PUBLIC_SOCIAL_APP_KEY:-"changeme"}
-NEXT_PUBLIC_SOCIAL_APP_BASE_URL=${NEXT_PUBLIC_SOCIAL_APP_BASE_URL:-"https://social.demo.now.hclsoftware.cloud"}
-
-log_info "Environment variables for build:"
-log_info "  SOCIAL_APP_KEY: ${SOCIAL_APP_KEY:0:10}..."
-log_info "  NEXT_PUBLIC_SOCIAL_APP_KEY: ${NEXT_PUBLIC_SOCIAL_APP_KEY:0:10}..."
-log_info "  NEXT_PUBLIC_SOCIAL_APP_BASE_URL: $NEXT_PUBLIC_SOCIAL_APP_BASE_URL"
-
 # Build the Docker image
 docker build \
     --build-arg NODE_ENV="$ENVIRONMENT" \
     --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
     --build-arg VCS_REF="$COMMIT_HASH" \
     --build-arg VERSION="$VERSION" \
-    --build-arg SOCIAL_APP_KEY="$SOCIAL_APP_KEY" \
-    --build-arg NEXT_PUBLIC_SOCIAL_APP_KEY="$NEXT_PUBLIC_SOCIAL_APP_KEY" \
-    --build-arg NEXT_PUBLIC_SOCIAL_APP_BASE_URL="$NEXT_PUBLIC_SOCIAL_APP_BASE_URL" \
     -t "${IMAGE_NAME}:${IMAGE_TAG}" \
     -t "${IMAGE_NAME}:latest" \
     "$BUILD_CONTEXT"
@@ -199,6 +177,29 @@ case "$ENVIRONMENT" in
         ;;
 esac
 
+# Load environment variables from .env if it exists
+if [ -f "$BUILD_CONTEXT/.env" ]; then
+    log_info "Loading environment variables from .env"
+    set -a
+    source "$BUILD_CONTEXT/.env"
+    set +a
+elif [ -f "$BUILD_CONTEXT/.env.local" ]; then
+    log_info "Loading environment variables from .env.local"
+    set -a
+    source "$BUILD_CONTEXT/.env.local"
+    set +a
+fi
+
+# Set defaults if not provided
+SOCIAL_APP_KEY=${SOCIAL_APP_KEY:-"changeme"}
+NEXT_PUBLIC_SOCIAL_APP_KEY=${NEXT_PUBLIC_SOCIAL_APP_KEY:-"changeme"}
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=${NEXT_PUBLIC_SOCIAL_APP_BASE_URL:-"https://social.demo.now.hclsoftware.cloud"}
+
+log_info "Runtime environment variables:"
+log_info "  SOCIAL_APP_KEY: ${SOCIAL_APP_KEY:0:10}..."
+log_info "  NEXT_PUBLIC_SOCIAL_APP_KEY: ${NEXT_PUBLIC_SOCIAL_APP_KEY:0:10}..."
+log_info "  NEXT_PUBLIC_SOCIAL_APP_BASE_URL: $NEXT_PUBLIC_SOCIAL_APP_BASE_URL"
+
 # Create and start new container
 log_info "Starting new container on port $PORT"
 docker run -d \
@@ -207,6 +208,9 @@ docker run -d \
     -p "$PORT:3003" \
     -e NODE_ENV="$NODE_ENV" \
     -e PORT=3003 \
+    -e SOCIAL_APP_KEY="$SOCIAL_APP_KEY" \
+    -e NEXT_PUBLIC_SOCIAL_APP_KEY="$NEXT_PUBLIC_SOCIAL_APP_KEY" \
+    -e NEXT_PUBLIC_SOCIAL_APP_BASE_URL="$NEXT_PUBLIC_SOCIAL_APP_BASE_URL" \
     --label "app=$APP_NAME" \
     --label "environment=$ENVIRONMENT" \
     --label "version=$VERSION" \
