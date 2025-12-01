@@ -148,12 +148,15 @@ IMAGE_TAG="${VERSION}-${COMMIT_HASH}"
 
 log_info "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
-# Build the Docker image
+# Build the Docker image with environment variables
 docker build \
     --build-arg NODE_ENV="$ENVIRONMENT" \
     --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
     --build-arg VCS_REF="$COMMIT_HASH" \
     --build-arg VERSION="$VERSION" \
+    --build-arg SOCIAL_APP_KEY="$SOCIAL_APP_KEY" \
+    --build-arg NEXT_PUBLIC_SOCIAL_APP_KEY="$NEXT_PUBLIC_SOCIAL_APP_KEY" \
+    --build-arg NEXT_PUBLIC_SOCIAL_APP_BASE_URL="$NEXT_PUBLIC_SOCIAL_APP_BASE_URL" \
     -t "${IMAGE_NAME}:${IMAGE_TAG}" \
     -t "${IMAGE_NAME}:latest" \
     "$BUILD_CONTEXT"

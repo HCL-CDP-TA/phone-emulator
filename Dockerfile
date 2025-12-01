@@ -29,10 +29,16 @@ ARG NODE_ENV=production
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
+ARG SOCIAL_APP_KEY=changeme
+ARG NEXT_PUBLIC_SOCIAL_APP_KEY=changeme
+ARG NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
 
-# Set environment variables for build
+# Set environment variables for build (needed for Next.js to embed NEXT_PUBLIC_* vars)
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV SOCIAL_APP_KEY=$SOCIAL_APP_KEY
+ENV NEXT_PUBLIC_SOCIAL_APP_KEY=$NEXT_PUBLIC_SOCIAL_APP_KEY
+ENV NEXT_PUBLIC_SOCIAL_APP_BASE_URL=$NEXT_PUBLIC_SOCIAL_APP_BASE_URL
 
 # Build the application
 RUN npm run build
