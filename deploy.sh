@@ -145,12 +145,34 @@ IMAGE_TAG="${VERSION}-${COMMIT_HASH}"
 
 log_info "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
+# Load environment variables from .env.local if it exists
+if [ -f "$BUILD_CONTEXT/.env.local" ]; then
+    log_info "Loading environment variables from .env.local"
+    # Export variables for build
+    export $(grep -v '^#' "$BUILD_CONTEXT/.env.local" | xargs)
+else
+    log_warning ".env.local not found, using default values"
+fi
+
+# Set default values if not provided
+SOCIAL_APP_KEY=${SOCIAL_APP_KEY:-"changeme"}
+NEXT_PUBLIC_SOCIAL_APP_KEY=${NEXT_PUBLIC_SOCIAL_APP_KEY:-"changeme"}
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=${NEXT_PUBLIC_SOCIAL_APP_BASE_URL:-"https://social.demo.now.hclsoftware.cloud"}
+
+log_info "Environment variables for build:"
+log_info "  SOCIAL_APP_KEY: ${SOCIAL_APP_KEY:0:10}..."
+log_info "  NEXT_PUBLIC_SOCIAL_APP_KEY: ${NEXT_PUBLIC_SOCIAL_APP_KEY:0:10}..."
+log_info "  NEXT_PUBLIC_SOCIAL_APP_BASE_URL: $NEXT_PUBLIC_SOCIAL_APP_BASE_URL"
+
 # Build the Docker image
 docker build \
     --build-arg NODE_ENV="$ENVIRONMENT" \
     --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
     --build-arg VCS_REF="$COMMIT_HASH" \
     --build-arg VERSION="$VERSION" \
+    --build-arg SOCIAL_APP_KEY="$SOCIAL_APP_KEY" \
+    --build-arg NEXT_PUBLIC_SOCIAL_APP_KEY="$NEXT_PUBLIC_SOCIAL_APP_KEY" \
+    --build-arg NEXT_PUBLIC_SOCIAL_APP_BASE_URL="$NEXT_PUBLIC_SOCIAL_APP_BASE_URL" \
     -t "${IMAGE_NAME}:${IMAGE_TAG}" \
     -t "${IMAGE_NAME}:latest" \
     "$BUILD_CONTEXT"
