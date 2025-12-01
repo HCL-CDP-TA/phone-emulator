@@ -7,6 +7,7 @@ import { PhoneProvider, usePhone } from "@/contexts/PhoneContext"
 import { useSMSReceiver } from "@/hooks/useSMSReceiver"
 import { useEmailReceiver } from "@/hooks/useEmailReceiver"
 import { useWhatsAppReceiver } from "@/hooks/useWhatsAppReceiver"
+import packageJson from "@/package.json"
 
 function PhoneEmulator() {
   const sessionId = useSMSReceiver()
@@ -176,6 +177,11 @@ function PhoneEmulator() {
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 p-8">
       <div className="phone-emulator">
         <Phone />
+
+        {/* Version indicator */}
+        <div className="fixed bottom-4 right-4 text-gray-400 text-xs font-mono">
+          v{packageJson.version}
+        </div>
 
         {/* Phone Number & Tester Dropdown */}
         <div className="fixed top-4 right-4 flex items-center gap-3">
