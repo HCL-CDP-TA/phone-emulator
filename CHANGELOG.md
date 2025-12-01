@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.6.0...v1.6.1) (2025-12-01)
+
+
+### Bug Fixes
+
+* deploy script env vars ([60b980e](https://github.com/HCL-CDP-TA/phone-emulator/commit/60b980ef22d67505f5ed1224b757969b45e1de44))
+
 ## [1.6.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.5.0...v1.6.0) (2025-11-30)
 
 
