@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.6](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.6.5...v1.6.6) (2025-12-01)
+
+
+### Bug Fixes
+
+* deploy ([d1df236](https://github.com/HCL-CDP-TA/phone-emulator/commit/d1df236e51c9136b9d93a740a271929787d52df9))
+
 ## [1.6.5](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.6.4...v1.6.5) (2025-12-01)
 
 
