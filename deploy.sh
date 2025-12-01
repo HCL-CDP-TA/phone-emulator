@@ -146,6 +146,32 @@ else
 fi
 IMAGE_TAG="${VERSION}-${COMMIT_HASH}"
 
+# Load environment variables from the directory where deploy.sh was run from
+# This must happen BEFORE the build so the variables are available
+if [ -f "$SCRIPT_RUN_DIR/.env" ]; then
+    log_info "Loading environment variables from $SCRIPT_RUN_DIR/.env"
+    set -a
+    source "$SCRIPT_RUN_DIR/.env"
+    set +a
+elif [ -f "$SCRIPT_RUN_DIR/.env.local" ]; then
+    log_info "Loading environment variables from $SCRIPT_RUN_DIR/.env.local"
+    set -a
+    source "$SCRIPT_RUN_DIR/.env.local"
+    set +a
+else
+    log_warning "No .env or .env.local found in $SCRIPT_RUN_DIR"
+fi
+
+# Set defaults if not provided
+SOCIAL_APP_KEY=${SOCIAL_APP_KEY:-"changeme"}
+NEXT_PUBLIC_SOCIAL_APP_KEY=${NEXT_PUBLIC_SOCIAL_APP_KEY:-"changeme"}
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=${NEXT_PUBLIC_SOCIAL_APP_BASE_URL:-"https://social.demo.now.hclsoftware.cloud"}
+
+log_info "Runtime environment variables:"
+log_info "  SOCIAL_APP_KEY: ${SOCIAL_APP_KEY:0:10}..."
+log_info "  NEXT_PUBLIC_SOCIAL_APP_KEY: ${NEXT_PUBLIC_SOCIAL_APP_KEY:0:10}..."
+log_info "  NEXT_PUBLIC_SOCIAL_APP_BASE_URL: $NEXT_PUBLIC_SOCIAL_APP_BASE_URL"
+
 log_info "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
 # Build the Docker image with environment variables
@@ -182,32 +208,6 @@ case "$ENVIRONMENT" in
         NODE_ENV="production"
         ;;
 esac
-
-# Load environment variables from the directory where deploy.sh was run from
-# This ensures .env.local from the working directory is used even when cloning from git
-if [ -f "$SCRIPT_RUN_DIR/.env" ]; then
-    log_info "Loading environment variables from $SCRIPT_RUN_DIR/.env"
-    set -a
-    source "$SCRIPT_RUN_DIR/.env"
-    set +a
-elif [ -f "$SCRIPT_RUN_DIR/.env.local" ]; then
-    log_info "Loading environment variables from $SCRIPT_RUN_DIR/.env.local"
-    set -a
-    source "$SCRIPT_RUN_DIR/.env.local"
-    set +a
-else
-    log_warning "No .env or .env.local found in $SCRIPT_RUN_DIR"
-fi
-
-# Set defaults if not provided
-SOCIAL_APP_KEY=${SOCIAL_APP_KEY:-"changeme"}
-NEXT_PUBLIC_SOCIAL_APP_KEY=${NEXT_PUBLIC_SOCIAL_APP_KEY:-"changeme"}
-NEXT_PUBLIC_SOCIAL_APP_BASE_URL=${NEXT_PUBLIC_SOCIAL_APP_BASE_URL:-"https://social.demo.now.hclsoftware.cloud"}
-
-log_info "Runtime environment variables:"
-log_info "  SOCIAL_APP_KEY: ${SOCIAL_APP_KEY:0:10}..."
-log_info "  NEXT_PUBLIC_SOCIAL_APP_KEY: ${NEXT_PUBLIC_SOCIAL_APP_KEY:0:10}..."
-log_info "  NEXT_PUBLIC_SOCIAL_APP_BASE_URL: $NEXT_PUBLIC_SOCIAL_APP_BASE_URL"
 
 # Create and start new container
 log_info "Starting new container on port $PORT"
