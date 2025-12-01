@@ -177,17 +177,21 @@ case "$ENVIRONMENT" in
         ;;
 esac
 
-# Load environment variables from .env if it exists
-if [ -f "$BUILD_CONTEXT/.env" ]; then
-    log_info "Loading environment variables from .env"
+# Load environment variables from current directory first (where deploy.sh is run from)
+# This ensures .env.local from the working directory is used even when cloning from git
+DEPLOY_DIR="$(pwd)"
+if [ -f "$DEPLOY_DIR/.env" ]; then
+    log_info "Loading environment variables from $DEPLOY_DIR/.env"
     set -a
-    source "$BUILD_CONTEXT/.env"
+    source "$DEPLOY_DIR/.env"
     set +a
-elif [ -f "$BUILD_CONTEXT/.env.local" ]; then
-    log_info "Loading environment variables from .env.local"
+elif [ -f "$DEPLOY_DIR/.env.local" ]; then
+    log_info "Loading environment variables from $DEPLOY_DIR/.env.local"
     set -a
-    source "$BUILD_CONTEXT/.env.local"
+    source "$DEPLOY_DIR/.env.local"
     set +a
+else
+    log_warning "No .env or .env.local found in $DEPLOY_DIR"
 fi
 
 # Set defaults if not provided
