@@ -14,6 +14,8 @@ import ContactsApp from "@/components/apps/ContactsApp"
 import SocialWebviewApp from "@/components/apps/SocialWebviewApp"
 import { SOCIAL_APPS } from "@/components/apps/socialAppsConfig"
 import { socialIcons } from "@/components/apps/socialIcons"
+import { SHORTCUT_APPS } from "@/components/apps/shortcutAppsConfig"
+import { shortcutIcons } from "@/components/apps/shortcutIcons"
 // import { usePhone } from "@/contexts/PhoneContext"
 
 // Helper to generate social app component with dynamic URL
@@ -30,6 +32,17 @@ function makeSocialAppComponent(
     const key = process.env.NEXT_PUBLIC_SOCIAL_APP_KEY || process.env.SOCIAL_APP_KEY || "changeme"
     const baseUrl = process.env.NEXT_PUBLIC_SOCIAL_APP_BASE_URL || "https://social.demo.now.hclsoftware.cloud"
     const url = `${baseUrl}/${path}?demo_key=${encodeURIComponent(key)}&user=${encodeURIComponent(phoneNumber)}`
+    return <SocialWebviewApp url={url} appName={appName} icon={icon} {...props} />
+  }
+}
+
+// Helper to generate shortcut app component with static URL
+function makeShortcutAppComponent(
+  url: string,
+  appName: string,
+  icon: React.ReactNode,
+): React.ComponentType<import("@/types/app").AppProps> {
+  return function ShortcutAppWrapper(props: import("@/types/app").AppProps) {
     return <SocialWebviewApp url={url} appName={appName} icon={icon} {...props} />
   }
 }
@@ -82,6 +95,15 @@ export const appRegistry: App[] = [
     iconColor: app.iconColor,
     component: makeSocialAppComponent(app.path, app.name, socialIcons[app.iconName as keyof typeof socialIcons]),
     category: "media" as const,
+  })),
+  // Website shortcuts
+  ...SHORTCUT_APPS.map(app => ({
+    id: app.id,
+    name: app.name,
+    icon: shortcutIcons[app.iconName as keyof typeof shortcutIcons],
+    iconColor: app.iconColor,
+    component: makeShortcutAppComponent(app.url, app.name, shortcutIcons[app.iconName as keyof typeof shortcutIcons]),
+    category: "utility" as const,
   })),
   {
     id: "browser",

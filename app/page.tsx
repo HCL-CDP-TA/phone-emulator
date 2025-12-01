@@ -179,9 +179,7 @@ function PhoneEmulator() {
         <Phone />
 
         {/* Version indicator */}
-        <div className="fixed bottom-4 right-4 text-gray-400 text-xs font-mono">
-          v{packageJson.version}
-        </div>
+        <div className="fixed bottom-4 right-4 text-gray-400 text-xs font-mono">v{packageJson.version}</div>
 
         {/* Phone Number & Tester Dropdown */}
         <div className="fixed top-4 right-4 flex items-center gap-3">
