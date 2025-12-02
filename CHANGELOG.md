@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.6.7...v1.7.0) (2025-12-02)
+
+
+### Features
+
+* added google app linked to fake google ([1de4495](https://github.com/HCL-CDP-TA/phone-emulator/commit/1de4495c81eb89def73b7ae3346787829f3809ee))
+
+
+### Bug Fixes
+
+* updated Google icon ([40be8c5](https://github.com/HCL-CDP-TA/phone-emulator/commit/40be8c54957126f0b63c9585e3e7f09a10b69f8c))
+
 ## [1.6.7](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.6.6...v1.6.7) (2025-12-01)
 
 
