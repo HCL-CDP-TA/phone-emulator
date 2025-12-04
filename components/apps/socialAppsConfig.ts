@@ -35,4 +35,11 @@ export const SOCIAL_APPS = [
     iconName: "TikTok",
     iconColor: "bg-white",
   },
+  {
+    id: "youtube",
+    name: "YouTube",
+    path: "youtube",
+    iconName: "YouTube",
+    iconColor: "bg-red-600",
+  },
 ]
