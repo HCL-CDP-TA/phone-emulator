@@ -12,7 +12,7 @@ export function broadcastToPhone(phoneNumber: string, sender: string, message: s
     return false
   }
 
-  const data = JSON.stringify({ sender, message, timestamp: Date.now() })
+  const data = JSON.stringify({ sender, message })
   const sseMessage = `data: ${data}\n\n`
 
   console.log(`[SSE] Broadcasting to ${connections.size} connection(s) for ${phoneNumber}`)
