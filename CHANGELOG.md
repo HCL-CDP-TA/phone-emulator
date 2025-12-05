@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.7.0...v1.8.0) (2025-12-05)
+
+
+### Features
+
+* added youtube app ([ba57e13](https://github.com/HCL-CDP-TA/phone-emulator/commit/ba57e13aa5be3420ce21ca09a16375875842c098))
+* time travel ([623c173](https://github.com/HCL-CDP-TA/phone-emulator/commit/623c1733e9c4345f90f189d369ffd8001e680f5a))
+* time travel ([7c1676c](https://github.com/HCL-CDP-TA/phone-emulator/commit/7c1676cabea555574daabd8d293c3217e8f0bf5f))
+
 ## [1.7.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.6.7...v1.7.0) (2025-12-02)
 
 
