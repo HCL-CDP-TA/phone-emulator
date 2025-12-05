@@ -27,6 +27,9 @@ interface PhoneContextType {
   requestLocation: () => void
   watchLocation: () => number | null
   clearLocationWatch: (watchId: number) => void
+  currentTime: Date
+  timeOffset: number
+  setTimeOffset: (offset: number) => void
 }
 
 const PhoneContext = createContext<PhoneContextType | undefined>(undefined)
@@ -152,6 +155,10 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     hasPermission: null,
   })
 
+  // Time management state (not persisted - reverts to real time on refresh)
+  const [timeOffset, setTimeOffsetState] = useState<number>(0)
+  const [currentTime, setCurrentTime] = useState<Date>(new Date(Date.now() + timeOffset))
+
   const openApp = useCallback((appId: string) => {
     setActiveApp(appId)
   }, [])
@@ -160,14 +167,17 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     setActiveApp(null)
   }, [])
 
-  const addNotification = useCallback((notification: Omit<Notification, "id" | "timestamp">) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      timestamp: new Date(),
-    }
-    setNotifications(prev => [newNotification, ...prev])
-  }, [])
+  const addNotification = useCallback(
+    (notification: Omit<Notification, "id" | "timestamp">) => {
+      const newNotification: Notification = {
+        ...notification,
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        timestamp: new Date(currentTime),
+      }
+      setNotifications(prev => [newNotification, ...prev])
+    },
+    [currentTime],
+  )
 
   const dismissNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id))
@@ -178,7 +188,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       const newSMS: SMS = {
         ...sms,
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        timestamp: new Date(),
+        timestamp: new Date(currentTime),
         read: false,
       }
 
@@ -215,7 +225,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         },
       })
     },
-    [addNotification, openApp],
+    [addNotification, openApp, currentTime],
   )
 
   const markSMSAsRead = useCallback((id: string) => {
@@ -231,7 +241,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       const newEmail: Email = {
         ...email,
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        timestamp: new Date(),
+        timestamp: new Date(currentTime),
         read: false,
       }
 
@@ -268,7 +278,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         },
       })
     },
-    [addNotification, openApp],
+    [addNotification, openApp, currentTime],
   )
 
   const markEmailAsRead = useCallback((id: string) => {
@@ -284,7 +294,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       const newMessage: WhatsAppMessage = {
         ...message,
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        timestamp: new Date(),
+        timestamp: new Date(currentTime),
         read: false,
       }
 
@@ -321,7 +331,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         },
       })
     },
-    [addNotification, openApp],
+    [addNotification, openApp, currentTime],
   )
 
   const markWhatsAppAsRead = useCallback((id: string) => {
@@ -417,6 +427,12 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Set time offset (public function)
+  const setTimeOffset = useCallback((offset: number) => {
+    setTimeOffsetState(offset)
+    setCurrentTime(new Date(Date.now() + offset))
+  }, [])
+
   // Persist SMS messages to localStorage whenever they change
   useEffect(() => {
     saveSMSToStorage(smsMessages)
@@ -431,6 +447,15 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveWhatsAppToStorage(whatsappMessages)
   }, [whatsappMessages])
+
+  // Update current time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date(Date.now() + timeOffset))
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [timeOffset])
 
   // Request location on mount to make it available to all apps
   useEffect(() => {
@@ -497,6 +522,9 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         requestLocation,
         watchLocation,
         clearLocationWatch,
+        currentTime,
+        timeOffset,
+        setTimeOffset,
       }}>
       {children}
     </PhoneContext.Provider>

@@ -1,20 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { usePhone } from "@/contexts/PhoneContext"
 
 export default function StatusBar() {
-  const [time, setTime] = useState(new Date())
+  const { currentTime, timeOffset } = usePhone()
   const [battery] = useState(87)
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
 
   return (
     <div className="flex items-center justify-between px-6 py-2 text-white text-sm font-medium">
       {/* Time */}
-      <div className="flex-1">{time.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</div>
+      <div className="flex-1 flex items-center gap-1.5">
+        {currentTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+        {timeOffset !== 0 && <div className="w-1.5 h-1.5 bg-orange-400 rounded-full" title="Time override active" />}
+      </div>
 
       {/* Center indicators (notch area) */}
       <div className="flex items-center gap-1">
