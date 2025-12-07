@@ -56,6 +56,9 @@ export async function GET(request: NextRequest) {
 
   console.log(`[SSE] New connection for ${phoneNumber}`)
 
+  // Get the abort signal for detecting client disconnection
+  const { signal } = request
+
   // Create a ReadableStream for SSE
   const stream = new ReadableStream({
     start(controller) {
@@ -72,31 +75,48 @@ export async function GET(request: NextRequest) {
       controller.enqueue(new TextEncoder().encode(connectMessage))
 
       // Cleanup when connection closes
+      let isCleanedUp = false
       const cleanup = () => {
+        if (isCleanedUp) return
+        isCleanedUp = true
+        
         const connections = activeConnections.get(phoneNumber)
         if (connections) {
           connections.delete(controller)
+          console.log(`[SSE] Connection closed for ${phoneNumber}. Remaining: ${connections.size}`)
           if (connections.size === 0) {
             activeConnections.delete(phoneNumber)
           }
-          console.log(`[SSE] Connection closed for ${phoneNumber}. Remaining: ${connections.size}`)
         }
       }
 
-      // Keep-alive ping every 5 seconds to quickly detect dead connections
+      // Listen for client disconnection via AbortSignal
+      const onAbort = () => {
+        console.log(`[SSE] Client disconnected for ${phoneNumber}`)
+        clearInterval(keepAliveInterval)
+        cleanup()
+      }
+      signal.addEventListener("abort", onAbort)
+
+      // Keep-alive ping every 30 seconds to detect dead connections
       const keepAliveInterval = setInterval(() => {
+        if (isCleanedUp) {
+          clearInterval(keepAliveInterval)
+          return
+        }
         try {
           controller.enqueue(new TextEncoder().encode(": keepalive\n\n"))
         } catch {
-          console.log("[SSE] Keep-alive failed, connection closed")
+          // Connection closed, clean up
           clearInterval(keepAliveInterval)
           cleanup()
         }
-      }, 5000) // More frequent checks to detect dead connections faster
+      }, 30000)
 
       // Store cleanup function and interval for later
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(controller as any).cleanup = () => {
+        signal.removeEventListener("abort", onAbort)
         clearInterval(keepAliveInterval)
         cleanup()
       }
