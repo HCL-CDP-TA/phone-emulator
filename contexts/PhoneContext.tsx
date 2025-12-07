@@ -1,8 +1,9 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react"
-import { Notification, SMS, Email, WhatsAppMessage, LocationState } from "@/types/app"
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useRef, useMemo } from "react"
+import { Notification, SMS, Email, WhatsAppMessage, LocationState, LocationOverride } from "@/types/app"
 import { getAppById } from "@/lib/appRegistry"
+import { calculateHeading } from "@/lib/locationUtils"
 
 interface PhoneContextType {
   activeApp: string | null
@@ -24,12 +25,16 @@ interface PhoneContextType {
   markWhatsAppAsRead: (id: string) => void
   deleteWhatsAppConversation: (sender: string) => void
   location: LocationState
+  effectiveLocation: GeolocationPosition | null
   requestLocation: () => void
   watchLocation: () => number | null
   clearLocationWatch: (watchId: number) => void
   currentTime: Date
   timeOffset: number
   setTimeOffset: (offset: number) => void
+  locationOverride: LocationOverride
+  setLocationOverrideConfig: (config: Partial<LocationOverride>) => void
+  broadcastLocationToIframes: () => void
 }
 
 const PhoneContext = createContext<PhoneContextType | undefined>(undefined)
@@ -154,6 +159,15 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     isLoading: false,
     hasPermission: null,
   })
+
+  // Location override state
+  const [locationOverride, setLocationOverride] = useState<LocationOverride>({
+    enabled: false,
+    mode: "static",
+  })
+
+  // BroadcastChannel for location updates
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
 
   // Time management state (not persisted - reverts to real time on refresh)
   const [timeOffset, setTimeOffsetState] = useState<number>(0)
@@ -427,6 +441,93 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Get effective location (override if enabled, otherwise real GPS)
+  const getEffectiveLocation = useCallback((): GeolocationPosition | null => {
+    if (!locationOverride.enabled) {
+      return location.position
+    }
+
+    if (locationOverride.mode === "static" && locationOverride.staticPosition) {
+      const pos = locationOverride.staticPosition
+      return {
+        coords: {
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          accuracy: pos.accuracy ?? 10,
+          altitude: pos.altitude ?? null,
+          altitudeAccuracy: pos.altitudeAccuracy ?? null,
+          heading: pos.heading ?? null,
+          speed: pos.speed ?? null,
+        },
+        timestamp: Date.now(),
+      } as GeolocationPosition
+    }
+
+    if (locationOverride.mode === "route" && locationOverride.route) {
+      const route = locationOverride.route
+      const currentWaypoint = route.waypoints[route.currentWaypointIndex]
+      if (!currentWaypoint) return location.position
+
+      return {
+        coords: {
+          latitude: currentWaypoint.latitude,
+          longitude: currentWaypoint.longitude,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: currentWaypoint.speed ?? null,
+        },
+        timestamp: Date.now(),
+      } as GeolocationPosition
+    }
+
+    return location.position
+  }, [locationOverride, location.position])
+
+  // Set location override configuration
+  const setLocationOverrideConfig = useCallback((config: Partial<LocationOverride>) => {
+    setLocationOverride(prev => ({
+      ...prev,
+      ...config,
+    }))
+  }, [])
+
+  // Compute effective location as a memoized value
+  const effectiveLocation = useMemo(() => {
+    return getEffectiveLocation()
+  }, [getEffectiveLocation])
+
+  // Broadcast location to iframes and BroadcastChannel
+  const broadcastLocationToIframes = useCallback(() => {
+    if (!effectiveLocation) return
+
+    const locationData = {
+      type: "location-update",
+      position: {
+        latitude: effectiveLocation.coords.latitude,
+        longitude: effectiveLocation.coords.longitude,
+        accuracy: effectiveLocation.coords.accuracy,
+        altitude: effectiveLocation.coords.altitude,
+        altitudeAccuracy: effectiveLocation.coords.altitudeAccuracy,
+        heading: effectiveLocation.coords.heading,
+        speed: effectiveLocation.coords.speed,
+      },
+      timestamp: effectiveLocation.timestamp,
+    }
+
+    // Broadcast to all iframes
+    const iframes = document.querySelectorAll("iframe")
+    iframes.forEach(iframe => {
+      iframe.contentWindow?.postMessage(locationData, "*")
+    })
+
+    // Broadcast via BroadcastChannel
+    if (broadcastChannelRef.current) {
+      broadcastChannelRef.current.postMessage(locationData)
+    }
+  }, [effectiveLocation])
+
   // Set time offset (public function)
   const setTimeOffset = useCallback((offset: number) => {
     setTimeOffsetState(offset)
@@ -497,6 +598,104 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     // Empty dependency array - only run once on mount
   }, [])
 
+  // Initialize BroadcastChannel for location updates
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    broadcastChannelRef.current = new BroadcastChannel("location-updates")
+
+    return () => {
+      broadcastChannelRef.current?.close()
+    }
+  }, [])
+
+  // Route animation effect - runs every 100ms when route is playing
+  useEffect(() => {
+    if (
+      !locationOverride.enabled ||
+      locationOverride.mode !== "route" ||
+      !locationOverride.route ||
+      !locationOverride.route.isPlaying
+    ) {
+      return
+    }
+
+    const route = locationOverride.route
+    const interval = setInterval(() => {
+      const currentWaypoint = route.waypoints[route.currentWaypointIndex]
+      const nextWaypointIndex = route.currentWaypointIndex + 1
+      const nextWaypoint = route.waypoints[nextWaypointIndex]
+
+      if (!currentWaypoint) return
+
+      // If no next waypoint, handle loop or stop
+      if (!nextWaypoint) {
+        if (route.loop) {
+          // Loop back to start
+          setLocationOverrideConfig({
+            route: {
+              ...route,
+              currentWaypointIndex: 0,
+              progress: 0,
+            },
+          })
+        } else {
+          // Stop playing
+          setLocationOverrideConfig({
+            route: {
+              ...route,
+              isPlaying: false,
+            },
+          })
+        }
+        return
+      }
+
+      // Interpolate between current and next waypoint
+      const newProgress = route.progress + 0.01 // 1% per 100ms
+
+      if (newProgress >= 1.0) {
+        // Move to next waypoint
+        setLocationOverrideConfig({
+          route: {
+            ...route,
+            currentWaypointIndex: nextWaypointIndex,
+            progress: 0,
+          },
+        })
+      } else {
+        // Update progress
+        const lat = currentWaypoint.latitude + (nextWaypoint.latitude - currentWaypoint.latitude) * newProgress
+        const lon = currentWaypoint.longitude + (nextWaypoint.longitude - currentWaypoint.longitude) * newProgress
+
+        // Calculate heading and speed
+        const heading = calculateHeading(currentWaypoint, nextWaypoint)
+        const speed = currentWaypoint.speed ?? nextWaypoint.speed ?? null
+
+        setLocationOverrideConfig({
+          route: {
+            ...route,
+            progress: newProgress,
+          },
+          staticPosition: {
+            latitude: lat,
+            longitude: lon,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading,
+            speed,
+          },
+        })
+      }
+
+      // Broadcast the updated location
+      broadcastLocationToIframes()
+    }, 100)
+
+    return () => clearInterval(interval)
+  }, [locationOverride, setLocationOverrideConfig, broadcastLocationToIframes])
+
   return (
     <PhoneContext.Provider
       value={{
@@ -519,12 +718,16 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         markWhatsAppAsRead,
         deleteWhatsAppConversation,
         location,
+        effectiveLocation,
         requestLocation,
         watchLocation,
         clearLocationWatch,
         currentTime,
         timeOffset,
         setTimeOffset,
+        locationOverride,
+        setLocationOverrideConfig,
+        broadcastLocationToIframes,
       }}>
       {children}
     </PhoneContext.Provider>

@@ -1,6 +1,7 @@
 "use client"
 import React, { useEffect, useRef, useState } from "react"
 import { AppProps } from "@/types/app"
+import { usePhone } from "@/contexts/PhoneContext"
 
 interface SocialWebviewAppProps extends AppProps {
   url: string
@@ -11,6 +12,7 @@ interface SocialWebviewAppProps extends AppProps {
 export default function SocialWebviewApp({ url, appName }: SocialWebviewAppProps) {
   const [inAppUrl, setInAppUrl] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const { location } = usePhone()
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -22,6 +24,22 @@ export default function SocialWebviewApp({ url, appName }: SocialWebviewAppProps
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
   }, [])
+
+  // Forward location updates to iframe
+  useEffect(() => {
+    if (location.position && iframeRef.current) {
+      const contentWindow = iframeRef.current.contentWindow
+      if (contentWindow) {
+        contentWindow.postMessage(
+          {
+            type: "location-update",
+            position: location.position,
+          },
+          "*"
+        )
+      }
+    }
+  }, [location.position])
 
   return (
     <div className="flex flex-col h-full bg-white relative">

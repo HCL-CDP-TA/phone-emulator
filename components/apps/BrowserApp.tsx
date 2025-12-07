@@ -1,7 +1,8 @@
 "use client"
 
 import { AppProps } from "@/types/app"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { usePhone } from "@/contexts/PhoneContext"
 
 export default function BrowserApp({ onClose }: AppProps) {
   const [url, setUrl] = useState(() => {
@@ -21,6 +22,24 @@ export default function BrowserApp({ onClose }: AppProps) {
     return ""
   })
   const inputRef = useRef<HTMLInputElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const { location } = usePhone()
+
+  // Forward location updates to iframe via postMessage
+  useEffect(() => {
+    if (iframeRef.current && location.position) {
+      const contentWindow = iframeRef.current.contentWindow
+      if (contentWindow) {
+        contentWindow.postMessage(
+          {
+            type: "location-update",
+            position: location.position,
+          },
+          "*"
+        )
+      }
+    }
+  }, [location.position])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,6 +103,7 @@ export default function BrowserApp({ onClose }: AppProps) {
       <div className="flex-1 relative bg-white pb-12">
         {currentUrl ? (
           <iframe
+            ref={iframeRef}
             key={currentUrl}
             src={currentUrl}
             className="w-full h-full border-0"
