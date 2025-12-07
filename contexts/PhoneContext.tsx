@@ -447,7 +447,8 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       return location.position
     }
 
-    if (locationOverride.mode === "static" && locationOverride.staticPosition) {
+    // For both static and route modes, if staticPosition is set, use it (for interpolated route positions)
+    if (locationOverride.staticPosition) {
       const pos = locationOverride.staticPosition
       return {
         coords: {
@@ -463,6 +464,7 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       } as GeolocationPosition
     }
 
+    // Fallback for route mode when no interpolation has happened yet
     if (locationOverride.mode === "route" && locationOverride.route) {
       const route = locationOverride.route
       const currentWaypoint = route.waypoints[route.currentWaypointIndex]

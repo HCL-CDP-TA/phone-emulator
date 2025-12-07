@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react"
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
+import { calculateHeading } from "@/lib/locationUtils"
 
 // Fix for default marker icon in Leaflet
 const defaultIcon = L.icon({
@@ -22,17 +23,10 @@ L.Marker.prototype.options.icon = defaultIcon
 // Component to handle map updates
 function MapUpdater({ position }: { position: { lat: number; lng: number } }) {
   const map = useMap()
-  const prevPositionRef = useRef(position)
 
   useEffect(() => {
-    const prev = prevPositionRef.current
-    const distance = Math.sqrt(Math.pow(position.lat - prev.lat, 2) + Math.pow(position.lng - prev.lng, 2))
-
-    // Only recenter if moved significantly (> 0.001 degrees ~= 111m)
-    if (distance > 0.001) {
-      map.setView([position.lat, position.lng], map.getZoom(), { animate: true, duration: 0.5 })
-      prevPositionRef.current = position
-    }
+    // Update map view smoothly on every position change
+    map.setView([position.lat, position.lng], map.getZoom(), { animate: true, duration: 0.2 })
   }, [position, map])
 
   return null
@@ -171,14 +165,45 @@ export default function MapPanel() {
                       const waypointIndex = Math.floor(value)
                       const progress = value - waypointIndex
 
-                      setLocationOverrideConfig({
-                        route: {
-                          ...locationOverride.route!,
-                          currentWaypointIndex: waypointIndex,
-                          progress: progress,
-                          isPlaying: false, // Pause when manually adjusting
-                        },
-                      })
+                      const route = locationOverride.route!
+                      const currentWaypoint = route.waypoints[waypointIndex]
+                      const nextWaypoint = route.waypoints[waypointIndex + 1]
+
+                      if (currentWaypoint && nextWaypoint) {
+                        // Calculate interpolated position
+                        const lat = currentWaypoint.latitude + (nextWaypoint.latitude - currentWaypoint.latitude) * progress
+                        const lon = currentWaypoint.longitude + (nextWaypoint.longitude - currentWaypoint.longitude) * progress
+                        const heading = calculateHeading(currentWaypoint, nextWaypoint)
+                        const speed = currentWaypoint.speed ?? nextWaypoint.speed ?? null
+
+                        setLocationOverrideConfig({
+                          route: {
+                            ...route,
+                            currentWaypointIndex: waypointIndex,
+                            progress: progress,
+                            isPlaying: false, // Pause when manually adjusting
+                          },
+                          staticPosition: {
+                            latitude: lat,
+                            longitude: lon,
+                            accuracy: 10,
+                            altitude: null,
+                            altitudeAccuracy: null,
+                            heading,
+                            speed,
+                          },
+                        })
+                      } else {
+                        // At the end of the route
+                        setLocationOverrideConfig({
+                          route: {
+                            ...route,
+                            currentWaypointIndex: waypointIndex,
+                            progress: progress,
+                            isPlaying: false,
+                          },
+                        })
+                      }
                     }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
                   />

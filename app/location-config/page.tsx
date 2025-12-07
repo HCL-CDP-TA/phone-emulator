@@ -336,7 +336,9 @@ export default function LocationConfigPage() {
                     </div>
                     <div className="space-y-3">
                       {waypoints.map((wp, index) => (
-                        <div key={index} className="flex items-start gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                        <div
+                          key={index}
+                          className="flex items-start gap-2 p-3 bg-white rounded-lg border border-gray-200">
                           <div className="flex-1 grid grid-cols-3 gap-2">
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">Latitude</label>
@@ -365,7 +367,11 @@ export default function LocationConfigPage() {
                                 step="any"
                                 value={wp.speed ?? ""}
                                 onChange={e =>
-                                  updateWaypoint(index, "speed", e.target.value ? parseFloat(e.target.value) : undefined)
+                                  updateWaypoint(
+                                    index,
+                                    "speed",
+                                    e.target.value ? parseFloat(e.target.value) : undefined,
+                                  )
                                 }
                                 placeholder="Optional"
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
