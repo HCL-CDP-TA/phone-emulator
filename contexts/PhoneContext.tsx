@@ -3,7 +3,16 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect, useRef, useMemo } from "react"
 import { Notification, SMS, Email, WhatsAppMessage, LocationState, LocationOverride } from "@/types/app"
 import { getAppById } from "@/lib/appRegistry"
-import { calculateHeading } from "@/lib/locationUtils"
+import { calculateHeading, isInsideGeofence } from "@/lib/locationUtils"
+import { useGeofences, Geofence } from "@/hooks/useGeofences"
+
+interface GeofenceEvent {
+  id: string
+  time: Date
+  event: "enter" | "exit"
+  geofence: string
+  geofenceId: string
+}
 
 interface PhoneContextType {
   activeApp: string | null
@@ -35,6 +44,12 @@ interface PhoneContextType {
   locationOverride: LocationOverride
   setLocationOverrideConfig: (config: Partial<LocationOverride>) => void
   broadcastLocationToIframes: () => void
+  geofences: Geofence[]
+  geofencesLoading: boolean
+  geofencesError: Error | null
+  geofenceEvents: GeofenceEvent[]
+  clearGeofenceEvents: () => void
+  refetchGeofences: () => void
 }
 
 const PhoneContext = createContext<PhoneContextType | undefined>(undefined)
@@ -165,6 +180,11 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     enabled: false,
     mode: "static",
   })
+
+  // Geofence state
+  const { geofences, isLoading: geofencesLoading, error: geofencesError, refetch: refetchGeofences } = useGeofences()
+  const [geofenceEvents, setGeofenceEvents] = useState<GeofenceEvent[]>([])
+  const previousGeofenceStatusRef = useRef<Map<string, boolean>>(new Map())
 
   // BroadcastChannel for location updates
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
@@ -354,6 +374,11 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
 
   const deleteWhatsAppConversation = useCallback((sender: string) => {
     setWhatsappMessages(prev => prev.filter(message => message.sender !== sender))
+  }, [])
+
+  // Clear geofence events
+  const clearGeofenceEvents = useCallback(() => {
+    setGeofenceEvents([])
   }, [])
 
   // Request location once
@@ -698,6 +723,59 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval)
   }, [locationOverride, setLocationOverrideConfig, broadcastLocationToIframes])
 
+  // Monitor geofences and send notifications on enter/exit
+  useEffect(() => {
+    if (!effectiveLocation || geofences.length === 0) return
+
+    geofences.forEach((geofence) => {
+      const isInside = isInsideGeofence(
+        {
+          latitude: effectiveLocation.coords.latitude,
+          longitude: effectiveLocation.coords.longitude,
+        },
+        {
+          latitude: geofence.latitude,
+          longitude: geofence.longitude,
+        },
+        geofence.radius
+      )
+
+      const previousStatus = previousGeofenceStatusRef.current.get(geofence.id)
+
+      // Only trigger events on state changes (not initial mount)
+      if (previousStatus !== undefined && previousStatus !== isInside) {
+        const eventType = isInside ? "enter" : "exit"
+        const newEvent: GeofenceEvent = {
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          time: new Date(),
+          event: eventType,
+          geofence: geofence.name,
+          geofenceId: geofence.id,
+        }
+
+        // Add to history (limit to 50 events)
+        setGeofenceEvents((prev) => [newEvent, ...prev].slice(0, 50))
+
+        // Send notification
+        const geofenceApp = getAppById("geofence")
+        addNotification({
+          appId: "geofence",
+          appName: "Geofence Monitor",
+          title: `Geofence ${eventType === "enter" ? "Entry" : "Exit"}`,
+          message: `${eventType === "enter" ? "Entered" : "Exited"} ${geofence.name}`,
+          icon: geofenceApp?.icon,
+          iconColor: geofenceApp?.iconColor,
+          onClick: () => {
+            openApp("geofence")
+          },
+        })
+      }
+
+      // Update previous status
+      previousGeofenceStatusRef.current.set(geofence.id, isInside)
+    })
+  }, [effectiveLocation, geofences, addNotification, openApp])
+
   return (
     <PhoneContext.Provider
       value={{
@@ -730,6 +808,12 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         locationOverride,
         setLocationOverrideConfig,
         broadcastLocationToIframes,
+        geofences,
+        geofencesLoading,
+        geofencesError,
+        geofenceEvents,
+        clearGeofenceEvents,
+        refetchGeofences,
       }}>
       {children}
     </PhoneContext.Provider>
