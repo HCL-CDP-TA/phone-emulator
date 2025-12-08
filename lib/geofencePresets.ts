@@ -1,4 +1,12 @@
-import { GeofenceZone } from "@/types/app"
+// Geofence zone definition - app-specific, not a phone OS concept
+export interface GeofenceZone {
+  id: string
+  name: string
+  description?: string
+  latitude: number
+  longitude: number
+  radiusMeters: number
+}
 
 export const DEFAULT_GEOFENCE_PRESETS: GeofenceZone[] = [
   {

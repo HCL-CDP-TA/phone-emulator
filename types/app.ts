@@ -12,7 +12,7 @@ export interface App {
 
 export interface AppProps {
   onClose: () => void
-  onSendNotification?: (notification: Notification) => void
+  onSendNotification?: (notification: Omit<Notification, "id" | "timestamp">) => void
   location?: GeolocationPosition | null
   locationError?: GeolocationPositionError | null
   requestLocation?: () => void
@@ -117,24 +117,4 @@ export interface LocationPreset {
     longitude: number
     speed?: number
   }>
-}
-
-export interface GeofenceZone {
-  id: string
-  name: string
-  description?: string
-  latitude: number
-  longitude: number
-  radiusMeters: number
-}
-
-export interface Geofence {
-  id: string
-  name: string
-  latitude: number
-  longitude: number
-  radius: number // meters
-  enabled?: boolean
-  createdAt?: string
-  updatedAt?: string
 }

@@ -3,7 +3,9 @@
 import { AppProps } from "@/types/app"
 import { usePhone } from "@/contexts/PhoneContext"
 import { isInsideGeofence } from "@/lib/locationUtils"
-import { useMemo } from "react"
+import { useGeofences } from "@/hooks/useGeofences"
+import { useMemo, useState, useEffect, useRef } from "react"
+import { getAppById } from "@/lib/appRegistry"
 
 interface GeofenceStatus {
   id: string
@@ -11,16 +13,28 @@ interface GeofenceStatus {
   isInside: boolean
 }
 
-export default function GeofenceApp({ onClose }: AppProps) {
-  const {
-    effectiveLocation,
-    geofences,
-    geofencesLoading: isLoading,
-    geofencesError: error,
-    geofenceEvents,
-    clearGeofenceEvents,
-    refetchGeofences: refetch,
-  } = usePhone()
+interface GeofenceEvent {
+  id: string
+  time: Date
+  event: "enter" | "exit"
+  geofence: string
+  geofenceId: string
+}
+
+export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
+  // Get location from context (this is provided by the phone OS)
+  const { effectiveLocation, openApp } = usePhone()
+
+  // App fetches its own geofences from API
+  const { geofences, isLoading, error, refetch } = useGeofences()
+
+  // App manages its own event history
+  const [geofenceEvents, setGeofenceEvents] = useState<GeofenceEvent[]>([])
+  const previousStatusRef = useRef<Map<string, boolean>>(new Map())
+
+  const clearGeofenceEvents = () => {
+    setGeofenceEvents([])
+  }
 
   // Calculate status for all geofences
   const geofenceStatuses = useMemo<GeofenceStatus[]>(() => {
@@ -46,6 +60,94 @@ export default function GeofenceApp({ onClose }: AppProps) {
       }
     })
   }, [geofences, effectiveLocation])
+
+  // 🎯 GEOFENCE MONITORING LOGIC - This is where the app handles location updates
+  useEffect(() => {
+    if (!effectiveLocation || geofences.length === 0) return
+
+    geofences.forEach((geofence) => {
+      const isInside = isInsideGeofence(
+        {
+          latitude: effectiveLocation.coords.latitude,
+          longitude: effectiveLocation.coords.longitude,
+        },
+        {
+          latitude: geofence.latitude,
+          longitude: geofence.longitude,
+        },
+        geofence.radius
+      )
+
+      const previousStatus = previousStatusRef.current.get(geofence.id)
+
+      // Only trigger events on state changes (not initial mount)
+      if (previousStatus !== undefined && previousStatus !== isInside) {
+        const eventType = isInside ? "enter" : "exit"
+
+        // Add to app's event history
+        const newEvent: GeofenceEvent = {
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          time: new Date(),
+          event: eventType,
+          geofence: geofence.name,
+          geofenceId: geofence.id,
+        }
+        setGeofenceEvents((prev) => [newEvent, ...prev].slice(0, 50))
+
+        // Send notification
+        const geofenceApp = getAppById("geofence")
+        if (onSendNotification) {
+          onSendNotification({
+            appId: "geofence",
+            appName: "Geofence Monitor",
+            title: `Geofence ${eventType === "enter" ? "Entry" : "Exit"}`,
+            message: `${eventType === "enter" ? "Entered" : "Exited"} ${geofence.name}`,
+            icon: geofenceApp?.icon,
+            iconColor: geofenceApp?.iconColor,
+            onClick: () => {
+              openApp("geofence")
+            },
+          })
+        }
+
+        // 🔥 FIRE CDP EVENTS HERE
+        // This is where you integrate your CDP SDK
+        // The app has:
+        // - effectiveLocation: current coordinates from phone
+        // - geofence: the geofence data (id, name, lat/lng, radius)
+        // - eventType: "enter" or "exit"
+        //
+        // Example CDP integration:
+        // import { CDPClient } from "@/lib/cdp"
+        // const cdp = new CDPClient()
+        // cdp.trackEvent({
+        //   type: eventType === "enter" ? "geofence_entry" : "geofence_exit",
+        //   properties: {
+        //     geofenceId: geofence.id,
+        //     geofenceName: geofence.name,
+        //     latitude: effectiveLocation.coords.latitude,
+        //     longitude: effectiveLocation.coords.longitude,
+        //     accuracy: effectiveLocation.coords.accuracy,
+        //     timestamp: new Date().toISOString(),
+        //   }
+        // })
+
+        // Console log for debugging/demonstration
+        console.log("🎯 Geofence event fired by app:", {
+          eventType: eventType === "enter" ? "geofence_entry" : "geofence_exit",
+          geofenceId: geofence.id,
+          geofenceName: geofence.name,
+          latitude: effectiveLocation.coords.latitude,
+          longitude: effectiveLocation.coords.longitude,
+          accuracy: effectiveLocation.coords.accuracy,
+          timestamp: new Date().toISOString(),
+        })
+      }
+
+      // Update previous status
+      previousStatusRef.current.set(geofence.id, isInside)
+    })
+  }, [effectiveLocation, geofences, onSendNotification, openApp])
 
   // Format timestamp for display
   const formatTime = (date: Date) => {
