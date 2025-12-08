@@ -95,16 +95,25 @@ The emulator includes a sophisticated location override system for testing locat
 - **Route Playback**: Animate movement along pre-defined waypoints with smooth interpolation
 - **Visual Map Panel**: Leaflet.js-based map viewer shows real-time location tracking
 - **Location Presets**: Pre-configured static locations and routes stored in localStorage
+- **Interactive Preset Configuration**: Click-to-create interface for building presets with live map preview
+- **Geofence Display**: Read-only geofence zones from external API shown on location-config map
+- **Location Search**: Geocoding integration (Nominatim) for finding locations by name
 - **Geofence Demo**: Test app for geofence entry/exit events
 - **Effective Location Pattern**: Apps always use `effectiveLocation` which seamlessly switches between real GPS and overrides
 - **PostMessage Broadcasting**: Location updates automatically broadcast to iframes (BrowserApp, SocialWebviewApp)
 
 **Key Components:**
 - `MapPanel.tsx`: Side-by-side map viewer with route controls (play/pause, position slider)
+- `LocationConfigMap.tsx`: Interactive map for creating/editing presets with click-to-add functionality
+- `PresetPanel.tsx`: Preset management sidebar with search, forms, and preset list
+- `GeofenceLayer.tsx`: Renders read-only geofence circles from external API (non-interactive)
+- `RouteBuilder.tsx`: Floating controls for route creation (waypoint count, undo, finish)
 - `PhoneContext.effectiveLocation`: Computed location (override or real GPS) exposed to all components
 - `locationUtils.ts`: Haversine distance calculation, heading computation, geofence checking
 - `locationPresets.ts`: Default static locations and routes (San Francisco, NYC, London)
 - `geofencePresets.ts`: Default geofence zones for testing
+- `useGeofences.ts`: Hook to fetch geofences from external API with bearer token support
+- `useGeocoding.ts`: Hook for location search with 500ms debouncing
 - Route animation runs at 100ms intervals with linear interpolation between waypoints
 - Map updates smoothly (0.2s animation) on every position change
 
@@ -209,6 +218,18 @@ interface GeofenceZone {
   longitude: number
   radiusMeters: number
 }
+
+// Geofence from external API (for location-config screen)
+interface Geofence {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  radius: number // meters
+  enabled?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
 ```
 
 ## File Structure
@@ -233,6 +254,11 @@ interface GeofenceZone {
     /HomeScreen.tsx             - App grid
     /NotificationBanner.tsx     - Sliding notification display
     /MapPanel.tsx               - Leaflet.js map viewer with route controls
+  /location-config
+    /LocationConfigMap.tsx      - Interactive map for creating/editing presets with "My Location" button
+    /PresetPanel.tsx            - Right sidebar with search, forms, and preset list
+    /GeofenceLayer.tsx          - Renders read-only geofence circles from API
+    /RouteBuilder.tsx           - Floating controls for route creation (waypoint count, undo, finish)
   /apps
     /MessagesApp.tsx            - Conversation-based messaging with avatars
     /EmailApp.tsx               - HTML email with DOMPurify sanitization, notifications
@@ -251,12 +277,15 @@ interface GeofenceZone {
   /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
   /useEmailReceiver.ts          - Email SSE connection hook
   /useLocation.ts               - Location access hook
+  /useGeofences.ts              - Fetch geofences from external API (with bearer token support)
+  /useGeocoding.ts              - Nominatim API integration for location search (debounced)
 
 /lib
   /appRegistry.tsx              - Central app registry (CRITICAL for extensions)
   /locationUtils.ts             - Haversine distance, heading calculation, geofence checking
   /locationPresets.ts           - Default location presets (3 static, 2 routes)
   /geofencePresets.ts           - Default geofence zones (3 zones)
+  /debounce.ts                  - Utility function for debouncing user input (used in search)
 
 /types
   /app.ts                       - TypeScript interfaces (includes LocationOverride, LocationPreset, GeofenceZone)
@@ -599,6 +628,10 @@ NEXT_PUBLIC_SOCIAL_APP_KEY=your-demo-key
 
 # Backend base URL (defaults to HCL demo server)
 NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
+
+# Geofence API configuration (for location-config screen)
+NEXT_PUBLIC_GEOFENCE_API_URL=http://localhost:3001
+NEXT_PUBLIC_GEOFENCE_API_KEY=your-api-key  # Optional, only needed for authenticated endpoints
 ```
 
 ## Testing SMS Functionality
@@ -643,9 +676,41 @@ When a route is selected, the map panel displays:
 
 **Creating Custom Presets:**
 
-1. Open "Location Config" from the settings dropdown (top-right)
-2. Add static location or route with waypoints
-3. Saved to localStorage and available in location selector
+The Location Config screen (`/location-config`) provides an interactive map-based interface for creating and editing location presets:
+
+1. **Access**: Open "Location Config" from the settings dropdown (top-right)
+2. **Layout**: Split-screen with interactive map (60%) on left, preset management panel (40%) on right
+3. **Map centers on your current location** automatically when opened
+4. **"My Location" button** (top-right of map) to recenter on your GPS position
+
+**Creating Static Locations:**
+- Click "Add Static Location" button in the right panel
+- Click anywhere on the map to set the location (green marker appears)
+- Click again to update the position while creating
+- Enter name and description in the form
+- Click "Save" to add to presets, or "Cancel" to discard
+
+**Creating Routes:**
+- Click "Add Route" button in the right panel
+- Click multiple points on the map to build a route (numbered blue markers appear)
+- Polyline connects waypoints in real-time
+- Use "Undo" button to remove last waypoint
+- Minimum 2 waypoints required
+- Enter name, description, and loop setting in the form
+- Click "Finish Route" when done, or "Cancel" to discard
+
+**Editing Existing Presets:**
+- Click "Edit" on any preset in the list
+- For static locations: Green marker appears, click map to update position
+- For routes: All waypoints shown with polyline, click map to add more waypoints
+- Update name/description in form
+- Click "Save Changes" to update, or "Cancel" to discard
+
+**Additional Features:**
+- **Location Search**: Type location names (e.g., "Sydney Opera House") in search bar to navigate map (doesn't create presets)
+- **Geofence Display**: Read-only geofence zones from external API displayed as dashed blue circles
+- **Delete Presets**: Click "Delete" button on any preset
+- All presets saved to localStorage and immediately available in location selector
 
 **Testing Location in Apps:**
 
@@ -661,6 +726,21 @@ When a route is selected, the map panel displays:
 - Map animates with 0.2s duration on position changes
 - Heading calculated using Haversine formula
 - Geofence detection uses great-circle distance
+
+**Location Config Implementation:**
+
+- State machine architecture with three modes: `idle`, `creating-static`, `creating-route`
+- Dynamic import for LocationConfigMap to avoid SSE issues with Leaflet
+- Geofence circles rendered with `interactive={false}` to allow click-through for waypoint placement
+- Location search uses Nominatim API with 500ms debounce to reduce API calls
+- Green marker for static locations (CSS filter: `hue-rotate(90deg) saturate(2)`)
+- Numbered DivIcons for route waypoints (blue circles with white numbers)
+- Polyline preview updates in real-time as waypoints are added
+- Map cursor changes to crosshair during creation (inline style for higher specificity than Leaflet CSS)
+- Visual editing: Opening existing preset shows it on map in creation mode for easy modification
+- ESC key cancels current creation/edit operation
+- Toast notifications provide feedback for all user actions
+- Geofences fetched from `${GEOFENCE_API_URL}/api/public/geofences` with optional bearer token support
 
 ## Known Limitations
 
