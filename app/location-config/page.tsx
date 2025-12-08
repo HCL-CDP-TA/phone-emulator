@@ -3,9 +3,24 @@
 import { useState, useEffect } from "react"
 import { LocationPreset } from "@/types/app"
 import { DEFAULT_LOCATION_PRESETS } from "@/lib/locationPresets"
-import { Trash2, Plus, Edit2, X, MapPin, Route } from "lucide-react"
+import { useGeofences } from "@/hooks/useGeofences"
+import dynamic from "next/dynamic"
+import PresetPanel from "@/components/location-config/PresetPanel"
+import RouteBuilder from "@/components/location-config/RouteBuilder"
+import { Plus } from "lucide-react"
+
+// Dynamically import map component to avoid SSR issues
+const LocationConfigMap = dynamic(() => import("@/components/location-config/LocationConfigMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full flex items-center justify-center bg-gray-100">
+      <p className="text-gray-600">Loading map...</p>
+    </div>
+  ),
+})
 
 type FormMode = "add" | "edit" | null
+type ViewMode = "idle" | "creating-static" | "creating-route"
 
 interface Waypoint {
   latitude: number
@@ -27,6 +42,7 @@ export default function LocationConfigPage() {
     return DEFAULT_LOCATION_PRESETS
   })
 
+  const [viewMode, setViewMode] = useState<ViewMode>("idle")
   const [formMode, setFormMode] = useState<FormMode>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState("")
@@ -39,11 +55,38 @@ export default function LocationConfigPage() {
     { latitude: 0, longitude: 0, speed: 10 },
   ])
   const [isClient, setIsClient] = useState(false)
+  const [tempLocation, setTempLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [routeWaypoints, setRouteWaypoints] = useState<Array<{ lat: number; lng: number }>>([])
+  const [mapCenter, setMapCenter] = useState<[number, number]>([37.7749, -122.4194]) // Default SF
+  const [mapZoom, setMapZoom] = useState<number>(12)
+  const [toast, setToast] = useState<string | null>(null)
+  const [hasSetInitialLocation, setHasSetInitialLocation] = useState(false)
+
+  const { geofences, isLoading: geofencesLoading, error: geofencesError, refetch } = useGeofences()
 
   // Mark as client-side mounted to avoid hydration mismatch
   useEffect(() => {
     Promise.resolve().then(() => setIsClient(true))
   }, [])
+
+  // Get user's current location on mount to center the map
+  useEffect(() => {
+    if (!hasSetInitialLocation && typeof window !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          setMapCenter([position.coords.latitude, position.coords.longitude])
+          setMapZoom(13)
+          setHasSetInitialLocation(true)
+        },
+        error => {
+          // If location fails, just keep the default San Francisco location
+          console.log("Could not get initial location, using default:", error.message)
+          setHasSetInitialLocation(true)
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+      )
+    }
+  }, [hasSetInitialLocation])
 
   // Save presets to localStorage whenever they change
   useEffect(() => {
@@ -51,6 +94,30 @@ export default function LocationConfigPage() {
       localStorage.setItem("locationPresets", JSON.stringify(presets))
     }
   }, [presets, isClient])
+
+  // ESC key handler to cancel operations
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && viewMode !== "idle") {
+        if (routeWaypoints.length > 0 || tempLocation) {
+          if (confirm("Cancel current operation?")) {
+            cancelCreation()
+          }
+        } else {
+          cancelCreation()
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleEsc)
+    return () => window.removeEventListener("keydown", handleEsc)
+  }, [viewMode, routeWaypoints, tempLocation])
+
+  // Show toast notification
+  const showToast = (message: string) => {
+    setToast(message)
+    setTimeout(() => setToast(null), 3000)
+  }
 
   const resetForm = () => {
     setFormMode(null)
@@ -64,11 +131,28 @@ export default function LocationConfigPage() {
       { latitude: 0, longitude: 0 },
       { latitude: 0, longitude: 0, speed: 10 },
     ])
+    // Also clear map markers when canceling
+    cancelCreation()
   }
 
-  const openAddForm = () => {
+  const cancelCreation = () => {
+    setViewMode("idle")
+    setTempLocation(null)
+    setRouteWaypoints([])
+  }
+
+  const openAddStaticForm = () => {
     resetForm()
-    setFormMode("add")
+    setViewMode("creating-static")
+    showToast("Click on map to set location")
+  }
+
+  const openAddRouteForm = () => {
+    resetForm()
+    setType("route")
+    setViewMode("creating-route")
+    setRouteWaypoints([])
+    showToast("Click on map to add waypoints (minimum 2)")
   }
 
   const openEditForm = (preset: LocationPreset) => {
@@ -77,11 +161,28 @@ export default function LocationConfigPage() {
     setName(preset.name)
     setDescription(preset.description || "")
     setType(preset.type)
+
     if (preset.type === "static") {
       setLatitude(preset.latitude?.toString() || "")
       setLongitude(preset.longitude?.toString() || "")
+      // Show marker on map and allow clicking to update location
+      setTempLocation({ lat: preset.latitude!, lng: preset.longitude! })
+      setViewMode("creating-static")
+      showToast("Click on map to update location")
+      // Center map on the location
+      setMapCenter([preset.latitude!, preset.longitude!])
+      setMapZoom(15)
     } else if (preset.type === "route" && preset.waypoints) {
       setWaypoints(preset.waypoints)
+      // Show route on map and allow adding more waypoints
+      setRouteWaypoints(preset.waypoints.map(wp => ({ lat: wp.latitude, lng: wp.longitude })))
+      setViewMode("creating-route")
+      showToast("Click on map to add waypoints, or edit values below")
+      // Center map on first waypoint
+      if (preset.waypoints.length > 0) {
+        setMapCenter([preset.waypoints[0].latitude, preset.waypoints[0].longitude])
+        setMapZoom(13)
+      }
     }
   }
 
@@ -151,16 +252,20 @@ export default function LocationConfigPage() {
 
     if (formMode === "edit" && editingId) {
       setPresets(prev => prev.map(p => (p.id === editingId ? newPreset : p)))
+      showToast("Preset updated successfully")
     } else {
       setPresets(prev => [...prev, newPreset])
+      showToast("Preset added successfully")
     }
 
     resetForm()
+    cancelCreation()
   }
 
   const deletePreset = (id: string) => {
     if (confirm("Are you sure you want to delete this preset?")) {
       setPresets(prev => prev.filter(p => p.id !== id))
+      showToast("Preset deleted")
     }
   }
 
@@ -180,316 +285,151 @@ export default function LocationConfigPage() {
     setWaypoints(prev => prev.map((wp, i) => (i === index ? { ...wp, [field]: value } : wp)))
   }
 
-  const formatPresetDisplay = (preset: LocationPreset): string => {
-    if (preset.type === "static") {
-      return `${preset.latitude?.toFixed(4)}, ${preset.longitude?.toFixed(4)}`
-    } else if (preset.type === "route" && preset.waypoints) {
-      return `${preset.waypoints.length} waypoints`
-    }
-    return "Invalid preset"
-  }
-
   const resetToDefaults = () => {
     if (confirm("Reset all presets to defaults? This will overwrite your current configuration.")) {
       setPresets(DEFAULT_LOCATION_PRESETS)
       resetForm()
+      cancelCreation()
+      showToast("Reset to defaults")
     }
   }
 
+  const handleMapClick = (latlng: { lat: number; lng: number }) => {
+    if (viewMode === "creating-static") {
+      setTempLocation(latlng)
+      setLatitude(latlng.lat.toString())
+      setLongitude(latlng.lng.toString())
+
+      // If not already editing, set to add mode and exit creation
+      if (formMode !== "edit") {
+        setFormMode("add")
+        setViewMode("idle")
+        showToast("Location set! Fill in the details and save")
+      } else {
+        // If editing, keep in edit mode and creation mode for further adjustments
+        showToast("Location updated! Click save or adjust again")
+      }
+    } else if (viewMode === "creating-route") {
+      setRouteWaypoints(prev => [...prev, latlng])
+    }
+  }
+
+  const handleUndoLastWaypoint = () => {
+    setRouteWaypoints(prev => prev.slice(0, -1))
+  }
+
+  const handleFinishRoute = () => {
+    if (routeWaypoints.length < 2) {
+      alert("Route must have at least 2 waypoints")
+      return
+    }
+
+    // Convert routeWaypoints to waypoints format
+    const convertedWaypoints: Waypoint[] = routeWaypoints.map((wp, index) => ({
+      latitude: wp.lat,
+      longitude: wp.lng,
+      speed: waypoints[index]?.speed ?? 10, // Preserve existing speed or default to 10
+    }))
+
+    setWaypoints(convertedWaypoints)
+
+    // If already editing, keep edit mode, otherwise switch to add
+    if (formMode !== "edit") {
+      setFormMode("add")
+    }
+    setViewMode("idle")
+    showToast("Route updated! Fill in the details and save")
+  }
+
+  const handleGeocodeSelect = (lat: number, lon: number) => {
+    setMapCenter([lat, lon])
+    setMapZoom(15)
+    showToast("Map moved to location")
+  }
+
+  const handleMyLocation = (lat: number, lng: number) => {
+    setMapCenter([lat, lng])
+    setMapZoom(16)
+    showToast("Centered on your location")
+  }
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-100 to-gray-200 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-3xl font-bold text-gray-800">Location Preset Configuration</h1>
-            <button
-              onClick={resetToDefaults}
-              className="text-sm text-gray-600 hover:text-gray-800 underline transition-colors">
-              Reset to Defaults
-            </button>
+    <div className="h-screen flex bg-gray-100">
+      {/* Map Container - 60% */}
+      <div className="w-[60%] relative">
+        <LocationConfigMap
+          geofences={geofences}
+          presets={presets}
+          viewMode={viewMode}
+          tempLocation={tempLocation}
+          routeWaypoints={routeWaypoints}
+          mapCenter={mapCenter}
+          mapZoom={mapZoom}
+          onMapClick={handleMapClick}
+          onMyLocation={handleMyLocation}
+        />
+
+        {/* Route Builder Controls */}
+        {viewMode === "creating-route" && (
+          <RouteBuilder
+            waypoints={routeWaypoints}
+            onUndoLastWaypoint={handleUndoLastWaypoint}
+            onFinishRoute={handleFinishRoute}
+            onAddWaypoint={() => showToast("Click on map to add waypoint")}
+          />
+        )}
+
+        {/* Geofence Error */}
+        {geofencesError && (
+          <div className="absolute top-4 left-4 right-4 p-4 bg-red-50 border border-red-200 rounded-lg shadow-lg z-[1000]">
+            <p className="text-sm text-red-700">
+              Failed to load geofences from server.
+              <button onClick={refetch} className="ml-2 underline font-medium">
+                Retry
+              </button>
+            </p>
           </div>
-          <p className="text-gray-600 mb-8">
-            Configure location presets for testing geolocation features. Create static locations or routes with multiple
-            waypoints.
-          </p>
-
-          {/* Add/Edit Form */}
-          {formMode && (
-            <div className="bg-gray-50 rounded-xl p-6 mb-8 border-2 border-blue-200">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {formMode === "edit" ? "Edit Preset" : "Add New Preset"}
-                </h2>
-                <button
-                  onClick={resetForm}
-                  className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
-                  title="Cancel">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="e.g., San Francisco Downtown"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
-                  <textarea
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    placeholder="Optional context for this preset"
-                    rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Type Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        value="static"
-                        checked={type === "static"}
-                        onChange={e => setType(e.target.value as "static")}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <MapPin className="w-4 h-4 text-gray-600" />
-                      <span className="text-gray-700">Static Location</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        value="route"
-                        checked={type === "route"}
-                        onChange={e => setType(e.target.value as "route")}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <Route className="w-4 h-4 text-gray-600" />
-                      <span className="text-gray-700">Route (Multiple Waypoints)</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Static Location Fields */}
-                {type === "static" && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Latitude <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={latitude}
-                        onChange={e => setLatitude(e.target.value)}
-                        placeholder="e.g., 37.7749"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Range: -90 to 90</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Longitude <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={longitude}
-                        onChange={e => setLongitude(e.target.value)}
-                        placeholder="e.g., -122.4194"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Range: -180 to 180</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Route Waypoints */}
-                {type === "route" && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Waypoints <span className="text-red-500">*</span> (min. 2)
-                      </label>
-                      <button
-                        onClick={addWaypoint}
-                        className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                        <Plus className="w-4 h-4" />
-                        Add Waypoint
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      {waypoints.map((wp, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start gap-2 p-3 bg-white rounded-lg border border-gray-200">
-                          <div className="flex-1 grid grid-cols-3 gap-2">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Latitude</label>
-                              <input
-                                type="number"
-                                step="any"
-                                value={wp.latitude}
-                                onChange={e => updateWaypoint(index, "latitude", parseFloat(e.target.value))}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Longitude</label>
-                              <input
-                                type="number"
-                                step="any"
-                                value={wp.longitude}
-                                onChange={e => updateWaypoint(index, "longitude", parseFloat(e.target.value))}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Speed (m/s)</label>
-                              <input
-                                type="number"
-                                step="any"
-                                value={wp.speed ?? ""}
-                                onChange={e =>
-                                  updateWaypoint(
-                                    index,
-                                    "speed",
-                                    e.target.value ? parseFloat(e.target.value) : undefined,
-                                  )
-                                }
-                                placeholder="Optional"
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => removeWaypoint(index)}
-                            disabled={waypoints.length <= 2}
-                            className="mt-5 p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Remove waypoint">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Save/Cancel Buttons */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={savePreset}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors">
-                    {formMode === "edit" ? "Save Changes" : "Add Preset"}
-                  </button>
-                  <button
-                    onClick={resetForm}
-                    className="px-6 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2.5 rounded-lg transition-colors">
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Add Button (when form is closed) */}
-          {!formMode && (
-            <button
-              onClick={openAddForm}
-              className="w-full mb-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
-              <Plus className="w-5 h-5" />
-              Add New Preset
-            </button>
-          )}
-
-          {/* Presets List */}
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Configured Presets {isClient && `(${presets.length})`}
-            </h2>
-
-            {!isClient ? (
-              <div className="text-center py-12 text-gray-500">
-                <p>Loading...</p>
-              </div>
-            ) : presets.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p>No presets configured yet.</p>
-                <p className="text-sm mt-1">Add your first preset above to get started.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {presets.map(preset => (
-                  <div
-                    key={preset.id}
-                    className="flex items-start justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {preset.type === "static" ? (
-                          <MapPin className="w-4 h-4 text-blue-600" />
-                        ) : (
-                          <Route className="w-4 h-4 text-green-600" />
-                        )}
-                        <h3 className="font-semibold text-gray-800">{preset.name}</h3>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded ${
-                            preset.type === "static" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
-                          }`}>
-                          {preset.type}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-1">{formatPresetDisplay(preset)}</p>
-                      {preset.description && <p className="text-sm text-gray-500 italic">{preset.description}</p>}
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <button
-                        onClick={() => openEditForm(preset)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit preset">
-                        <Edit2 className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => deletePreset(preset.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete preset">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Instructions */}
-          <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="font-semibold text-blue-900 mb-2">How to Use</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Configure location presets here for testing location-based features</li>
-              <li>• Static locations provide a fixed GPS coordinate</li>
-              <li>• Routes define a path with multiple waypoints and optional speeds</li>
-              <li>• Use these presets in the Maps app or other location-aware apps</li>
-              <li>• Changes are saved automatically to browser localStorage</li>
-            </ul>
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* Preset Panel - 40% */}
+      <div className="w-[40%]">
+        <PresetPanel
+          presets={presets}
+          formMode={formMode}
+          editingId={editingId}
+          name={name}
+          description={description}
+          type={type}
+          latitude={latitude}
+          longitude={longitude}
+          waypoints={waypoints}
+          isClient={isClient}
+          onOpenAddStaticForm={openAddStaticForm}
+          onOpenAddRouteForm={openAddRouteForm}
+          onOpenEditForm={openEditForm}
+          onDeletePreset={deletePreset}
+          onResetForm={resetForm}
+          onSavePreset={savePreset}
+          onSetName={setName}
+          onSetDescription={setDescription}
+          onSetType={setType}
+          onSetLatitude={setLatitude}
+          onSetLongitude={setLongitude}
+          onAddWaypoint={addWaypoint}
+          onRemoveWaypoint={removeWaypoint}
+          onUpdateWaypoint={updateWaypoint}
+          onResetToDefaults={resetToDefaults}
+          onGeocodeSelect={handleGeocodeSelect}
+        />
+      </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl z-[2000] animate-fade-in">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

@@ -127,3 +127,14 @@ export interface GeofenceZone {
   longitude: number
   radiusMeters: number
 }
+
+export interface Geofence {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  radius: number // meters
+  enabled?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
