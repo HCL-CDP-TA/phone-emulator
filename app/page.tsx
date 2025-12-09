@@ -27,9 +27,8 @@ interface TimePreset {
 
 function PhoneEmulator() {
   const sessionId = useSMSReceiver()
-  const { addSMS, setTimeOffset, timeOffset, setLocationOverrideConfig } = usePhone()
+  const { addSMS, setTimeOffset, timeOffset, setLocationOverrideConfig, phoneNumber, setPhoneNumber, closeApp } = usePhone()
   const [isLoaded, setIsLoaded] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -40,8 +39,6 @@ function PhoneEmulator() {
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false)
   const [isMapVisible, setIsMapVisible] = useState(false)
   const locationDropdownRef = useRef<HTMLDivElement>(null)
-
-  const { closeApp } = usePhone()
 
   // Escape key closes current app
   useEffect(() => {

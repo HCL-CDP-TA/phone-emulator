@@ -35,6 +35,8 @@ interface PhoneContextType {
   locationOverride: LocationOverride
   setLocationOverrideConfig: (config: Partial<LocationOverride>) => void
   broadcastLocationToIframes: () => void
+  phoneNumber: string | null
+  setPhoneNumber: (phoneNumber: string | null) => void
 }
 
 const PhoneContext = createContext<PhoneContextType | undefined>(undefined)
@@ -172,6 +174,9 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
   // Time management state (not persisted - reverts to real time on refresh)
   const [timeOffset, setTimeOffsetState] = useState<number>(0)
   const [currentTime, setCurrentTime] = useState<Date>(new Date(Date.now() + timeOffset))
+
+  // Phone number state
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
 
   const openApp = useCallback((appId: string) => {
     setActiveApp(appId)
@@ -730,6 +735,8 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         locationOverride,
         setLocationOverrideConfig,
         broadcastLocationToIframes,
+        phoneNumber,
+        setPhoneNumber,
       }}>
       {children}
     </PhoneContext.Provider>
