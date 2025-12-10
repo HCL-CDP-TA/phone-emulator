@@ -55,5 +55,5 @@ export function useWhatsAppReceiver(phoneNumber: string | null) {
       console.log("[WhatsApp SSE] Closing connection")
       eventSource.close()
     }
-  }, [phoneNumber, addWhatsApp])
+  }, [phoneNumber]) // Don't include addWhatsApp - it's not stable and causes reconnections
 }

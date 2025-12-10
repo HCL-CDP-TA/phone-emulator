@@ -56,5 +56,5 @@ export function useEmailReceiver(phoneNumber: string | null) {
       console.log("[Email SSE] Closing connection")
       eventSource.close()
     }
-  }, [phoneNumber, addEmail])
+  }, [phoneNumber]) // Don't include addEmail - it's not stable and causes reconnections
 }
