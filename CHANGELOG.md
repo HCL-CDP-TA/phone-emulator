@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.9.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.8.0...v1.9.0) (2025-12-10)
+
+
+### Features
+
+* client-side geolocation tracking ([9ce8b47](https://github.com/HCL-CDP-TA/phone-emulator/commit/9ce8b47fd2a5d0406c3faf8c69ca05f7331b7035))
+
+
+### Bug Fixes
+
+* **api:** improve SSE connection lifecycle management ([5802349](https://github.com/HCL-CDP-TA/phone-emulator/commit/5802349c7bf2417209f540b29891591f45d53e67))
+* location in social apps ([b8509ff](https://github.com/HCL-CDP-TA/phone-emulator/commit/b8509ff18e5c6dca2a3cf8796644a332b19133ca))
+* stop chatty traffic for email/whatsapp ([efd2140](https://github.com/HCL-CDP-TA/phone-emulator/commit/efd214013ade0d70bc228c61b6ea243e5505bb5d))
+
 ## [1.8.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.7.0...v1.8.0) (2025-12-05)
 
 
