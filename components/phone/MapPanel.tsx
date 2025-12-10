@@ -1,11 +1,13 @@
 "use client"
 
 import { usePhone } from "@/contexts/PhoneContext"
-import { useEffect, useRef } from "react"
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet"
+import { useEffect } from "react"
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { calculateHeading } from "@/lib/locationUtils"
+import { useGeofences } from "@/hooks/useGeofences"
+import GeofenceLayer from "@/components/location-config/GeofenceLayer"
 
 // Fix for default marker icon in Leaflet
 const defaultIcon = L.icon({
@@ -32,8 +34,23 @@ function MapUpdater({ position }: { position: { lat: number; lng: number } }) {
   return null
 }
 
+// Component to handle map clicks
+function MapClickHandler({
+  onLocationSet,
+}: {
+  onLocationSet: (lat: number, lng: number) => void
+}) {
+  useMapEvents({
+    click(e) {
+      onLocationSet(e.latlng.lat, e.latlng.lng)
+    },
+  })
+  return null
+}
+
 export default function MapPanel() {
   const { effectiveLocation, locationOverride, setLocationOverrideConfig } = usePhone()
+  const { geofences } = useGeofences()
 
   const currentPosition = effectiveLocation
     ? {
@@ -47,7 +64,7 @@ export default function MapPanel() {
       {/* Header */}
       <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 text-white">
         <h2 className="text-xl font-bold">Location Viewer</h2>
-        <p className="text-sm text-green-100 mt-1">Real-time tracking</p>
+        <p className="text-sm text-green-100 mt-1">Click map to set location</p>
       </div>
 
       {/* Content */}
@@ -65,7 +82,25 @@ export default function MapPanel() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <Marker position={[currentPosition.lat, currentPosition.lng]} />
+              <GeofenceLayer geofences={geofences} />
               <MapUpdater position={currentPosition} />
+              <MapClickHandler
+                onLocationSet={(lat, lng) => {
+                  setLocationOverrideConfig({
+                    enabled: true,
+                    mode: "static",
+                    staticPosition: {
+                      latitude: lat,
+                      longitude: lng,
+                      accuracy: 10,
+                      altitude: null,
+                      altitudeAccuracy: null,
+                      heading: null,
+                      speed: null,
+                    },
+                  })
+                }}
+              />
             </MapContainer>
           </div>
 
