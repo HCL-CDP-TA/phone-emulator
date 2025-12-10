@@ -6,13 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "link-sdk": "cd ../geofence/packages/sdk && npm link && cd - && npm link @hcl-cdp-ta/geofence-sdk",
-    "unlink-sdk": "npm unlink @hcl-cdp-ta/geofence-sdk && cd ../geofence/packages/sdk && npm unlink",
-    "rebuild-sdk": "cd ../geofence/packages/sdk && npm run build"
+    "lint": "eslint"
   },
   "dependencies": {
-    "@hcl-cdp-ta/geofence-sdk": "file:../geofence/packages/sdk",
+    "@hcl-cdp-ta/geofence-sdk": "^1.0.0",
     "@types/dompurify": "^3.0.5",
     "@types/leaflet": "^1.9.21",
     "dompurify": "^3.3.0",
