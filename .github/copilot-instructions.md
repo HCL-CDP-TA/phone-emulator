@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project Overview
 
 A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS and HTML emails via API, displaying notifications, and running modular apps including a functional web browser.
@@ -82,6 +86,44 @@ Social media apps (Facebook, Instagram, X, LinkedIn, TikTok) use a webview-based
 
 The system supports custom social media backends that can send postMessage events (`type: "open-url"`) to open URLs within the phone interface.
 
+**6. Location Simulation System**
+
+The emulator includes a sophisticated location override system for testing location-based features:
+
+- **Real GPS Support**: Uses browser Geolocation API for real device location
+- **Static Overrides**: Set fixed latitude/longitude coordinates
+- **Route Playback**: Animate movement along pre-defined waypoints with smooth interpolation
+- **Visual Map Panel**: Leaflet.js-based map viewer shows real-time location tracking
+- **Location Presets**: Pre-configured static locations and routes stored in localStorage
+- **Interactive Preset Configuration**: Click-to-create interface for building presets with live map preview
+- **Geofence Display**: Read-only geofence zones from external API shown on location-config map
+- **Location Search**: Geocoding integration (Nominatim) for finding locations by name
+- **Geofence Demo**: Test app for geofence entry/exit events
+- **Effective Location Pattern**: Apps always use `effectiveLocation` which seamlessly switches between real GPS and overrides
+- **PostMessage Broadcasting**: Location updates automatically broadcast to iframes (BrowserApp, SocialWebviewApp)
+
+**Key Components:**
+
+- `MapPanel.tsx`: Side-by-side map viewer with route controls (play/pause, position slider)
+- `LocationConfigMap.tsx`: Interactive map for creating/editing presets with click-to-add functionality
+- `PresetPanel.tsx`: Preset management sidebar with search, forms, and preset list
+- `GeofenceLayer.tsx`: Renders read-only geofence circles from external API (non-interactive)
+- `RouteBuilder.tsx`: Floating controls for route creation (waypoint count, undo, finish)
+- `PhoneContext.effectiveLocation`: Computed location (override or real GPS) exposed to all components
+- `locationUtils.ts`: Haversine distance calculation, heading computation, geofence checking
+- `locationPresets.ts`: Default static locations and routes (San Francisco, NYC, London)
+- `geofencePresets.ts`: Default geofence zones for testing
+- `useGeofences.ts`: Hook to fetch geofences from external API with bearer token support
+- `useGeocoding.ts`: Hook for location search with 500ms debouncing
+- Route animation runs at 100ms intervals with linear interpolation between waypoints
+- Map updates smoothly (0.2s animation) on every position change
+
+**Status Indicators:**
+
+- Blue dot in StatusBar when location override is active
+- Map visibility toggleable via Map button in top-left corner
+- Coordinate display shows lat/lng/accuracy/speed/heading/altitude in real-time
+
 ### Key Interfaces
 
 ```typescript
@@ -125,15 +167,81 @@ interface App {
   component: ComponentType<AppProps>
   category: string
 }
+
+// Location override configuration
+interface LocationOverride {
+  enabled: boolean
+  mode: "static" | "route"
+  staticPosition?: {
+    latitude: number
+    longitude: number
+    accuracy?: number
+    altitude?: number | null
+    altitudeAccuracy?: number | null
+    heading?: number | null
+    speed?: number | null
+  }
+  route?: {
+    id: string
+    name: string
+    waypoints: Array<{
+      latitude: number
+      longitude: number
+      speed?: number
+    }>
+    currentWaypointIndex: number
+    progress: number // 0.0 to 1.0 interpolation between current and next waypoint
+    isPlaying: boolean
+    loop: boolean
+  }
+}
+
+// Location preset for configuration
+interface LocationPreset {
+  id: string
+  name: string
+  description?: string
+  type: "static" | "route"
+  latitude?: number // for static locations
+  longitude?: number // for static locations
+  waypoints?: Array<{
+    latitude: number
+    longitude: number
+    speed?: number
+  }> // for route locations
+}
+
+// Geofence zone definition
+interface GeofenceZone {
+  id: string
+  name: string
+  description?: string
+  latitude: number
+  longitude: number
+  radiusMeters: number
+}
+
+// Geofence from external API (for location-config screen)
+interface Geofence {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  radius: number // meters
+  enabled?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
 ```
 
 ## File Structure
 
 ```
 /app
-  /page.tsx                     - Main entry: phone number login + SSE connection + tester dropdown
+  /page.tsx                     - Main entry: phone number login + SSE connection + map viewer + control buttons
   /tester/page.tsx              - SMS tester (opens in new window)
   /email-tester/page.tsx        - Email tester (opens in new window)
+  /location-config/page.tsx     - Location preset configuration (CRUD for static/route presets)
   /api/sms/route.ts             - Main SMS API (SSE + queue fallback)
   /api/sms/stream/route.ts      - SSE endpoint for real-time delivery
   /api/sms/poll/route.ts        - DEPRECATED polling fallback
@@ -144,32 +252,45 @@ interface App {
   /phone
     /Phone.tsx                  - Phone shell (padding, home button, chrome)
     /PhoneNumberLogin.tsx       - Phone number entry screen
-    /StatusBar.tsx              - Status bar (time, battery, signal)
+    /StatusBar.tsx              - Status bar (time, battery, signal, location indicator)
     /HomeScreen.tsx             - App grid
     /NotificationBanner.tsx     - Sliding notification display
+    /MapPanel.tsx               - Leaflet.js map viewer with route controls
+  /location-config
+    /LocationConfigMap.tsx      - Interactive map for creating/editing presets with "My Location" button
+    /PresetPanel.tsx            - Right sidebar with search, forms, and preset list
+    /GeofenceLayer.tsx          - Renders read-only geofence circles from API
+    /RouteBuilder.tsx           - Floating controls for route creation (waypoint count, undo, finish)
   /apps
     /MessagesApp.tsx            - Conversation-based messaging with avatars
     /EmailApp.tsx               - HTML email with DOMPurify sanitization, notifications
-    /BrowserApp.tsx             - iframe-based web browser with address bar
+    /BrowserApp.tsx             - iframe-based web browser with address bar + location forwarding
     /MapsApp.tsx                - Location-enabled maps using OpenStreetMap
-    /SocialWebviewApp.tsx       - Webview component for social media apps with in-app browser
+    /GeofenceApp.tsx            - Geofence demo app for testing enter/exit events
+    /SocialWebviewApp.tsx       - Webview component for social media apps + location forwarding
     /socialAppsConfig.ts        - Configuration for social media apps (Facebook, Instagram, X, LinkedIn, TikTok)
     /socialIcons.tsx            - SVG icons for social media apps
     /[DummyApps].tsx            - Camera, Photos, Clock, Calculator, etc.
 
 /contexts
-  /PhoneContext.tsx             - Global state management
+  /PhoneContext.tsx             - Global state management + location override system
 
 /hooks
   /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
   /useEmailReceiver.ts          - Email SSE connection hook
   /useLocation.ts               - Location access hook
+  /useGeofences.ts              - Fetch geofences from external API (with bearer token support)
+  /useGeocoding.ts              - Nominatim API integration for location search (debounced)
 
 /lib
   /appRegistry.tsx              - Central app registry (CRITICAL for extensions)
+  /locationUtils.ts             - Haversine distance, heading calculation, geofence checking
+  /locationPresets.ts           - Default location presets (3 static, 2 routes)
+  /geofencePresets.ts           - Default geofence zones (3 zones)
+  /debounce.ts                  - Utility function for debouncing user input (used in search)
 
 /types
-  /app.ts                       - TypeScript interfaces
+  /app.ts                       - TypeScript interfaces (includes LocationOverride, LocationPreset, GeofenceZone)
 ```
 
 ## Common Development Tasks
@@ -267,28 +388,91 @@ window.parent.postMessage({ type: "open-url", url: "https://example.com" }, "*")
 
 ### Using Location Services
 
-Location is automatically requested when the phone loads. Apps can access it via:
+Location is automatically requested when the phone loads. Apps should **always use `effectiveLocation`** from PhoneContext, which seamlessly switches between real GPS and overrides:
+
+```tsx
+import { usePhone } from "@/contexts/PhoneContext"
+
+// RECOMMENDED: Use effectiveLocation for location-aware apps
+const { effectiveLocation, locationOverride } = usePhone()
+
+if (effectiveLocation) {
+  const { latitude, longitude } = effectiveLocation.coords
+  const { speed, heading, accuracy } = effectiveLocation.coords
+  // This automatically uses override location if active, otherwise real GPS
+}
+
+// Check if location is being simulated
+if (locationOverride.enabled) {
+  console.log(`Using ${locationOverride.mode} location override`)
+}
+```
+
+**Setting Location Overrides:**
+
+```tsx
+const { setLocationOverrideConfig } = usePhone()
+
+// Static location override
+setLocationOverrideConfig({
+  enabled: true,
+  mode: "static",
+  staticPosition: {
+    latitude: 37.7749,
+    longitude: -122.4194,
+    accuracy: 10,
+    altitude: null,
+    altitudeAccuracy: null,
+    heading: null,
+    speed: null,
+  },
+})
+
+// Route playback override
+setLocationOverrideConfig({
+  enabled: true,
+  mode: "route",
+  route: {
+    id: "my-route",
+    name: "My Route",
+    waypoints: [
+      { latitude: 37.7749, longitude: -122.4194 },
+      { latitude: 37.7849, longitude: -122.4294, speed: 10 },
+      { latitude: 37.7949, longitude: -122.4394, speed: 10 },
+    ],
+    currentWaypointIndex: 0,
+    progress: 0,
+    isPlaying: true,
+    loop: false,
+  },
+})
+
+// Disable override (use real GPS)
+setLocationOverrideConfig({ enabled: false })
+```
+
+**Legacy location access** (use effectiveLocation instead):
 
 ```tsx
 import { useLocation } from "@/hooks/useLocation"
 
-// In your app component:
 const { position, error, isLoading, requestLocation } = useLocation()
-
-if (position) {
-  const { latitude, longitude } = position.coords
-  // Use location data
-}
+// Note: This only returns real GPS, not overrides
 ```
-
-Or via props: `location`, `locationError`, `requestLocation` are passed to all apps.
 
 ### Accessing Phone Context
 
 ```tsx
 import { usePhone } from "@/contexts/PhoneContext"
 
-const { smsMessages, openApp, addNotification, location } = usePhone()
+const {
+  smsMessages,
+  openApp,
+  addNotification,
+  effectiveLocation, // Use this for location
+  locationOverride,
+  setLocationOverrideConfig,
+} = usePhone()
 ```
 
 ### Sending Notifications from Apps
@@ -397,13 +581,14 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) f
 
 **Types**: `feat`, `fix`, `perf`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`
 
-**Scopes**: `messages`, `email`, `browser`, `phone`, `sms`, `social`, `api`, `ui`, `context`, `hooks`
+**Scopes**: `messages`, `email`, `browser`, `phone`, `sms`, `social`, `api`, `ui`, `context`, `hooks`, `location`, `maps`
 
 **Examples**:
 
 - `feat(messages): add avatar colors to conversations`
 - `fix(phone): correct status bar padding issue`
 - `feat(social): add TikTok integration`
+- `feat(location): add route playback with smooth interpolation`
 - `docs: update API documentation`
 
 Breaking changes: Add `!` after type or `BREAKING CHANGE:` in footer.
@@ -418,6 +603,8 @@ Breaking changes: Add `!` after type or `BREAKING CHANGE:` in footer.
 - **Cross-tab**: BroadcastChannel API
 - **Storage**: localStorage for message persistence
 - **Social Integration**: Iframe webviews with PostMessage API
+- **Maps**: Leaflet.js with React-Leaflet for interactive maps
+- **Location**: Browser Geolocation API with override system
 
 ## Social Media Apps
 
@@ -444,6 +631,10 @@ NEXT_PUBLIC_SOCIAL_APP_KEY=your-demo-key
 
 # Backend base URL (defaults to HCL demo server)
 NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
+
+# Geofence API configuration (for location-config screen)
+NEXT_PUBLIC_GEOFENCE_API_URL=http://localhost:3001
+NEXT_PUBLIC_GEOFENCE_API_KEY=your-api-key  # Optional, only needed for authenticated endpoints
 ```
 
 ## Testing SMS Functionality
@@ -466,6 +657,98 @@ curl -X POST http://localhost:3000/api/sms \
     "message": "Test message"
   }'
 ```
+
+## Testing Location Functionality
+
+**Using the UI Controls:**
+
+1. Open `http://localhost:3000` (phone emulator)
+2. Click the **Map** button (top-left corner) to show the map viewer alongside the phone
+3. Click the **Location** button (pin icon, top-left) to select a preset:
+   - **Real GPS**: Use actual device location
+   - **Static Locations**: San Francisco Downtown, Times Square, Tower of London
+   - **Routes**: SF to Golden Gate, NYC to Central Park
+4. Status bar shows blue dot when location override is active
+
+**Route Playback Controls:**
+
+When a route is selected, the map panel displays:
+
+- **Play/Pause Button**: Start/stop automatic route animation
+- **Position Slider**: Manually scrub through the route (map updates in real-time)
+- **Coordinate Display**: Real-time lat/lng, speed, heading, accuracy
+
+**Creating Custom Presets:**
+
+The Location Config screen (`/location-config`) provides an interactive map-based interface for creating and editing location presets:
+
+1. **Access**: Open "Location Config" from the settings dropdown (top-right)
+2. **Layout**: Split-screen with interactive map (60%) on left, preset management panel (40%) on right
+3. **Map centers on your current location** automatically when opened
+4. **"My Location" button** (top-right of map) to recenter on your GPS position
+
+**Creating Static Locations:**
+
+- Click "Add Static Location" button in the right panel
+- Click anywhere on the map to set the location (green marker appears)
+- Click again to update the position while creating
+- Enter name and description in the form
+- Click "Save" to add to presets, or "Cancel" to discard
+
+**Creating Routes:**
+
+- Click "Add Route" button in the right panel
+- Click multiple points on the map to build a route (numbered blue markers appear)
+- Polyline connects waypoints in real-time
+- Use "Undo" button to remove last waypoint
+- Minimum 2 waypoints required
+- Enter name, description, and loop setting in the form
+- Click "Finish Route" when done, or "Cancel" to discard
+
+**Editing Existing Presets:**
+
+- Click "Edit" on any preset in the list
+- For static locations: Green marker appears, click map to update position
+- For routes: All waypoints shown with polyline, click map to add more waypoints
+- Update name/description in form
+- Click "Save Changes" to update, or "Cancel" to discard
+
+**Additional Features:**
+
+- **Location Search**: Type location names (e.g., "Sydney Opera House") in search bar to navigate map (doesn't create presets)
+- **Geofence Display**: Read-only geofence zones from external API displayed as dashed blue circles
+- **Delete Presets**: Click "Delete" button on any preset
+- All presets saved to localStorage and immediately available in location selector
+
+**Testing Location in Apps:**
+
+- **MapsApp**: Opens OpenStreetMap at current effective location
+- **GeofenceApp**: Demo app showing enter/exit events for preset zones
+- **BrowserApp/SocialWebviewApp**: Location automatically forwarded via postMessage
+- Any app using `effectiveLocation` from PhoneContext
+
+**Technical Details:**
+
+- Route animation runs at 100ms intervals (1% progress per tick)
+- Smooth interpolation between waypoints using linear math
+- Map animates with 0.2s duration on position changes
+- Heading calculated using Haversine formula
+- Geofence detection uses great-circle distance
+
+**Location Config Implementation:**
+
+- State machine architecture with three modes: `idle`, `creating-static`, `creating-route`
+- Dynamic import for LocationConfigMap to avoid SSE issues with Leaflet
+- Geofence circles rendered with `interactive={false}` to allow click-through for waypoint placement
+- Location search uses Nominatim API with 500ms debounce to reduce API calls
+- Green marker for static locations (CSS filter: `hue-rotate(90deg) saturate(2)`)
+- Numbered DivIcons for route waypoints (blue circles with white numbers)
+- Polyline preview updates in real-time as waypoints are added
+- Map cursor changes to crosshair during creation (inline style for higher specificity than Leaflet CSS)
+- Visual editing: Opening existing preset shows it on map in creation mode for easy modification
+- ESC key cancels current creation/edit operation
+- Toast notifications provide feedback for all user actions
+- Geofences fetched from `${GEOFENCE_API_URL}/api/public/geofences` with optional bearer token support
 
 ## Known Limitations
 

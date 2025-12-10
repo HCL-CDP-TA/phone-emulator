@@ -1,6 +1,7 @@
 "use client"
 import React, { useEffect, useRef, useState } from "react"
 import { AppProps } from "@/types/app"
+import { usePhone } from "@/contexts/PhoneContext"
 
 interface SocialWebviewAppProps extends AppProps {
   url: string
@@ -11,6 +12,7 @@ interface SocialWebviewAppProps extends AppProps {
 export default function SocialWebviewApp({ url, appName }: SocialWebviewAppProps) {
   const [inAppUrl, setInAppUrl] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const { location } = usePhone()
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -22,6 +24,32 @@ export default function SocialWebviewApp({ url, appName }: SocialWebviewAppProps
     window.addEventListener("message", handleMessage)
     return () => window.removeEventListener("message", handleMessage)
   }, [])
+
+  // Forward location updates to iframe
+  useEffect(() => {
+    if (location.position && iframeRef.current) {
+      const contentWindow = iframeRef.current.contentWindow
+      if (contentWindow) {
+        // Extract serializable data from GeolocationPosition
+        const locationData = {
+          type: "location-update",
+          position: {
+            coords: {
+              latitude: location.position.coords.latitude,
+              longitude: location.position.coords.longitude,
+              accuracy: location.position.coords.accuracy,
+              altitude: location.position.coords.altitude,
+              altitudeAccuracy: location.position.coords.altitudeAccuracy,
+              heading: location.position.coords.heading,
+              speed: location.position.coords.speed,
+            },
+            timestamp: location.position.timestamp,
+          },
+        }
+        contentWindow.postMessage(locationData, "*")
+      }
+    }
+  }, [location.position])
 
   return (
     <div className="flex flex-col h-full bg-white relative">

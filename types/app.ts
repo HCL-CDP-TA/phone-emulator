@@ -12,7 +12,7 @@ export interface App {
 
 export interface AppProps {
   onClose: () => void
-  onSendNotification?: (notification: Notification) => void
+  onSendNotification?: (notification: Omit<Notification, "id" | "timestamp">) => void
   location?: GeolocationPosition | null
   locationError?: GeolocationPositionError | null
   requestLocation?: () => void
@@ -76,4 +76,45 @@ export interface WhatsAppMessage {
   timestamp: Date
   read: boolean
   buttons?: WhatsAppButton[]
+}
+
+export interface LocationOverride {
+  enabled: boolean
+  mode: "static" | "route"
+  staticPosition?: {
+    latitude: number
+    longitude: number
+    accuracy?: number
+    altitude?: number | null
+    altitudeAccuracy?: number | null
+    heading?: number | null
+    speed?: number | null
+  }
+  route?: {
+    id: string
+    name: string
+    waypoints: Array<{
+      latitude: number
+      longitude: number
+      speed?: number
+    }>
+    currentWaypointIndex: number
+    progress: number
+    isPlaying: boolean
+    loop: boolean
+  }
+}
+
+export interface LocationPreset {
+  id: string
+  name: string
+  description?: string
+  type: "static" | "route"
+  latitude?: number
+  longitude?: number
+  waypoints?: Array<{
+    latitude: number
+    longitude: number
+    speed?: number
+  }>
 }

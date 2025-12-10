@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import dynamic from "next/dynamic"
 import Phone from "@/components/phone/Phone"
 import PhoneNumberLogin from "@/components/phone/PhoneNumberLogin"
 import { PhoneProvider, usePhone } from "@/contexts/PhoneContext"
@@ -8,7 +9,12 @@ import { useSMSReceiver } from "@/hooks/useSMSReceiver"
 import { useEmailReceiver } from "@/hooks/useEmailReceiver"
 import { useWhatsAppReceiver } from "@/hooks/useWhatsAppReceiver"
 import packageJson from "@/package.json"
-import { Clock } from "lucide-react"
+import { Clock, MapPin, Route, Map, Circle, RefreshCw } from "lucide-react"
+import { LocationPreset } from "@/types/app"
+import { DEFAULT_LOCATION_PRESETS } from "@/lib/locationPresets"
+import { useGeofences, Geofence } from "@/hooks/useGeofences"
+
+const MapPanel = dynamic(() => import("@/components/phone/MapPanel"), { ssr: false })
 
 interface TimePreset {
   id: string
@@ -22,17 +28,20 @@ interface TimePreset {
 
 function PhoneEmulator() {
   const sessionId = useSMSReceiver()
-  const { addSMS, setTimeOffset, timeOffset } = usePhone()
+  const { addSMS, setTimeOffset, timeOffset, setLocationOverrideConfig, phoneNumber, setPhoneNumber, closeApp } = usePhone()
   const [isLoaded, setIsLoaded] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false)
   const timeDropdownRef = useRef<HTMLDivElement>(null)
   const [timePresets, setTimePresets] = useState<TimePreset[]>([])
-
-  const { closeApp } = usePhone()
+  const [locationPresets, setLocationPresets] = useState<LocationPreset[]>([])
+  const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false)
+  const [isMapVisible, setIsMapVisible] = useState(false)
+  const locationDropdownRef = useRef<HTMLDivElement>(null)
+  const { geofences, refetch: refetchGeofences, isLoading: isGeofencesLoading } = useGeofences()
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Escape key closes current app
   useEffect(() => {
@@ -189,6 +198,84 @@ function PhoneEmulator() {
     setIsTimeDropdownOpen(false)
   }
 
+  const handleResetLocation = () => {
+    setLocationOverrideConfig({ enabled: false })
+    setIsLocationDropdownOpen(false)
+  }
+
+  const handleRefreshLocations = async () => {
+    setIsRefreshing(true)
+    // Refetch location presets from localStorage (in case config page updated them)
+    const stored = localStorage.getItem("locationPresets")
+    if (stored) {
+      try {
+        setLocationPresets(JSON.parse(stored))
+      } catch (error) {
+        console.error("Failed to reload location presets:", error)
+      }
+    }
+    // Refetch geofences from API
+    refetchGeofences()
+    // Small delay to show feedback
+    await new Promise(resolve => setTimeout(resolve, 500))
+    setIsRefreshing(false)
+  }
+
+  const handleGeofenceSelect = (geofence: Geofence) => {
+    setLocationOverrideConfig({
+      enabled: true,
+      mode: "static",
+      staticPosition: {
+        latitude: geofence.latitude,
+        longitude: geofence.longitude,
+        accuracy: 10,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+    })
+    setIsLocationDropdownOpen(false)
+  }
+
+  const handleLocationPresetSelect = (preset: LocationPreset) => {
+    if (preset.type === "static" && preset.latitude !== undefined && preset.longitude !== undefined) {
+      setLocationOverrideConfig({
+        enabled: true,
+        mode: "static",
+        staticPosition: {
+          latitude: preset.latitude,
+          longitude: preset.longitude,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+      })
+    } else if (preset.type === "route" && preset.waypoints && preset.waypoints.length > 0) {
+      setLocationOverrideConfig({
+        enabled: true,
+        mode: "route",
+        route: {
+          id: preset.id,
+          name: preset.name,
+          waypoints: preset.waypoints,
+          currentWaypointIndex: 0,
+          progress: 0,
+          isPlaying: false,
+          loop: false,
+        },
+      })
+    }
+    setIsLocationDropdownOpen(false)
+  }
+
+  const handleOpenLocationConfig = () => {
+    window.open("/location-config", "_blank")
+    setIsDropdownOpen(false)
+  }
+
   // Load time presets from localStorage
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -202,6 +289,22 @@ function PhoneEmulator() {
     }
   }, [])
 
+  // Load location presets from localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const stored = localStorage.getItem("locationPresets")
+    if (stored) {
+      try {
+        setLocationPresets(JSON.parse(stored))
+      } catch (error) {
+        console.error("Failed to load location presets:", error)
+        setLocationPresets(DEFAULT_LOCATION_PRESETS)
+      }
+    } else {
+      setLocationPresets(DEFAULT_LOCATION_PRESETS)
+    }
+  }, [])
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -210,6 +313,9 @@ function PhoneEmulator() {
       }
       if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) {
         setIsTimeDropdownOpen(false)
+      }
+      if (locationDropdownRef.current && !locationDropdownRef.current.contains(event.target as Node)) {
+        setIsLocationDropdownOpen(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -234,68 +340,209 @@ function PhoneEmulator() {
   const displayPhoneNumber = isAnonymous ? null : phoneNumber
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 p-8">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 p-8 gap-8">
       <div className="phone-emulator">
         <Phone />
+      </div>
 
-        {/* Version indicator */}
-        <div className="fixed bottom-4 right-4 text-gray-400 text-xs font-mono">v{packageJson.version}</div>
+      {/* Map Panel */}
+      {isMapVisible && (
+        <div className="w-[500px] h-[875px]">
+          <MapPanel />
+        </div>
+      )}
 
-        {/* Time Selector (discreet clock icon) */}
-        <div className="fixed top-4 left-4" ref={timeDropdownRef}>
-          <button
-            onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
-            className={`bg-white rounded-lg shadow-lg p-2 transition-colors ${
-              timeOffset !== 0
-                ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-            }`}
-            title={timeOffset !== 0 ? "Time override active - click to change" : "Set time for demo"}>
-            <Clock className="w-5 h-5" />
-          </button>
+      {/* Version indicator */}
+      <div className="fixed bottom-4 right-4 text-gray-400 text-xs font-mono">v{packageJson.version}</div>
 
-          {/* Time Preset Dropdown */}
-          {isTimeDropdownOpen && (
-            <div className="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 max-h-96 overflow-y-auto">
-              <div className="px-3 py-2 border-b border-gray-200">
-                <div className="text-xs font-semibold text-gray-500 uppercase">Time Travel</div>
-              </div>
+        {/* Control buttons (Time, Location, Map) */}
+        <div className="fixed top-4 left-4 z-50 flex items-start gap-3">
+          {/* Time Selector */}
+          <div className="relative" ref={timeDropdownRef}>
+            <button
+              onClick={() => setIsTimeDropdownOpen(!isTimeDropdownOpen)}
+              className={`bg-white rounded-lg shadow-lg p-2 transition-colors ${
+                timeOffset !== 0
+                  ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              title={timeOffset !== 0 ? "Time override active - click to change" : "Set time for demo"}>
+              <Clock className="w-5 h-5" />
+            </button>
 
-              {/* Reset to Now */}
-              <button
-                onClick={handleResetTime}
-                className={`w-full px-4 py-2 text-left text-sm transition-colors flex items-center gap-2 ${
-                  timeOffset === 0 ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700 hover:bg-gray-50"
-                }`}>
-                <Clock className="w-4 h-4" />
-                <span>Now (Real Time)</span>
-              </button>
-
-              {timePresets.length > 0 && (
-                <>
-                  <div className="border-t border-gray-200 my-1" />
-                  {timePresets.map(preset => (
-                    <button
-                      key={preset.id}
-                      onClick={() => handleTimePresetSelect(preset)}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      title={preset.description}>
-                      <div className="font-medium">{preset.label}</div>
-                      {preset.description && <div className="text-xs text-gray-500 mt-0.5">{preset.description}</div>}
-                    </button>
-                  ))}
-                </>
-              )}
-
-              {timePresets.length === 0 && (
-                <div className="px-4 py-3 text-xs text-gray-500 text-center">
-                  No presets configured.
-                  <br />
-                  Open Time Travel Config to add presets.
+            {/* Time Preset Dropdown */}
+            {isTimeDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 max-h-96 overflow-y-auto">
+                <div className="px-3 py-2 border-b border-gray-200">
+                  <div className="text-xs font-semibold text-gray-500 uppercase">Time Travel</div>
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Reset to Now */}
+                <button
+                  onClick={handleResetTime}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors flex items-center gap-2 ${
+                    timeOffset === 0 ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700 hover:bg-gray-50"
+                  }`}>
+                  <Clock className="w-4 h-4" />
+                  <span>Now (Real Time)</span>
+                </button>
+
+                {timePresets.length > 0 && (
+                  <>
+                    <div className="border-t border-gray-200 my-1" />
+                    {timePresets.map(preset => (
+                      <button
+                        key={preset.id}
+                        onClick={() => handleTimePresetSelect(preset)}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        title={preset.description}>
+                        <div className="font-medium">{preset.label}</div>
+                        {preset.description && <div className="text-xs text-gray-500 mt-0.5">{preset.description}</div>}
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {timePresets.length === 0 && (
+                  <div className="px-4 py-3 text-xs text-gray-500 text-center">
+                    No presets configured.
+                    <br />
+                    Open Time Travel Config to add presets.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Location Selector */}
+          <div className="relative" ref={locationDropdownRef}>
+            <button
+              onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
+              className="bg-white rounded-lg shadow-lg p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+              title="Set location for demo">
+              <MapPin className="w-5 h-5" />
+            </button>
+
+            {/* Location Preset Dropdown */}
+            {isLocationDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 max-h-96 overflow-y-auto">
+                <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+                  <div className="text-xs font-semibold text-gray-500 uppercase">Location Override</div>
+                  <button
+                    onClick={handleRefreshLocations}
+                    disabled={isRefreshing}
+                    className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                    title="Refresh locations">
+                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+
+                {/* Reset to Real GPS */}
+                <button
+                  onClick={handleResetLocation}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span>Real GPS</span>
+                </button>
+
+                {/* Routes Section */}
+                {locationPresets.filter(p => p.type === "route").length > 0 && (
+                  <>
+                    <div className="border-t border-gray-200 my-1" />
+                    <div className="px-3 py-1.5">
+                      <div className="text-xs font-semibold text-gray-400 uppercase">Routes</div>
+                    </div>
+                    {locationPresets
+                      .filter(preset => preset.type === "route")
+                      .map(preset => (
+                        <button
+                          key={preset.id}
+                          onClick={() => handleLocationPresetSelect(preset)}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                          title={preset.description}>
+                          <Route className="w-4 h-4 text-green-600" />
+                          <div className="flex-1">
+                            <div className="font-medium">{preset.name}</div>
+                            {preset.description && <div className="text-xs text-gray-500 mt-0.5">{preset.description}</div>}
+                          </div>
+                        </button>
+                      ))}
+                  </>
+                )}
+
+                {/* Static Locations Section */}
+                {locationPresets.filter(p => p.type === "static").length > 0 && (
+                  <>
+                    <div className="border-t border-gray-200 my-1" />
+                    <div className="px-3 py-1.5">
+                      <div className="text-xs font-semibold text-gray-400 uppercase">Locations</div>
+                    </div>
+                    {locationPresets
+                      .filter(preset => preset.type === "static")
+                      .map(preset => (
+                        <button
+                          key={preset.id}
+                          onClick={() => handleLocationPresetSelect(preset)}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                          title={preset.description}>
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          <div className="flex-1">
+                            <div className="font-medium">{preset.name}</div>
+                            {preset.description && <div className="text-xs text-gray-500 mt-0.5">{preset.description}</div>}
+                          </div>
+                        </button>
+                      ))}
+                  </>
+                )}
+
+                {/* Geofences Section */}
+                {geofences.length > 0 && (
+                  <>
+                    <div className="border-t border-gray-200 my-1" />
+                    <div className="px-3 py-1.5">
+                      <div className="text-xs font-semibold text-gray-400 uppercase">Geofences</div>
+                    </div>
+                    {geofences.map(geofence => (
+                      <button
+                        key={geofence.id}
+                        onClick={() => handleGeofenceSelect(geofence)}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                        title={`Radius: ${geofence.radius}m`}>
+                        <Circle className="w-4 h-4 text-purple-600" />
+                        <div className="flex-1">
+                          <div className="font-medium">{geofence.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{geofence.radius}m radius</div>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {/* Empty state */}
+                {locationPresets.length === 0 && geofences.length === 0 && (
+                  <div className="px-4 py-3 text-xs text-gray-500 text-center">
+                    No locations configured.
+                    <br />
+                    Open Location Config to add presets.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Map Visibility Toggle */}
+          <div className="relative">
+            <button
+              onClick={() => setIsMapVisible(!isMapVisible)}
+              className={`bg-white rounded-lg shadow-lg p-2 transition-colors ${
+                isMapVisible
+                  ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              title={isMapVisible ? "Hide map viewer" : "Show map viewer"}>
+              <Map className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Phone Number & Tester Dropdown */}
@@ -418,11 +665,23 @@ function PhoneEmulator() {
                   </svg>
                   Time Travel Config
                 </button>
+                <button
+                  onClick={handleOpenLocationConfig}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                    />
+                  </svg>
+                  Location Config
+                </button>
               </div>
             )}
           </div>
         </div>
-      </div>
     </div>
   )
 }

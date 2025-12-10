@@ -4,7 +4,7 @@ import { useState } from "react"
 import { usePhone } from "@/contexts/PhoneContext"
 
 export default function StatusBar() {
-  const { currentTime, timeOffset } = usePhone()
+  const { currentTime, timeOffset, locationOverride } = usePhone()
   const [battery] = useState(87)
 
   return (
@@ -13,6 +13,7 @@ export default function StatusBar() {
       <div className="flex-1 flex items-center gap-1.5">
         {currentTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
         {timeOffset !== 0 && <div className="w-1.5 h-1.5 bg-orange-400 rounded-full" title="Time override active" />}
+        {locationOverride.enabled && <div className="w-1.5 h-1.5 bg-blue-400 rounded-full" title="Location override active" />}
       </div>
 
       {/* Center indicators (notch area) */}

@@ -5,6 +5,7 @@ import { getAppById } from "@/lib/appRegistry"
 import StatusBar from "./StatusBar"
 import HomeScreen from "./HomeScreen"
 import NotificationBanner from "./NotificationBanner"
+import GeofenceApp from "@/components/apps/GeofenceApp"
 
 export default function Phone() {
   const { activeApp, closeApp, addNotification, location, requestLocation } = usePhone()
@@ -21,9 +22,20 @@ export default function Phone() {
           <StatusBar />
         </div>
 
+        {/* Background Apps - always mounted but hidden */}
+        <div className={`w-full h-full pt-11 ${activeApp === "geofence" ? "block" : "hidden"}`}>
+          <GeofenceApp
+            onClose={closeApp}
+            onSendNotification={addNotification}
+            location={location.position}
+            locationError={location.error}
+            requestLocation={requestLocation}
+          />
+        </div>
+
         {/* App Content or Home Screen */}
-        <div className="w-full h-full pt-11">
-          {AppComponent ? (
+        <div className={`w-full h-full pt-11 ${activeApp === "geofence" ? "hidden" : "block"}`}>
+          {AppComponent && activeApp !== "geofence" ? (
             <AppComponent
               onClose={closeApp}
               onSendNotification={addNotification}
@@ -31,9 +43,9 @@ export default function Phone() {
               locationError={location.error}
               requestLocation={requestLocation}
             />
-          ) : (
+          ) : !activeApp ? (
             <HomeScreen />
-          )}
+          ) : null}
         </div>
 
         {/* Notification Banner */}

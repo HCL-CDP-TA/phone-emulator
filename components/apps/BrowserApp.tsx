@@ -1,7 +1,8 @@
 "use client"
 
 import { AppProps } from "@/types/app"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { usePhone } from "@/contexts/PhoneContext"
 
 export default function BrowserApp({ onClose }: AppProps) {
   const [url, setUrl] = useState(() => {
@@ -21,6 +22,34 @@ export default function BrowserApp({ onClose }: AppProps) {
     return ""
   })
   const inputRef = useRef<HTMLInputElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const { location } = usePhone()
+
+  // Forward location updates to iframe via postMessage
+  useEffect(() => {
+    if (iframeRef.current && location.position) {
+      const contentWindow = iframeRef.current.contentWindow
+      if (contentWindow) {
+        // Extract serializable data from GeolocationPosition
+        const locationData = {
+          type: "location-update",
+          position: {
+            coords: {
+              latitude: location.position.coords.latitude,
+              longitude: location.position.coords.longitude,
+              accuracy: location.position.coords.accuracy,
+              altitude: location.position.coords.altitude,
+              altitudeAccuracy: location.position.coords.altitudeAccuracy,
+              heading: location.position.coords.heading,
+              speed: location.position.coords.speed,
+            },
+            timestamp: location.position.timestamp,
+          },
+        }
+        contentWindow.postMessage(locationData, "*")
+      }
+    }
+  }, [location.position])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,6 +113,7 @@ export default function BrowserApp({ onClose }: AppProps) {
       <div className="flex-1 relative bg-white pb-12">
         {currentUrl ? (
           <iframe
+            ref={iframeRef}
             key={currentUrl}
             src={currentUrl}
             className="w-full h-full border-0"
