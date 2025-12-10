@@ -27,6 +27,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
   const [monitor, setMonitor] = useState<GeofenceMonitor | null>(null)
   const [isMonitoring, setIsMonitoring] = useState(false)
   const [sdkError, setSdkError] = useState<Error | null>(null)
+  const [hasAutoStarted, setHasAutoStarted] = useState(false)
 
   // Event history (in-memory only, not persisted)
   const [geofenceEvents, setGeofenceEvents] = useState<GeofenceEvent[]>([])
@@ -57,6 +58,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     })
 
     setMonitor(newMonitor)
+    setHasAutoStarted(false) // Reset auto-start flag for new monitor
 
     return () => {
       newMonitor.stop()
@@ -151,15 +153,26 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     }
   }, [monitor, onSendNotification, openApp])
 
-  // Auto-start monitoring when monitor is created
+  // Auto-start monitoring when monitor is created (only once, if enabled)
   useEffect(() => {
-    if (!monitor || isMonitoring) return
+    if (!monitor || hasAutoStarted) return
 
     const autoStart = async () => {
+      // Check saved preference (defaults to true for first-time users)
+      const savedMonitoring = localStorage.getItem("geofence-monitoring-enabled")
+      const shouldMonitor = savedMonitoring === null || savedMonitoring === "true"
+
+      if (!shouldMonitor) {
+        setHasAutoStarted(true) // Mark as handled, but don't start
+        return
+      }
+
       try {
         setIsMonitoring(true)
+        setHasAutoStarted(true)
         setSdkError(null)
         await monitor.start()
+        localStorage.setItem("geofence-monitoring-enabled", "true")
       } catch (error) {
         console.error("Failed to start monitoring:", error)
         setSdkError(error as Error)
@@ -168,7 +181,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     }
 
     autoStart()
-  }, [monitor, isMonitoring])
+  }, [monitor, hasAutoStarted])
 
   const handleUserIdSubmit = () => {
     if (!userIdInput.trim()) return
@@ -186,12 +199,14 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     }
     setIsMonitoring(false)
     setGeofenceEvents([])
+    // Don't change the monitoring preference in localStorage - keep it for the next user
   }
 
   const handleStopMonitoring = () => {
     if (monitor) {
       monitor.stop()
       setIsMonitoring(false)
+      localStorage.setItem("geofence-monitoring-enabled", "false")
     }
   }
 
@@ -201,10 +216,12 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
       setIsMonitoring(true)
       setSdkError(null)
       await monitor.start()
+      localStorage.setItem("geofence-monitoring-enabled", "true")
     } catch (error) {
       console.error("Failed to start monitoring:", error)
       setSdkError(error as Error)
       setIsMonitoring(false)
+      localStorage.setItem("geofence-monitoring-enabled", "false")
     }
   }
 
