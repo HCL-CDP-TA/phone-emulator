@@ -9,9 +9,10 @@ import { useSMSReceiver } from "@/hooks/useSMSReceiver"
 import { useEmailReceiver } from "@/hooks/useEmailReceiver"
 import { useWhatsAppReceiver } from "@/hooks/useWhatsAppReceiver"
 import packageJson from "@/package.json"
-import { Clock, MapPin, Navigation, Map } from "lucide-react"
+import { Clock, MapPin, Route, Map, Circle, RefreshCw } from "lucide-react"
 import { LocationPreset } from "@/types/app"
 import { DEFAULT_LOCATION_PRESETS } from "@/lib/locationPresets"
+import { useGeofences, Geofence } from "@/hooks/useGeofences"
 
 const MapPanel = dynamic(() => import("@/components/phone/MapPanel"), { ssr: false })
 
@@ -39,6 +40,8 @@ function PhoneEmulator() {
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false)
   const [isMapVisible, setIsMapVisible] = useState(false)
   const locationDropdownRef = useRef<HTMLDivElement>(null)
+  const { geofences, refetch: refetchGeofences, isLoading: isGeofencesLoading } = useGeofences()
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Escape key closes current app
   useEffect(() => {
@@ -197,6 +200,41 @@ function PhoneEmulator() {
 
   const handleResetLocation = () => {
     setLocationOverrideConfig({ enabled: false })
+    setIsLocationDropdownOpen(false)
+  }
+
+  const handleRefreshLocations = async () => {
+    setIsRefreshing(true)
+    // Refetch location presets from localStorage (in case config page updated them)
+    const stored = localStorage.getItem("locationPresets")
+    if (stored) {
+      try {
+        setLocationPresets(JSON.parse(stored))
+      } catch (error) {
+        console.error("Failed to reload location presets:", error)
+      }
+    }
+    // Refetch geofences from API
+    refetchGeofences()
+    // Small delay to show feedback
+    await new Promise(resolve => setTimeout(resolve, 500))
+    setIsRefreshing(false)
+  }
+
+  const handleGeofenceSelect = (geofence: Geofence) => {
+    setLocationOverrideConfig({
+      enabled: true,
+      mode: "static",
+      staticPosition: {
+        latitude: geofence.latitude,
+        longitude: geofence.longitude,
+        accuracy: 10,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: null,
+        speed: null,
+      },
+    })
     setIsLocationDropdownOpen(false)
   }
 
@@ -388,8 +426,15 @@ function PhoneEmulator() {
             {/* Location Preset Dropdown */}
             {isLocationDropdownOpen && (
               <div className="absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 max-h-96 overflow-y-auto">
-                <div className="px-3 py-2 border-b border-gray-200">
+                <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
                   <div className="text-xs font-semibold text-gray-500 uppercase">Location Override</div>
+                  <button
+                    onClick={handleRefreshLocations}
+                    disabled={isRefreshing}
+                    className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                    title="Refresh locations">
+                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+                  </button>
                 </div>
 
                 {/* Reset to Real GPS */}
@@ -400,44 +445,87 @@ function PhoneEmulator() {
                   <span>Real GPS</span>
                 </button>
 
-                {locationPresets.length > 0 && (
+                {/* Routes Section */}
+                {locationPresets.filter(p => p.type === "route").length > 0 && (
                   <>
                     <div className="border-t border-gray-200 my-1" />
-                    {locationPresets.map(preset => (
+                    <div className="px-3 py-1.5">
+                      <div className="text-xs font-semibold text-gray-400 uppercase">Routes</div>
+                    </div>
+                    {locationPresets
+                      .filter(preset => preset.type === "route")
+                      .map(preset => (
+                        <button
+                          key={preset.id}
+                          onClick={() => handleLocationPresetSelect(preset)}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                          title={preset.description}>
+                          <Route className="w-4 h-4 text-green-600" />
+                          <div className="flex-1">
+                            <div className="font-medium">{preset.name}</div>
+                            {preset.description && <div className="text-xs text-gray-500 mt-0.5">{preset.description}</div>}
+                          </div>
+                        </button>
+                      ))}
+                  </>
+                )}
+
+                {/* Static Locations Section */}
+                {locationPresets.filter(p => p.type === "static").length > 0 && (
+                  <>
+                    <div className="border-t border-gray-200 my-1" />
+                    <div className="px-3 py-1.5">
+                      <div className="text-xs font-semibold text-gray-400 uppercase">Locations</div>
+                    </div>
+                    {locationPresets
+                      .filter(preset => preset.type === "static")
+                      .map(preset => (
+                        <button
+                          key={preset.id}
+                          onClick={() => handleLocationPresetSelect(preset)}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                          title={preset.description}>
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          <div className="flex-1">
+                            <div className="font-medium">{preset.name}</div>
+                            {preset.description && <div className="text-xs text-gray-500 mt-0.5">{preset.description}</div>}
+                          </div>
+                        </button>
+                      ))}
+                  </>
+                )}
+
+                {/* Geofences Section */}
+                {geofences.length > 0 && (
+                  <>
+                    <div className="border-t border-gray-200 my-1" />
+                    <div className="px-3 py-1.5">
+                      <div className="text-xs font-semibold text-gray-400 uppercase">Geofences</div>
+                    </div>
+                    {geofences.map(geofence => (
                       <button
-                        key={preset.id}
-                        onClick={() => handleLocationPresetSelect(preset)}
+                        key={geofence.id}
+                        onClick={() => handleGeofenceSelect(geofence)}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                        title={preset.description}>
-                        {preset.type === "static" ? (
-                          <MapPin className="w-4 h-4" />
-                        ) : (
-                          <Navigation className="w-4 h-4" />
-                        )}
+                        title={`Radius: ${geofence.radius}m`}>
+                        <Circle className="w-4 h-4 text-purple-600" />
                         <div className="flex-1">
-                          <div className="font-medium">{preset.name}</div>
-                          {preset.description && <div className="text-xs text-gray-500 mt-0.5">{preset.description}</div>}
+                          <div className="font-medium">{geofence.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{geofence.radius}m radius</div>
                         </div>
                       </button>
                     ))}
                   </>
                 )}
 
-                <div className="border-t border-gray-200 my-1" />
-                <button
-                  onClick={handleOpenLocationConfig}
-                  className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-2">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                    />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Location Config
-                </button>
+                {/* Empty state */}
+                {locationPresets.length === 0 && geofences.length === 0 && (
+                  <div className="px-4 py-3 text-xs text-gray-500 text-center">
+                    No locations configured.
+                    <br />
+                    Open Location Config to add presets.
+                  </div>
+                )}
               </div>
             )}
           </div>
