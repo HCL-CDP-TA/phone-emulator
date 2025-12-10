@@ -69,8 +69,21 @@ async function fetchGeofencesShared(): Promise<void> {
 
   const fetchPromise = (async () => {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_GEOFENCE_API_URL || "http://localhost:3001"
+      const baseUrl = process.env.NEXT_PUBLIC_GEOFENCE_API_URL
       const apiKey = process.env.NEXT_PUBLIC_GEOFENCE_API_KEY
+
+      // If no API URL is configured, skip fetching
+      if (!baseUrl) {
+        console.log("[Geofences] No NEXT_PUBLIC_GEOFENCE_API_URL configured, skipping geofence fetch")
+        cache = {
+          geofences: [],
+          error: null,
+          timestamp: Date.now(),
+          promise: null,
+        }
+        notifyListeners()
+        return
+      }
 
       console.log(`[Geofences] Fetching from: ${baseUrl}/api/public/geofences`)
 

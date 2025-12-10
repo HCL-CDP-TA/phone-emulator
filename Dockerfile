@@ -32,7 +32,7 @@ ARG VERSION
 ARG SOCIAL_APP_KEY=changeme
 ARG NEXT_PUBLIC_SOCIAL_APP_KEY=changeme
 ARG NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
-ARG NEXT_PUBLIC_GEOFENCE_API_URL=http://localhost:3001
+ARG NEXT_PUBLIC_GEOFENCE_API_URL
 ARG NEXT_PUBLIC_GEOFENCE_API_KEY
 
 # Set environment variables for build (needed for Next.js to embed NEXT_PUBLIC_* vars)
