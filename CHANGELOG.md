@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.9.0...v1.9.1) (2025-12-10)
+
+
+### Bug Fixes
+
+* deploy fix for .env ([046cb77](https://github.com/HCL-CDP-TA/phone-emulator/commit/046cb77c98355e5d2ad7ecba11ea85e8132715ac))
+* location permission fix ([2ff5161](https://github.com/HCL-CDP-TA/phone-emulator/commit/2ff516101295f710cd4ba63b84f436b944b2b88e))
+
 ## [1.9.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.8.0...v1.9.0) (2025-12-10)
 
 
