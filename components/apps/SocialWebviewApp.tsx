@@ -30,13 +30,23 @@ export default function SocialWebviewApp({ url, appName }: SocialWebviewAppProps
     if (location.position && iframeRef.current) {
       const contentWindow = iframeRef.current.contentWindow
       if (contentWindow) {
-        contentWindow.postMessage(
-          {
-            type: "location-update",
-            position: location.position,
+        // Extract serializable data from GeolocationPosition
+        const locationData = {
+          type: "location-update",
+          position: {
+            coords: {
+              latitude: location.position.coords.latitude,
+              longitude: location.position.coords.longitude,
+              accuracy: location.position.coords.accuracy,
+              altitude: location.position.coords.altitude,
+              altitudeAccuracy: location.position.coords.altitudeAccuracy,
+              heading: location.position.coords.heading,
+              speed: location.position.coords.speed,
+            },
+            timestamp: location.position.timestamp,
           },
-          "*"
-        )
+        }
+        contentWindow.postMessage(locationData, "*")
       }
     }
   }, [location.position])
