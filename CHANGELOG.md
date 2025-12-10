@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.3](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.9.2...v1.9.3) (2025-12-10)
+
+
+### Bug Fixes
+
+* geofence autostart fix ([b045d8e](https://github.com/HCL-CDP-TA/phone-emulator/commit/b045d8e838a7c87340f0fc7fe1bf22a394179e83))
+
 ## [1.9.2](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.9.1...v1.9.2) (2025-12-10)
 
 
