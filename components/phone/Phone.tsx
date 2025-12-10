@@ -5,6 +5,7 @@ import { getAppById } from "@/lib/appRegistry"
 import StatusBar from "./StatusBar"
 import HomeScreen from "./HomeScreen"
 import NotificationBanner from "./NotificationBanner"
+import LocationPermissionBanner from "./LocationPermissionBanner"
 import GeofenceApp from "@/components/apps/GeofenceApp"
 
 export default function Phone() {
@@ -20,6 +21,11 @@ export default function Phone() {
         {/* Status Bar */}
         <div className="absolute top-0 left-0 right-0 z-40 bg-black/30 backdrop-blur">
           <StatusBar />
+        </div>
+
+        {/* Location Permission Banner */}
+        <div className="absolute top-11 left-0 right-0 z-40">
+          <LocationPermissionBanner />
         </div>
 
         {/* Background Apps - always mounted but hidden */}
