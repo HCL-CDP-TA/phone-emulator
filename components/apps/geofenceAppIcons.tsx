@@ -6,6 +6,13 @@ export const geofenceAppIcons = {
       <path d="M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5z" />
     </svg>
   ),
+  Telco: (
+    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+      <title>Telco</title>
+      {/* Smartphone icon */}
+      <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
+    </svg>
+  ),
   Costco: (
     <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
       <title>Costco</title>

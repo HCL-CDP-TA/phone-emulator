@@ -1,10 +1,16 @@
 "use client"
 
 import { usePhone } from "@/contexts/PhoneContext"
-import { appRegistry } from "@/lib/appRegistry"
+import { useAppRegistry } from "@/lib/appRegistry"
 
 export default function HomeScreen() {
   const { openApp, currentTime } = usePhone()
+  const appRegistry = useAppRegistry()
+
+  // Limit to 24 apps (4 columns × 6 rows) to fit on screen
+  // Apps beyond this limit (dummy apps at bottom of registry) are hidden
+  const MAX_APPS = 24
+  const visibleApps = appRegistry.slice(0, MAX_APPS)
 
   // Format time: e.g., "2:30 PM"
   const formattedTime = currentTime.toLocaleTimeString(undefined, {
@@ -37,7 +43,7 @@ export default function HomeScreen() {
 
       {/* App Grid */}
       <div className="grid grid-cols-4 gap-4 auto-rows-min">
-        {appRegistry.map(app => (
+        {visibleApps.map(app => (
           <button
             key={app.id}
             onClick={() => openApp(app.id)}

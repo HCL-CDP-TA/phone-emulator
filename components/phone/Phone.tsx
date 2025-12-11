@@ -1,7 +1,7 @@
 "use client"
 
 import { usePhone } from "@/contexts/PhoneContext"
-import { getAppById } from "@/lib/appRegistry"
+import { useAppRegistry } from "@/lib/appRegistry"
 import StatusBar from "./StatusBar"
 import HomeScreen from "./HomeScreen"
 import NotificationBanner from "./NotificationBanner"
@@ -10,8 +10,9 @@ import GeofenceApp from "@/components/apps/GeofenceApp"
 
 export default function Phone() {
   const { activeApp, closeApp, addNotification, location, requestLocation } = usePhone()
+  const appRegistry = useAppRegistry()
 
-  const currentApp = activeApp ? getAppById(activeApp) : null
+  const currentApp = activeApp ? appRegistry.find(app => app.id === activeApp) : null
   const AppComponent = currentApp?.component
 
   return (

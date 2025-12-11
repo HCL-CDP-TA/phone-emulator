@@ -17,9 +17,12 @@ import { SOCIAL_APPS } from "@/components/apps/socialAppsConfig"
 import { socialIcons } from "@/components/apps/socialIcons"
 import { SHORTCUT_APPS } from "@/components/apps/shortcutAppsConfig"
 import { shortcutIcons } from "@/components/apps/shortcutIcons"
-import { GEOFENCE_APPS, GeofenceAppConfig } from "@/components/apps/geofenceAppsConfig"
+import { GeofenceAppConfig } from "@/components/apps/geofenceAppsConfig"
 import { geofenceAppIcons } from "@/components/apps/geofenceAppIcons"
+import { geofenceIconPresets } from "@/components/apps/geofenceIconPresets"
 import GeofenceWebviewApp from "@/components/apps/GeofenceWebviewApp"
+import { useGeofenceApps } from "@/contexts/GeofenceAppsContext"
+import { useMemo } from "react"
 // import { usePhone } from "@/contexts/PhoneContext"
 
 // Helper to generate social app component with dynamic URL
@@ -119,16 +122,6 @@ export const appRegistry: App[] = [
     component: makeShortcutAppComponent(app.url, app.name, shortcutIcons[app.iconName as keyof typeof shortcutIcons]),
     category: "utility" as const,
   })),
-  // Geofence-enabled webview apps (Banking, Costco)
-  ...GEOFENCE_APPS.map(app => ({
-    id: app.id,
-    name: app.name,
-    icon: geofenceAppIcons[app.iconName as keyof typeof geofenceAppIcons],
-    iconColor: app.iconColor,
-    component: makeGeofenceAppComponent(app, geofenceAppIcons[app.iconName as keyof typeof geofenceAppIcons]),
-    category: "utility" as const,
-    canSendNotifications: true,
-  })),
   {
     id: "browser",
     name: "Chrome",
@@ -172,6 +165,55 @@ export const appRegistry: App[] = [
     component: BrowserApp,
     category: "utility",
   },
+  {
+    id: "geofence",
+    name: "Geofence",
+    icon: (
+      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+        <circle cx="12" cy="9" r="1.5" fill="white" />
+      </svg>
+    ),
+    iconColor: "bg-purple-500",
+    component: GeofenceApp,
+    category: "utility",
+  },
+  {
+    id: "settings",
+    name: "Settings",
+    icon: (
+      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+      </svg>
+    ),
+    iconColor: "bg-gray-400",
+    component: SettingsApp,
+    category: "system",
+  },
+  {
+    id: "maps",
+    name: "Maps",
+    icon: (
+      <svg
+        className="w-full h-full"
+        xmlns="http://www.w3.org/2000/svg"
+        width="30"
+        height="30"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>
+    ),
+    iconColor: "bg-emerald-500",
+    component: MapsApp,
+    category: "utility",
+  },
+
   {
     id: "camera",
     name: "Camera",
@@ -220,42 +262,7 @@ export const appRegistry: App[] = [
     component: ClockApp,
     category: "utility",
   },
-  {
-    id: "maps",
-    name: "Maps",
-    icon: (
-      <svg
-        className="w-full h-full"
-        xmlns="http://www.w3.org/2000/svg"
-        width="30"
-        height="30"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round">
-        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
-        <circle cx="12" cy="10" r="3" />
-      </svg>
-    ),
-    iconColor: "bg-emerald-500",
-    component: MapsApp,
-    category: "utility",
-  },
-  {
-    id: "geofence",
-    name: "Geofence",
-    icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-        <circle cx="12" cy="9" r="1.5" fill="white" />
-      </svg>
-    ),
-    iconColor: "bg-purple-500",
-    component: GeofenceApp,
-    category: "utility",
-  },
+
   {
     id: "music",
     name: "Music",
@@ -323,19 +330,43 @@ export const appRegistry: App[] = [
     component: ContactsApp,
     category: "communication",
   },
-  {
-    id: "settings",
-    name: "Settings",
-    icon: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-      </svg>
-    ),
-    iconColor: "bg-gray-400",
-    component: SettingsApp,
-    category: "system",
-  },
 ]
+
+// Hook to get dynamic app registry including geofence apps from context
+export function useAppRegistry(): App[] {
+  const { apps: geofenceApps } = useGeofenceApps()
+
+  return useMemo(() => {
+    // Filter only visible geofence apps
+    const visibleGeofenceApps = geofenceApps.filter(app => app.visible)
+
+    // Map geofence apps to registry format
+    const dynamicGeofenceApps: App[] = visibleGeofenceApps.map(app => {
+      // Get icon from presets or fallback to legacy icons
+      const icon =
+        geofenceIconPresets[app.iconName as keyof typeof geofenceIconPresets] ||
+        geofenceAppIcons[app.iconName as keyof typeof geofenceAppIcons] ||
+        geofenceIconPresets.Store
+
+      return {
+        id: app.id,
+        name: app.name,
+        icon,
+        iconColor: app.iconColor,
+        component: makeGeofenceAppComponent(app, icon),
+        category: "utility" as const,
+        canSendNotifications: true,
+      }
+    })
+
+    // Insert geofence apps before browser app (after shortcuts)
+    const browserIndex = appRegistry.findIndex(app => app.id === "browser")
+    const beforeBrowser = appRegistry.slice(0, browserIndex)
+    const afterBrowser = appRegistry.slice(browserIndex)
+
+    return [...beforeBrowser, ...dynamicGeofenceApps, ...afterBrowser]
+  }, [geofenceApps])
+}
 
 export function getAppById(id: string): App | undefined {
   return appRegistry.find(app => app.id === id)

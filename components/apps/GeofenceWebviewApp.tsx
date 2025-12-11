@@ -3,7 +3,7 @@
 import { AppProps } from "@/types/app"
 import { usePhone } from "@/contexts/PhoneContext"
 import { useState, useEffect, useRef } from "react"
-import { getAppById } from "@/lib/appRegistry"
+import { useAppRegistry } from "@/lib/appRegistry"
 import { GeofenceMonitor, Geofence } from "@hcl-cdp-ta/geofence-sdk"
 import { GeofenceAppConfig } from "@/components/apps/geofenceAppsConfig"
 
@@ -15,6 +15,7 @@ interface GeofenceWebviewAppProps extends AppProps {
 export default function GeofenceWebviewApp({ config, onSendNotification }: GeofenceWebviewAppProps) {
   // Get location from context
   const { effectiveLocation, openApp } = usePhone()
+  const appRegistry = useAppRegistry()
 
   // User ID management
   const [userId, setUserId] = useState<string | null>(null)
@@ -84,7 +85,7 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
       if (!config.notifications.enter.enabled) return
 
       // Send notification
-      const app = getAppById(config.id)
+      const app = appRegistry.find(a => a.id === config.id)
       onSendNotification?.({
         appId: config.id,
         appName: config.name,
@@ -103,7 +104,7 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
       if (!config.notifications.exit.enabled) return
 
       // Send notification
-      const app = getAppById(config.id)
+      const app = appRegistry.find(a => a.id === config.id)
       onSendNotification?.({
         appId: config.id,
         appName: config.name,
@@ -128,7 +129,7 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
       monitor.off("exit", handleExit)
       monitor.off("error", handleError)
     }
-  }, [monitor, config, onSendNotification, openApp])
+  }, [monitor, config, onSendNotification, openApp, appRegistry])
 
   // Listen for postMessage from iframe (for userIdMode: 'postmessage')
   useEffect(() => {
@@ -160,7 +161,8 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
       const savedMonitoring = localStorage.getItem(monitoringEnabledKey)
       const shouldMonitor = savedMonitoring === null || savedMonitoring === "true"
 
-      if (!shouldMonitor) {
+      // Check if geotracking is enabled in config
+      if (!shouldMonitor || !config.geotrackingEnabled) {
         setHasAutoStarted(true) // Mark as handled, but don't start
         return
       }
@@ -179,7 +181,37 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
     }
 
     autoStart()
-  }, [monitor, hasAutoStarted, userId, monitoringEnabledKey, config.name])
+  }, [monitor, hasAutoStarted, userId, monitoringEnabledKey, config.name, config.geotrackingEnabled])
+
+  // Handle geotracking enabled/disabled changes
+  useEffect(() => {
+    if (!monitor) return
+
+    if (config.geotrackingEnabled && userId) {
+      // Geotracking enabled - start if not already monitoring
+      if (!isMonitoring) {
+        monitor
+          .start()
+          .then(() => {
+            setIsMonitoring(true)
+            localStorage.setItem(monitoringEnabledKey, "true")
+            console.log(`[${config.name}] Monitoring enabled via settings`)
+          })
+          .catch(error => {
+            console.error(`[${config.name}] Failed to start monitoring:`, error)
+            setIsMonitoring(false)
+          })
+      }
+    } else {
+      // Geotracking disabled - stop if monitoring
+      if (isMonitoring) {
+        monitor.stop()
+        setIsMonitoring(false)
+        localStorage.setItem(monitoringEnabledKey, "false")
+        console.log(`[${config.name}] Monitoring disabled via settings`)
+      }
+    }
+  }, [config.geotrackingEnabled, monitor, userId, isMonitoring, monitoringEnabledKey, config.name])
 
   // Handle manual userId save
   const handleSaveUserId = () => {
@@ -193,7 +225,7 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
   }
 
   return (
-    <div className="flex flex-col h-full bg-white relative">
+    <div className="flex flex-col h-full bg-white relative overflow-hidden">
       {/* Iframe - full app space */}
       <iframe
         ref={iframeRef}
@@ -201,6 +233,13 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
         title={config.name}
         className="flex-1 w-full h-full border-0"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        style={{
+          overflow: 'hidden',
+          border: 'none',
+          display: 'block',
+          width: '100%',
+          height: '100%'
+        }}
       />
 
       {/* Manual entry button (only for userIdMode: 'manual') */}

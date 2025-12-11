@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import Phone from "@/components/phone/Phone"
 import PhoneNumberLogin from "@/components/phone/PhoneNumberLogin"
 import { PhoneProvider, usePhone } from "@/contexts/PhoneContext"
+import { GeofenceAppsProvider } from "@/contexts/GeofenceAppsContext"
 import { useSMSReceiver } from "@/hooks/useSMSReceiver"
 import { useEmailReceiver } from "@/hooks/useEmailReceiver"
 import { useWhatsAppReceiver } from "@/hooks/useWhatsAppReceiver"
@@ -688,8 +689,10 @@ function PhoneEmulator() {
 
 export default function Home() {
   return (
-    <PhoneProvider>
-      <PhoneEmulator />
-    </PhoneProvider>
+    <GeofenceAppsProvider>
+      <PhoneProvider>
+        <PhoneEmulator />
+      </PhoneProvider>
+    </GeofenceAppsProvider>
   )
 }
