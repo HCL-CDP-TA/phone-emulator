@@ -17,6 +17,9 @@ import { SOCIAL_APPS } from "@/components/apps/socialAppsConfig"
 import { socialIcons } from "@/components/apps/socialIcons"
 import { SHORTCUT_APPS } from "@/components/apps/shortcutAppsConfig"
 import { shortcutIcons } from "@/components/apps/shortcutIcons"
+import { GEOFENCE_APPS, GeofenceAppConfig } from "@/components/apps/geofenceAppsConfig"
+import { geofenceAppIcons } from "@/components/apps/geofenceAppIcons"
+import GeofenceWebviewApp from "@/components/apps/GeofenceWebviewApp"
 // import { usePhone } from "@/contexts/PhoneContext"
 
 // Helper to generate social app component with dynamic URL
@@ -45,6 +48,16 @@ function makeShortcutAppComponent(
 ): React.ComponentType<import("@/types/app").AppProps> {
   return function ShortcutAppWrapper(props: import("@/types/app").AppProps) {
     return <SocialWebviewApp url={url} appName={appName} icon={icon} {...props} />
+  }
+}
+
+// Helper to generate geofence-enabled webview app component
+function makeGeofenceAppComponent(
+  config: GeofenceAppConfig,
+  icon: React.ReactNode,
+): React.ComponentType<import("@/types/app").AppProps> {
+  return function GeofenceAppWrapper(props: import("@/types/app").AppProps) {
+    return <GeofenceWebviewApp config={config} icon={icon} {...props} />
   }
 }
 
@@ -105,6 +118,16 @@ export const appRegistry: App[] = [
     iconColor: app.iconColor,
     component: makeShortcutAppComponent(app.url, app.name, shortcutIcons[app.iconName as keyof typeof shortcutIcons]),
     category: "utility" as const,
+  })),
+  // Geofence-enabled webview apps (Banking, Costco)
+  ...GEOFENCE_APPS.map(app => ({
+    id: app.id,
+    name: app.name,
+    icon: geofenceAppIcons[app.iconName as keyof typeof geofenceAppIcons],
+    iconColor: app.iconColor,
+    component: makeGeofenceAppComponent(app, geofenceAppIcons[app.iconName as keyof typeof geofenceAppIcons]),
+    category: "utility" as const,
+    canSendNotifications: true,
   })),
   {
     id: "browser",
