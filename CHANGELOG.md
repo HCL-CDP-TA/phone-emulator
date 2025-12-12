@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.2](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.10.1...v1.10.2) (2025-12-12)
+
+
+### Bug Fixes
+
+* update @hcl-cdp-ta/geofence-sdk 2.0.1 ([61018c9](https://github.com/HCL-CDP-TA/phone-emulator/commit/61018c900bde898c84206c3d775c2d6a9b91efb2))
+
 ## [1.10.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.10.0...v1.10.1) (2025-12-12)
 
 
