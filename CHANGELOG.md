@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.10.0...v1.10.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* increase geo polling to 1 second (from 10) ([ddad5b2](https://github.com/HCL-CDP-TA/phone-emulator/commit/ddad5b243dc533156cce4a1fd7b06dcf1e521ee5))
+
 ## [1.10.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.9.3...v1.10.0) (2025-12-12)
 
 
