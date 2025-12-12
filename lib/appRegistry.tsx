@@ -56,11 +56,11 @@ function makeShortcutAppComponent(
 
 // Helper to generate geofence-enabled webview app component
 function makeGeofenceAppComponent(
-  config: GeofenceAppConfig,
+  appId: string,
   icon: React.ReactNode,
 ): React.ComponentType<import("@/types/app").AppProps> {
   return function GeofenceAppWrapper(props: import("@/types/app").AppProps) {
-    return <GeofenceWebviewApp config={config} icon={icon} {...props} />
+    return <GeofenceWebviewApp appId={appId} icon={icon} {...props} />
   }
 }
 
@@ -353,7 +353,7 @@ export function useAppRegistry(): App[] {
         name: app.name,
         icon,
         iconColor: app.iconColor,
-        component: makeGeofenceAppComponent(app, icon),
+        component: makeGeofenceAppComponent(app.id, icon),
         category: "utility" as const,
         canSendNotifications: true,
       }

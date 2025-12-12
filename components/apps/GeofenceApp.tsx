@@ -49,6 +49,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     const newMonitor = new GeofenceMonitor({
       apiUrl: process.env.NEXT_PUBLIC_GEOFENCE_API_URL || "http://localhost:3001",
       userId: userId,
+      appId: "geofence",
       enableServerEvaluation: true,
       significantMovementThreshold: 50,
       pollingInterval: 10000,

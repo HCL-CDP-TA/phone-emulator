@@ -5,14 +5,18 @@ import { usePhone } from "@/contexts/PhoneContext"
 import { useState, useEffect, useRef } from "react"
 import { useAppRegistry } from "@/lib/appRegistry"
 import { GeofenceMonitor, Geofence } from "@hcl-cdp-ta/geofence-sdk"
-import { GeofenceAppConfig } from "@/components/apps/geofenceAppsConfig"
+import { useGeofenceApps } from "@/contexts/GeofenceAppsContext"
 
 interface GeofenceWebviewAppProps extends AppProps {
-  config: GeofenceAppConfig
+  appId: string
   icon: React.ReactNode
 }
 
-export default function GeofenceWebviewApp({ config, onSendNotification }: GeofenceWebviewAppProps) {
+export default function GeofenceWebviewApp({ appId, onSendNotification }: GeofenceWebviewAppProps) {
+  // Get config from context (so it updates when settings change)
+  const { getApp } = useGeofenceApps()
+  const config = getApp(appId)
+
   // Get location from context
   const { effectiveLocation, openApp } = usePhone()
   const appRegistry = useAppRegistry()
@@ -31,25 +35,27 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // localStorage keys (namespaced per app)
-  const userIdStorageKey = `geofence-app-${config.id}-user-id`
-  const monitoringEnabledKey = `geofence-app-${config.id}-monitoring-enabled`
+  const userIdStorageKey = config ? `geofence-app-${config.id}-user-id` : ""
+  const monitoringEnabledKey = config ? `geofence-app-${config.id}-monitoring-enabled` : ""
 
   // Load userId from localStorage on mount
   useEffect(() => {
+    if (!config) return
     const saved = localStorage.getItem(userIdStorageKey)
     if (saved) {
       setUserId(saved)
       setUserIdInput(saved)
     }
-  }, [userIdStorageKey])
+  }, [userIdStorageKey, config])
 
   // Initialize monitor when userId changes
   useEffect(() => {
-    if (!userId) return
+    if (!config || !userId) return
 
     const newMonitor = new GeofenceMonitor({
       apiUrl: process.env.NEXT_PUBLIC_GEOFENCE_API_URL || "http://localhost:3001",
       userId: userId,
+      appId: config.id,
       enableServerEvaluation: true,
       significantMovementThreshold: 50,
       pollingInterval: 10000,
@@ -65,22 +71,24 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
       newMonitor.stop()
       setIsMonitoring(false)
     }
-  }, [userId])
+  }, [userId, config])
 
   // Update SDK position when effectiveLocation changes
   useEffect(() => {
-    if (!monitor || !effectiveLocation) return
+    if (!config || !monitor || !effectiveLocation) return
 
     monitor.setTestPosition(effectiveLocation.coords.latitude, effectiveLocation.coords.longitude)
-  }, [monitor, effectiveLocation])
+  }, [monitor, effectiveLocation, config])
 
   // Set up SDK event listeners
   useEffect(() => {
-    if (!monitor) return
+    if (!config || !monitor) return
+
+    const handlePosition = () => {
+      // Position updates handled by SDK
+    }
 
     const handleEnter = (geofence: Geofence) => {
-      console.log(`🎯 [${config.name}] Geofence ENTER event:`, geofence)
-
       // Check if enter notifications enabled
       if (!config.notifications.enter.enabled) return
 
@@ -98,8 +106,6 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
     }
 
     const handleExit = (geofence: Geofence) => {
-      console.log(`🎯 [${config.name}] Geofence EXIT event:`, geofence)
-
       // Check if exit notifications enabled
       if (!config.notifications.exit.enabled) return
 
@@ -120,11 +126,13 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
       console.error(`[${config.name}] GeofenceMonitor error:`, error)
     }
 
+    monitor.on("position", handlePosition)
     monitor.on("enter", handleEnter)
     monitor.on("exit", handleExit)
     monitor.on("error", handleError)
 
     return () => {
+      monitor.off("position", handlePosition)
       monitor.off("enter", handleEnter)
       monitor.off("exit", handleExit)
       monitor.off("error", handleError)
@@ -133,7 +141,7 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
 
   // Listen for postMessage from iframe (for userIdMode: 'postmessage')
   useEffect(() => {
-    if (config.userIdMode !== "postmessage") return
+    if (!config || config.userIdMode !== "postmessage") return
 
     function handleMessage(event: MessageEvent) {
       // Validate message structure
@@ -143,7 +151,6 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
           const trimmedUserId = receivedUserId.trim()
           localStorage.setItem(userIdStorageKey, trimmedUserId)
           setUserId(trimmedUserId)
-          console.log(`[${config.name}] Received userId via postMessage:`, trimmedUserId)
         }
       }
     }
@@ -154,7 +161,7 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
 
   // Auto-start monitoring when monitor is created (only once, if enabled)
   useEffect(() => {
-    if (!monitor || hasAutoStarted || !userId) return
+    if (!config || !monitor || hasAutoStarted || !userId) return
 
     const autoStart = async () => {
       // Check saved preference (defaults to true for first-time users)
@@ -172,7 +179,6 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
         setHasAutoStarted(true)
         await monitor.start()
         localStorage.setItem(monitoringEnabledKey, "true")
-        console.log(`[${config.name}] Monitoring started automatically`)
       } catch (error) {
         console.error(`[${config.name}] Failed to start monitoring:`, error)
         setIsMonitoring(false)
@@ -181,11 +187,11 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
     }
 
     autoStart()
-  }, [monitor, hasAutoStarted, userId, monitoringEnabledKey, config.name, config.geotrackingEnabled])
+  }, [monitor, hasAutoStarted, userId, monitoringEnabledKey, config])
 
   // Handle geotracking enabled/disabled changes
   useEffect(() => {
-    if (!monitor) return
+    if (!config || !monitor) return
 
     if (config.geotrackingEnabled && userId) {
       // Geotracking enabled - start if not already monitoring
@@ -195,7 +201,6 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
           .then(() => {
             setIsMonitoring(true)
             localStorage.setItem(monitoringEnabledKey, "true")
-            console.log(`[${config.name}] Monitoring enabled via settings`)
           })
           .catch(error => {
             console.error(`[${config.name}] Failed to start monitoring:`, error)
@@ -208,24 +213,70 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
         monitor.stop()
         setIsMonitoring(false)
         localStorage.setItem(monitoringEnabledKey, "false")
-        console.log(`[${config.name}] Monitoring disabled via settings`)
       }
     }
-  }, [config.geotrackingEnabled, monitor, userId, isMonitoring, monitoringEnabledKey, config.name])
+  }, [config, monitor, userId, isMonitoring, monitoringEnabledKey])
 
   // Handle manual userId save
   const handleSaveUserId = () => {
-    if (!userIdInput.trim()) return
+    if (!config || !userIdInput.trim()) return
 
     const trimmedUserId = userIdInput.trim()
     localStorage.setItem(userIdStorageKey, trimmedUserId)
     setUserId(trimmedUserId)
     setShowUserIdModal(false)
-    console.log(`[${config.name}] User ID set manually:`, trimmedUserId)
+  }
+
+  // Handle case where config is not found
+  if (!config) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100">
+        <p className="text-gray-600">App configuration not found</p>
+      </div>
+    )
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white relative">
+      {/* Header with status indicators */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 py-2 pointer-events-none">
+        <div className="flex items-center gap-2">
+          {/* Monitoring indicator */}
+          {isMonitoring && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/90 backdrop-blur-sm shadow-sm pointer-events-auto"
+              title="Geofence monitoring active">
+              <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+              </svg>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* User ID button (only for manual mode) */}
+          {config.userIdMode === "manual" && (
+            <button
+              onClick={() => setShowUserIdModal(true)}
+              className={`p-2 rounded-full shadow-lg border transition-all pointer-events-auto ${
+                userId
+                  ? "bg-blue-500/90 border-blue-600 hover:bg-blue-600"
+                  : "bg-white/90 border-gray-300 hover:bg-white"
+              }`}
+              title={userId ? `User ID: ${userId} (click to change)` : "Set User ID for geofence monitoring"}>
+              <svg
+                className={`w-4 h-4 ${userId ? "text-white" : "text-gray-600"}`}
+                viewBox="0 0 24 24"
+                fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Iframe content */}
       <div className="flex-1 relative overflow-hidden">
         <iframe
           ref={iframeRef}
@@ -236,18 +287,6 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
         />
       </div>
-      {/* Manual entry button (only for userIdMode: 'manual') */}
-      {config.userIdMode === "manual" && (
-        <button
-          onClick={() => setShowUserIdModal(true)}
-          className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg hover:bg-white border border-gray-200 text-xs font-medium text-gray-700 transition-colors"
-          title="Set User ID for geofence monitoring">
-          <svg className="w-4 h-4 inline mr-1" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-          </svg>
-          {userId ? "Change User" : "Set User ID"}
-        </button>
-      )}
 
       {/* Manual entry modal */}
       {showUserIdModal && (
