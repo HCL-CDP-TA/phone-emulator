@@ -39,122 +39,39 @@ Add your icon to [`components/apps/geofenceIconPresets.tsx`](../components/apps/
 
 ## Integration Code
 
-### Detect If Running in Iframe
-
-Your app should detect if it's running inside the phone emulator:
+### Complete Example
 
 ```javascript
-function isInIframe() {
-  try {
-    return window.self !== window.top
-  } catch (e) {
-    // If accessing window.top throws an error due to cross-origin,
-    // we're definitely in an iframe
-    return true
-  }
-}
-
-// Use it
-if (isInIframe()) {
-  console.log("Running in phone emulator")
-  // Initialize phone emulator integration
-} else {
-  console.log("Running standalone")
-  // Normal web app behavior
-}
-```
-
-### Send User ID to Phone Emulator
-
-When your app determines the user's identity (login, session, etc.), send it to the phone emulator:
-
-```javascript
+// Send user ID to phone emulator
 function sendUserIdToPhoneEmulator(userId) {
-  // Only send if in iframe
-  if (!isInIframe()) {
-    return
-  }
-
-  // Send postMessage to parent window
-  window.parent.postMessage({
-    type: "set-user-id",
-    userId: userId
-  }, "*")
-  
-  console.log("User ID sent to phone emulator:", userId)
-}
-```
-
-**Important**: The message must have:
-- `type: "set-user-id"` (exact string, required)
-- `userId: string` (any string identifier for your user)
-
-### Full Example Integration
-
-```javascript
-// Check if running in phone emulator
-const isInPhoneEmulator = isInIframe()
-
-// When user logs in or user ID is available
-function onUserAuthenticated(userId) {
-  if (isInPhoneEmulator) {
-    // Send user ID to phone emulator for geofence tracking
-    window.parent.postMessage({
-      type: "set-user-id",
-      userId: userId
-    }, "*")
-  }
-  
-  // Continue with your app logic
-  initializeApp(userId)
-}
-
-// Example: Send user ID on page load if user is already logged in
-window.addEventListener("DOMContentLoaded", () => {
-  const currentUserId = getCurrentUser() // Your function to get user ID
-  
-  if (currentUserId && isInPhoneEmulator) {
-    window.parent.postMessage({
-      type: "set-user-id",
-      userId: currentUserId
-    }, "*")
-  }
-})
-```
-
-### TypeScript Example
-
-```typescript
-interface PhoneEmulatorMessage {
-  type: "set-user-id"
-  userId: string
-}
-
-function isInIframe(): boolean {
   try {
-    return window.self !== window.top
+    // Exit if not in iframe
+    if (window.self === window.top) return
   } catch (e) {
-    return true
+    // Cross-origin error means we're in iframe
   }
+
+  window.parent.postMessage(
+    {
+      type: "set-user-id",
+      userId: userId, // Can be string, null, or "" (null/"" clears userId)
+    },
+    "*",
+  )
 }
 
-function sendUserIdToPhoneEmulator(userId: string): void {
-  if (!isInIframe()) {
-    return
-  }
+// On login
+const userId = getCurrentUser()
+sendUserIdToPhoneEmulator(userId)
 
-  const message: PhoneEmulatorMessage = {
-    type: "set-user-id",
-    userId: userId
-  }
-
-  window.parent.postMessage(message, "*")
-}
-
-// Usage
-const user = await authenticateUser()
-sendUserIdToPhoneEmulator(user.id)
+// On logout
+sendUserIdToPhoneEmulator(null)
 ```
+
+**Requirements**: The postMessage must have:
+
+- `type: "set-user-id"` (exact string)
+- `userId: string` (user identifier)
 
 ## How It Works
 
@@ -223,27 +140,17 @@ When `true`, the phone emulator automatically starts location tracking when the 
 
 ### Debug Logging
 
-Enable debug mode in your app:
+Check browser console to verify userId is being sent:
 
 ```javascript
-const DEBUG = isInIframe()
-
 function sendUserIdToPhoneEmulator(userId) {
   if (!isInIframe()) {
-    if (DEBUG) console.log("Not in iframe, skipping user ID send")
+    console.log("Not in iframe, skipping")
     return
   }
 
-  const message = {
-    type: "set-user-id",
-    userId: userId
-  }
-
-  if (DEBUG) {
-    console.log("Sending user ID to phone emulator:", message)
-  }
-
-  window.parent.postMessage(message, "*")
+  console.log("Sending userId:", userId)
+  window.parent.postMessage({ type: "set-user-id", userId }, "*")
 }
 ```
 
@@ -251,7 +158,7 @@ function sendUserIdToPhoneEmulator(userId) {
 
 ### Cross-Origin Communication
 
-The postMessage API is used for cross-origin communication between your app and the phone emulator. 
+The postMessage API is used for cross-origin communication between your app and the phone emulator.
 
 **Current implementation uses `"*"` as the target origin** for simplicity in demo environments. For production:
 
@@ -275,43 +182,26 @@ window.parent.postMessage(message, PHONE_EMULATOR_ORIGIN)
 **Symptoms**: Geofence tracking doesn't start, no notifications
 
 **Causes**:
+
 - Wrong message format (check `type` is exactly `"set-user-id"`)
 - Not running in iframe
 - postMessage sent before iframe loads
 - userId is empty or not a string
 
-**Solution**:
+**Solution**: Validate userId before sending:
+
 ```javascript
-// Add validation
-function sendUserIdToPhoneEmulator(userId) {
-  if (!userId || typeof userId !== "string") {
-    console.error("Invalid userId:", userId)
-    return
-  }
-  
-  if (!isInIframe()) {
-    console.warn("Not in iframe")
-    return
-  }
-  
-  window.parent.postMessage({
-    type: "set-user-id",
-    userId: userId.trim()
-  }, "*")
+if (!userId || typeof userId !== "string") {
+  console.error("Invalid userId:", userId)
+  return
 }
+sendUserIdToPhoneEmulator(userId.trim())
 ```
-
-### "iframe not detected"
-
-**Symptoms**: `isInIframe()` returns false when it should be true
-
-**Cause**: Browser security restrictions or incorrect implementation
-
-**Solution**: Use the try-catch pattern shown above to handle cross-origin errors
 
 ### "Geofence events not firing"
 
 **Checklist**:
+
 1. ✓ User ID sent successfully
 2. ✓ `geotrackingEnabled: true` in config
 3. ✓ Location permission granted
@@ -325,8 +215,8 @@ function sendUserIdToPhoneEmulator(userId) {
 
 ```typescript
 interface SetUserIdMessage {
-  type: "set-user-id"  // Required: exact string
-  userId: string       // Required: user identifier
+  type: "set-user-id" // Required: exact string
+  userId: string // Required: user identifier
 }
 
 // Send to parent
@@ -362,6 +252,7 @@ See existing implementations:
 ## Support
 
 For issues or questions:
+
 1. Check browser console for errors
 2. Verify postMessage format matches exactly
 3. Test `isInIframe()` function

@@ -147,6 +147,15 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
       // Validate message structure
       if (event.data && event.data.type === "set-user-id") {
         const receivedUserId = event.data.userId
+
+        // Handle null or empty string as logout (clear userId)
+        if (receivedUserId === null || receivedUserId === "") {
+          localStorage.removeItem(userIdStorageKey)
+          setUserId(null)
+          return
+        }
+
+        // Set userId if valid string
         if (typeof receivedUserId === "string" && receivedUserId.trim()) {
           const trimmedUserId = receivedUserId.trim()
           localStorage.setItem(userIdStorageKey, trimmedUserId)
