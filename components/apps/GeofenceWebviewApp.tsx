@@ -225,23 +225,17 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
   }
 
   return (
-    <div className="flex flex-col h-full bg-white relative overflow-hidden">
-      {/* Iframe - full app space */}
-      <iframe
-        ref={iframeRef}
-        src={config.url}
-        title={config.name}
-        className="flex-1 w-full h-full border-0"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        style={{
-          overflow: 'hidden',
-          border: 'none',
-          display: 'block',
-          width: '100%',
-          height: '100%'
-        }}
-      />
-
+    <div className="flex flex-col h-full bg-white">
+      <div className="flex-1 relative overflow-hidden">
+        <iframe
+          ref={iframeRef}
+          src={config.url}
+          title={config.name}
+          className="absolute inset-0 border-0"
+          style={{ width: "calc(100% + 20px)", height: "calc(100% + 20px)" }}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        />
+      </div>
       {/* Manual entry button (only for userIdMode: 'manual') */}
       {config.userIdMode === "manual" && (
         <button
@@ -259,9 +253,7 @@ export default function GeofenceWebviewApp({ config, onSendNotification }: Geofe
       {showUserIdModal && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-[90%]">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {userId ? "Change User ID" : "Set User ID"}
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">{userId ? "Change User ID" : "Set User ID"}</h2>
             <p className="text-sm text-gray-600 mb-4">
               Enter your customer ID to receive location-based notifications.
             </p>

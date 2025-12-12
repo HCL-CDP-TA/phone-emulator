@@ -110,13 +110,14 @@ export default function BrowserApp({ onClose }: AppProps) {
       </form>
 
       {/* Browser Content */}
-      <div className="flex-1 relative bg-white pb-12">
+      <div className="flex-1 relative bg-white overflow-hidden">
         {currentUrl ? (
           <iframe
             ref={iframeRef}
             key={currentUrl}
             src={currentUrl}
-            className="w-full h-full border-0"
+            className="absolute inset-0 border-0"
+            style={{ width: "calc(100% + 20px)", height: "calc(100% + 20px)" }}
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
             allow="geolocation"
             title="Browser content"
