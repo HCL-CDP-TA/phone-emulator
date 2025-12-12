@@ -37,6 +37,8 @@ interface PhoneContextType {
   broadcastLocationToIframes: () => void
   phoneNumber: string | null
   setPhoneNumber: (phoneNumber: string | null) => void
+  geofenceMonitoring: boolean
+  setGeofenceMonitoring: (active: boolean) => void
 }
 
 const PhoneContext = createContext<PhoneContextType | undefined>(undefined)
@@ -177,6 +179,9 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
 
   // Phone number state
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
+
+  // Geofence monitoring state (system-wide indicator)
+  const [geofenceMonitoring, setGeofenceMonitoring] = useState<boolean>(false)
 
   const openApp = useCallback((appId: string) => {
     setActiveApp(appId)
@@ -737,6 +742,8 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
         broadcastLocationToIframes,
         phoneNumber,
         setPhoneNumber,
+        geofenceMonitoring,
+        setGeofenceMonitoring,
       }}>
       {children}
     </PhoneContext.Provider>

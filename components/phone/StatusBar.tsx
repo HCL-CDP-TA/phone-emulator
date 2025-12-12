@@ -4,7 +4,7 @@ import { useState } from "react"
 import { usePhone } from "@/contexts/PhoneContext"
 
 export default function StatusBar() {
-  const { currentTime, timeOffset, locationOverride } = usePhone()
+  const { currentTime, timeOffset, locationOverride, geofenceMonitoring } = usePhone()
   const [battery] = useState(87)
 
   return (
@@ -25,6 +25,12 @@ export default function StatusBar() {
 
       {/* Right status icons */}
       <div className="flex-1 flex items-center justify-end gap-1.5">
+        {/* Geofence monitoring indicator */}
+        {geofenceMonitoring && (
+          <svg className="w-4 h-4 text-green-400 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+          </svg>
+        )}
         {/* Signal strength */}
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
           <path d="M2 22h3V10H2v12zm19-12h-3v12h3V10zm-7 12h3V2h-3v20zM7 22h3V6H7v16z" />
