@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.10.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.9.3...v1.10.0) (2025-12-12)
+
+
+### Features
+
+* configurable apps ([121714a](https://github.com/HCL-CDP-TA/phone-emulator/commit/121714aa5b3eff9fe4a7bb685cd7238a198314f3))
+
+
+### Bug Fixes
+
+* added appid to gelocation, fixed framed apps ([04bb429](https://github.com/HCL-CDP-TA/phone-emulator/commit/04bb4292847719d9d3fdf4b372fdc2a13f5565ef))
+* expect null or empty string if no user for geofencing ([904fc80](https://github.com/HCL-CDP-TA/phone-emulator/commit/904fc80a3a3edffc805180edaba4901406423b04))
+* move location notification ([93ad4ac](https://github.com/HCL-CDP-TA/phone-emulator/commit/93ad4acc8111e3a91a43f65979fd39e9ca8121db))
+
 ## [1.9.3](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.9.2...v1.9.3) (2025-12-10)
 
 
