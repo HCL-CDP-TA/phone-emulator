@@ -53,12 +53,12 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
     if (!config || !userId) return
 
     const newMonitor = new GeofenceMonitor({
-      apiUrl: process.env.NEXT_PUBLIC_GEOFENCE_API_URL || "http://localhost:3001",
+      apiUrl: process.env.NEXT_PUBLIC_GEOFENCE_API_URL || "",
       userId: userId,
       appId: config.id,
       enableServerEvaluation: true,
       significantMovementThreshold: 50,
-      pollingInterval: 10000,
+      pollingInterval: 1000,
       enableHighAccuracy: true,
       debug: process.env.NODE_ENV === "development",
       testMode: true, // Enable test mode to use setTestPosition
