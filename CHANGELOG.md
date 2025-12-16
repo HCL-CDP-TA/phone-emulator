@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.10.2...v2.0.0) (2025-12-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* updated to use SDK V2
+
+### Features
+
+* dragable waypoints on routes ([c12f66c](https://github.com/HCL-CDP-TA/phone-emulator/commit/c12f66c09b4422918e2bdbce11e24d38404b7c96))
+* updated to use SDK V2 ([3edb847](https://github.com/HCL-CDP-TA/phone-emulator/commit/3edb847c4a183b8f503a9de1f39c0ba41f3bde6e))
+
 ## [1.10.2](https://github.com/HCL-CDP-TA/phone-emulator/compare/v1.10.1...v1.10.2) (2025-12-12)
 
 
