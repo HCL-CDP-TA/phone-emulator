@@ -43,13 +43,35 @@ export function calculateHeading(
 }
 
 /**
- * Check if a point is inside a circular geofence
+ * Check if a point is inside a polygon geofence using ray casting algorithm
+ * @param point The point to check
+ * @param polygon Array of coordinates forming the polygon vertices
+ * @returns true if point is inside the polygon, false otherwise
  */
-export function isInsideGeofence(
+export function isInsidePolygon(
   point: { latitude: number; longitude: number },
-  center: { latitude: number; longitude: number },
-  radiusMeters: number
+  polygon: Array<{ lat: number; lng: number }>
 ): boolean {
-  const distance = calculateDistance(point, center)
-  return distance <= radiusMeters
+  if (polygon.length < 3) {
+    return false // Not a valid polygon
+  }
+
+  let inside = false
+  const x = point.longitude
+  const y = point.latitude
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng
+    const yi = polygon[i].lat
+    const xj = polygon[j].lng
+    const yj = polygon[j].lat
+
+    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+
+    if (intersect) {
+      inside = !inside
+    }
+  }
+
+  return inside
 }

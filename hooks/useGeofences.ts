@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react"
 
+export interface Coordinate {
+  lat: number
+  lng: number
+}
+
 export interface Geofence {
   id: string
   name: string
-  latitude: number
-  longitude: number
-  radius: number // meters
+  coordinates: Coordinate[] // Polygon vertices
   enabled?: boolean
   createdAt?: string
   updatedAt?: string

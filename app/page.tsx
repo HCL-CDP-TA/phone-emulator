@@ -223,12 +223,21 @@ function PhoneEmulator() {
   }
 
   const handleGeofenceSelect = (geofence: Geofence) => {
+    // Calculate centroid of polygon
+    const centroid = geofence.coordinates.reduce(
+      (acc, coord) => ({
+        lat: acc.lat + coord.lat / geofence.coordinates.length,
+        lng: acc.lng + coord.lng / geofence.coordinates.length,
+      }),
+      { lat: 0, lng: 0 }
+    )
+
     setLocationOverrideConfig({
       enabled: true,
       mode: "static",
       staticPosition: {
-        latitude: geofence.latitude,
-        longitude: geofence.longitude,
+        latitude: centroid.lat,
+        longitude: centroid.lng,
         accuracy: 10,
         altitude: null,
         altitudeAccuracy: null,
@@ -508,11 +517,11 @@ function PhoneEmulator() {
                         key={geofence.id}
                         onClick={() => handleGeofenceSelect(geofence)}
                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                        title={`Radius: ${geofence.radius}m`}>
+                        title={`${geofence.coordinates.length} vertices`}>
                         <Circle className="w-4 h-4 text-purple-600" />
                         <div className="flex-1">
                           <div className="font-medium">{geofence.name}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{geofence.radius}m radius</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{geofence.coordinates.length} vertices</div>
                         </div>
                       </button>
                     ))}

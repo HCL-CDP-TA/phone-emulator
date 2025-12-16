@@ -106,10 +106,10 @@ The emulator includes a sophisticated location override system for testing locat
 - `MapPanel.tsx`: Side-by-side map viewer with route controls (play/pause, position slider)
 - `LocationConfigMap.tsx`: Interactive map for creating/editing presets with click-to-add functionality
 - `PresetPanel.tsx`: Preset management sidebar with search, forms, and preset list
-- `GeofenceLayer.tsx`: Renders read-only geofence circles from external API (non-interactive)
+- `GeofenceLayer.tsx`: Renders read-only geofence polygons from external API (non-interactive)
 - `RouteBuilder.tsx`: Floating controls for route creation (waypoint count, undo, finish)
 - `PhoneContext.effectiveLocation`: Computed location (override or real GPS) exposed to all components
-- `locationUtils.ts`: Haversine distance calculation, heading computation, geofence checking
+- `locationUtils.ts`: Haversine distance calculation, heading computation, point-in-polygon checking
 - `locationPresets.ts`: Default static locations and routes (San Francisco, NYC, London)
 - `geofencePresets.ts`: Default geofence zones for testing
 - `useGeofences.ts`: Hook to fetch geofences from external API with bearer token support
@@ -209,23 +209,25 @@ interface LocationPreset {
   }> // for route locations
 }
 
-// Geofence zone definition
+// Coordinate for polygon vertices
+interface Coordinate {
+  lat: number
+  lng: number
+}
+
+// Geofence zone definition (polygon-based)
 interface GeofenceZone {
   id: string
   name: string
   description?: string
-  latitude: number
-  longitude: number
-  radiusMeters: number
+  coordinates: Coordinate[] // Polygon vertices
 }
 
 // Geofence from external API (for location-config screen)
 interface Geofence {
   id: string
   name: string
-  latitude: number
-  longitude: number
-  radius: number // meters
+  coordinates: Coordinate[] // Polygon vertices
   enabled?: boolean
   createdAt?: string
   updatedAt?: string
@@ -257,7 +259,7 @@ interface Geofence {
   /location-config
     /LocationConfigMap.tsx      - Interactive map for creating/editing presets with "My Location" button
     /PresetPanel.tsx            - Right sidebar with search, forms, and preset list
-    /GeofenceLayer.tsx          - Renders read-only geofence circles from API
+    /GeofenceLayer.tsx          - Renders read-only geofence polygons from API
     /RouteBuilder.tsx           - Floating controls for route creation (waypoint count, undo, finish)
   /apps
     /MessagesApp.tsx            - Conversation-based messaging with avatars
@@ -708,7 +710,7 @@ The Location Config screen (`/location-config`) provides an interactive map-base
 
 **Additional Features:**
 - **Location Search**: Type location names (e.g., "Sydney Opera House") in search bar to navigate map (doesn't create presets)
-- **Geofence Display**: Read-only geofence zones from external API displayed as dashed blue circles
+- **Geofence Display**: Read-only geofence zones from external API displayed as dashed blue polygons
 - **Delete Presets**: Click "Delete" button on any preset
 - All presets saved to localStorage and immediately available in location selector
 
@@ -725,13 +727,13 @@ The Location Config screen (`/location-config`) provides an interactive map-base
 - Smooth interpolation between waypoints using linear math
 - Map animates with 0.2s duration on position changes
 - Heading calculated using Haversine formula
-- Geofence detection uses great-circle distance
+- Geofence detection uses ray casting algorithm for point-in-polygon checks
 
 **Location Config Implementation:**
 
 - State machine architecture with three modes: `idle`, `creating-static`, `creating-route`
 - Dynamic import for LocationConfigMap to avoid SSE issues with Leaflet
-- Geofence circles rendered with `interactive={false}` to allow click-through for waypoint placement
+- Geofence polygons rendered with `interactive={false}` to allow click-through for waypoint placement
 - Location search uses Nominatim API with 500ms debounce to reduce API calls
 - Green marker for static locations (CSS filter: `hue-rotate(90deg) saturate(2)`)
 - Numbered DivIcons for route waypoints (blue circles with white numbers)
