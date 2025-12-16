@@ -67,6 +67,8 @@ interface LocationConfigMapProps {
   mapZoom: number
   onMapClick: (latlng: { lat: number; lng: number }) => void
   onMyLocation: (lat: number, lng: number) => void
+  onWaypointDrag?: (index: number, latlng: { lat: number; lng: number }) => void
+  onStaticLocationDrag?: (latlng: { lat: number; lng: number }) => void
 }
 
 // Map click handler component
@@ -109,6 +111,8 @@ export default function LocationConfigMap({
   mapZoom,
   onMapClick,
   onMyLocation,
+  onWaypointDrag,
+  onStaticLocationDrag,
 }: LocationConfigMapProps) {
   const [isGettingLocation, setIsGettingLocation] = useState(false)
   const mapClassName = viewMode !== "idle" ? "mode-creating" : "mode-idle"
@@ -191,7 +195,20 @@ export default function LocationConfigMap({
           ))}
 
         {/* Temporary marker for creating static location */}
-        {tempLocation && <Marker position={[tempLocation.lat, tempLocation.lng]} icon={greenIcon} />}
+        {tempLocation && (
+          <Marker
+            position={[tempLocation.lat, tempLocation.lng]}
+            icon={greenIcon}
+            draggable={true}
+            eventHandlers={{
+              dragend: (e) => {
+                const marker = e.target
+                const position = marker.getLatLng()
+                onStaticLocationDrag?.({ lat: position.lat, lng: position.lng })
+              },
+            }}
+          />
+        )}
 
         {/* Route waypoints while creating */}
         {routeWaypoints.map((wp, index) => (
@@ -199,6 +216,14 @@ export default function LocationConfigMap({
             key={`waypoint-${index}`}
             position={[wp.lat, wp.lng]}
             icon={createWaypointIcon(index + 1)}
+            draggable={true}
+            eventHandlers={{
+              dragend: (e) => {
+                const marker = e.target
+                const position = marker.getLatLng()
+                onWaypointDrag?.(index, { lat: position.lat, lng: position.lng })
+              },
+            }}
           />
         ))}
 

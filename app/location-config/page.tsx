@@ -353,6 +353,29 @@ export default function LocationConfigPage() {
     showToast("Centered on your location")
   }
 
+  const handleWaypointDrag = (index: number, latlng: { lat: number; lng: number }) => {
+    // Update the visual waypoints on the map
+    setRouteWaypoints(prev => prev.map((wp, i) => (i === index ? latlng : wp)))
+
+    // Update the form waypoints data
+    setWaypoints(prev =>
+      prev.map((wp, i) =>
+        i === index
+          ? { ...wp, latitude: latlng.lat, longitude: latlng.lng }
+          : wp
+      )
+    )
+  }
+
+  const handleStaticLocationDrag = (latlng: { lat: number; lng: number }) => {
+    // Update the visual marker on the map
+    setTempLocation(latlng)
+
+    // Update the form latitude and longitude fields
+    setLatitude(latlng.lat.toString())
+    setLongitude(latlng.lng.toString())
+  }
+
   return (
     <div className="h-screen flex bg-gray-100">
       {/* Map Container - 60% */}
@@ -367,6 +390,8 @@ export default function LocationConfigPage() {
           mapZoom={mapZoom}
           onMapClick={handleMapClick}
           onMyLocation={handleMyLocation}
+          onWaypointDrag={handleWaypointDrag}
+          onStaticLocationDrag={handleStaticLocationDrag}
         />
 
         {/* Route Builder Controls */}
