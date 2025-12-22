@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.1.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.0.0...phone-emulator-v3.1.0) (2025-12-22)
+
+
+### Features
+
+* simplified app configuration ([1ebea40](https://github.com/HCL-CDP-TA/phone-emulator/commit/1ebea40766ef3dacaa7ca43ae8ab6441dc5618c1))
+
+
+### Bug Fixes
+
+* changed Costco to Maison ([b43a744](https://github.com/HCL-CDP-TA/phone-emulator/commit/b43a744b2e5ed8140af5f14d0da8911d8b0aa9c4))
+
 ## [3.0.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v2.0.0...phone-emulator-v3.0.0) (2025-12-16)
 
 
