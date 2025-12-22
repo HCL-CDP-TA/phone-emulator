@@ -117,8 +117,8 @@ export default function BrowserApp({ onClose }: AppProps) {
             key={currentUrl}
             src={currentUrl}
             className="absolute inset-0 w-full h-full border-0"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-            allow="geolocation"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+            allow="geolocation *; autoplay *; fullscreen *; picture-in-picture *; encrypted-media *"
             title="Browser content"
           />
         ) : (

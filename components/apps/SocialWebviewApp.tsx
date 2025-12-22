@@ -58,7 +58,8 @@ export default function SocialWebviewApp({ url, appName }: SocialWebviewAppProps
         src={url}
         title={appName}
         className="flex-1 w-full h-full border-0"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+        allow="autoplay *; fullscreen *; picture-in-picture *; encrypted-media *"
       />
       <div className="iframe-cursor-overlay" />
       {/* In-app browser popup overlay */}
@@ -81,7 +82,8 @@ export default function SocialWebviewApp({ url, appName }: SocialWebviewAppProps
                 src={inAppUrl}
                 title="In-app browser"
                 className="absolute inset-0 w-full h-full border-0 rounded-b-xl"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+                allow="autoplay *; fullscreen *; picture-in-picture *; encrypted-media *"
               />
               <div className="iframe-cursor-overlay" />
             </div>

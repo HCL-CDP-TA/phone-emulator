@@ -7,12 +7,17 @@ import HomeScreen from "./HomeScreen"
 import NotificationBanner from "./NotificationBanner"
 import LocationPermissionBanner from "./LocationPermissionBanner"
 import GeofenceApp from "@/components/apps/GeofenceApp"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function Phone() {
   const { activeApp, closeApp, addNotification, location, requestLocation } = usePhone()
   const appRegistry = useAppRegistry()
   const [showHomeButton, setShowHomeButton] = useState(false)
+
+  // Ensure home button is hidden when app changes
+  useEffect(() => {
+    setShowHomeButton(false)
+  }, [activeApp])
 
   const currentApp = activeApp ? appRegistry.find(app => app.id === activeApp) : null
   const AppComponent = currentApp?.component
@@ -63,16 +68,21 @@ export default function Phone() {
         {/* Home Button Trigger Area - invisible area to detect hover/touch */}
         {activeApp && (
           <div
-            className="absolute bottom-0 left-0 right-0 h-8 z-50"
+            className="absolute bottom-0 left-0 right-0 h-24 z-50 pointer-events-auto"
             onMouseEnter={() => setShowHomeButton(true)}
             onMouseLeave={() => setShowHomeButton(false)}
             onTouchStart={() => setShowHomeButton(true)}
+            style={{ background: 'transparent' }}
           />
         )}
 
         {/* Home Button - Shows on hover/touch at bottom */}
         {activeApp && showHomeButton && (
-          <div className="absolute bottom-0 left-0 right-0 pb-4 pt-6 flex justify-center z-50 bg-gradient-to-t from-black/70 to-transparent pointer-events-none animate-in slide-in-from-bottom duration-200">
+          <div
+            className="absolute bottom-0 left-0 right-0 pb-4 pt-6 flex justify-center z-50 bg-gradient-to-t from-black/70 to-transparent pointer-events-none animate-in slide-in-from-bottom duration-200"
+            onMouseEnter={() => setShowHomeButton(true)}
+            onMouseLeave={() => setShowHomeButton(false)}
+          >
             <button
               onClick={closeApp}
               className="w-32 h-1.5 bg-white rounded-full hover:bg-white/90 transition-colors active:scale-95 shadow-2xl pointer-events-auto"
