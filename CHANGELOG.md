@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.2](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.1.1...phone-emulator-v3.1.2) (2025-12-22)
+
+
+### Bug Fixes
+
+* tik tok autoplay & home button ([a94d77f](https://github.com/HCL-CDP-TA/phone-emulator/commit/a94d77f07517e78ec29ce5e3621ae2e327024301))
+
 ## [3.1.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.1.0...phone-emulator-v3.1.1) (2025-12-22)
 
 
