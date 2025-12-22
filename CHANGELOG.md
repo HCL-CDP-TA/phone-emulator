@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.1.0...phone-emulator-v3.1.1) (2025-12-22)
+
+
+### Bug Fixes
+
+* iframe window size & home button improvement ([90eae8d](https://github.com/HCL-CDP-TA/phone-emulator/commit/90eae8d9286fbfe3c200c59f144eda3f5efa5333))
+* remove package name from release please config ([d28f966](https://github.com/HCL-CDP-TA/phone-emulator/commit/d28f9667e263d979ed9555153817a41eaf817e8d))
+
 ## [3.1.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.0.0...phone-emulator-v3.1.0) (2025-12-22)
 
 
