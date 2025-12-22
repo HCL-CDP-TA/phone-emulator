@@ -273,8 +273,7 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
           ref={iframeRef}
           src={config.url}
           title={config.name}
-          className="absolute inset-0 border-0"
-          style={{ width: "calc(100% + 20px)", height: "calc(100% + 20px)" }}
+          className="absolute inset-0 w-full h-full border-0"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
         />
       </div>

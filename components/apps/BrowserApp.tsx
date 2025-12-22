@@ -116,8 +116,7 @@ export default function BrowserApp({ onClose }: AppProps) {
             ref={iframeRef}
             key={currentUrl}
             src={currentUrl}
-            className="absolute inset-0 border-0"
-            style={{ width: "calc(100% + 20px)", height: "calc(100% + 20px)" }}
+            className="absolute inset-0 w-full h-full border-0"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
             allow="geolocation"
             title="Browser content"
