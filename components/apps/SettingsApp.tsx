@@ -94,7 +94,7 @@ const UserIdModeSelector = ({ value, onChange }: { value: string; onChange: (val
           <div className="flex-1">
             <div className="font-medium text-sm">Manual Entry</div>
             <div className="text-xs text-gray-600 mt-0.5">
-              User enters their ID via a button in the app (best for brand websites like Costco)
+              User enters their ID via a button in the app (best for brand websites)
             </div>
           </div>
         </div>
@@ -365,7 +365,7 @@ export default function SettingsApp({ onClose }: AppProps) {
                         Edit
                       </button>
                       {/* Only allow deletion of non-default apps */}
-                      {app.id !== "banking" && app.id !== "telco" && app.id !== "costco" && (
+                      {app.id !== "banking" && app.id !== "telco" && app.id !== "maison" && (
                         <button
                           onClick={() => handleDelete(app.id)}
                           className="text-red-500 text-sm font-medium px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors">

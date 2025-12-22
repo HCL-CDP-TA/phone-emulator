@@ -62,7 +62,7 @@ export function GeofenceAppsProvider({ children }: { children: React.ReactNode }
 
   const deleteApp = useCallback((id: string) => {
     // Prevent deletion of default apps
-    if (id === "banking" || id === "telco" || id === "costco") {
+    if (id === "banking" || id === "telco" || id === "maison") {
       console.warn(`Cannot delete default app: ${id}`)
       return
     }

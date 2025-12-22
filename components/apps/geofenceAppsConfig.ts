@@ -27,10 +27,10 @@ export const GEOFENCE_APPS: GeofenceAppConfig[] = [
     userIdMode: "postmessage",
     notifications: {
       enter: {
-        enabled: true,
+        enabled: false,
       },
       exit: {
-        enabled: true,
+        enabled: false,
       },
     },
     geotrackingEnabled: true,
@@ -45,25 +45,25 @@ export const GEOFENCE_APPS: GeofenceAppConfig[] = [
     userIdMode: "postmessage",
     notifications: {
       enter: {
-        enabled: true,
+        enabled: false,
       },
       exit: {
-        enabled: true,
+        enabled: false,
       },
     },
     geotrackingEnabled: true,
     visible: true,
   },
   {
-    id: "costco",
-    name: "Costco",
-    url: "https://www.costco.com/",
-    iconName: "Costco",
-    iconColor: "bg-red-600",
+    id: "maison",
+    name: "Maison",
+    url: "https://maison.demo.now.hclsoftware.cloud/",
+    iconName: "Maison",
+    iconColor: "bg-grey-600",
     userIdMode: "manual",
     notifications: {
       enter: {
-        enabled: true,
+        enabled: false,
       },
       exit: {
         enabled: false,

@@ -241,7 +241,7 @@ See existing implementations:
 
 - **UniBank**: [`geofenceAppsConfig.ts` line 24](../components/apps/geofenceAppsConfig.ts#L24) - Banking app with postMessage userId
 - **UniTel**: [`geofenceAppsConfig.ts` line 41](../components/apps/geofenceAppsConfig.ts#L41) - Telco app with postMessage userId
-- **Costco**: [`geofenceAppsConfig.ts` line 58](../components/apps/geofenceAppsConfig.ts#L58) - Retail app with manual userId
+- **Maison**: [`geofenceAppsConfig.ts` line 58](../components/apps/geofenceAppsConfig.ts#L58) - Retail app with manual userId
 
 ## Related Documentation
 
