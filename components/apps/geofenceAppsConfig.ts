@@ -59,7 +59,7 @@ export const GEOFENCE_APPS: GeofenceAppConfig[] = [
     name: "Maison",
     url: "https://maison.demo.now.hclsoftware.cloud/",
     iconName: "Maison",
-    iconColor: "bg-grey-600",
+    iconColor: "bg-gray-600",
     userIdMode: "manual",
     notifications: {
       enter: {

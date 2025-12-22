@@ -17,56 +17,78 @@ const GeofenceAppsContext = createContext<GeofenceAppsContextType | undefined>(u
 const STORAGE_KEY = "geofence-apps-config"
 
 export function GeofenceAppsProvider({ children }: { children: React.ReactNode }) {
-  const [apps, setApps] = useState<GeofenceAppConfig[]>([])
+  // Store only custom apps in state - default apps always come from GEOFENCE_APPS
+  const [customApps, setCustomApps] = useState<GeofenceAppConfig[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
 
-  // Load apps from localStorage on mount
+  // Computed: merge default apps with custom apps
+  const apps = React.useMemo(() => {
+    return [...GEOFENCE_APPS, ...customApps]
+  }, [customApps])
+
+  // Load custom apps from localStorage and cleanup any default app IDs
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
+    const defaultIds = GEOFENCE_APPS.map(app => app.id)
+
     if (stored) {
       try {
-        const parsed = JSON.parse(stored)
-        setApps(parsed)
+        const parsed = JSON.parse(stored) as GeofenceAppConfig[]
+        // Remove any apps that have default IDs (cleanup migration)
+        const cleanedCustomApps = parsed.filter(app => !defaultIds.includes(app.id))
+
+        // Save cleaned version back if cleanup occurred
+        if (cleanedCustomApps.length !== parsed.length) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanedCustomApps))
+        }
+
+        setCustomApps(cleanedCustomApps)
       } catch (error) {
         console.error("Failed to parse geofence apps from localStorage:", error)
-        setApps(GEOFENCE_APPS)
+        setCustomApps([])
       }
-    } else {
-      // First time - use defaults
-      setApps(GEOFENCE_APPS)
     }
     setIsInitialized(true)
   }, [])
 
-  // Save apps to localStorage whenever they change (but skip initial load)
+  // Save custom apps to localStorage whenever they change (but skip initial load)
   useEffect(() => {
-    if (isInitialized && apps.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(apps))
+    if (isInitialized) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customApps))
     }
-  }, [apps, isInitialized])
+  }, [customApps, isInitialized])
 
   const addApp = useCallback((app: GeofenceAppConfig) => {
-    setApps(prev => [...prev, app])
+    setCustomApps(prev => [...prev, app])
   }, [])
 
   const updateApp = useCallback((id: string, updates: Partial<GeofenceAppConfig>) => {
-    setApps(prev =>
-      prev.map(app => {
-        if (app.id === id) {
-          return { ...app, ...updates }
-        }
-        return app
-      }),
-    )
+    const defaultIds = GEOFENCE_APPS.map(app => app.id)
+
+    // If updating a custom app, update in customApps state
+    if (!defaultIds.includes(id)) {
+      setCustomApps(prev =>
+        prev.map(app => {
+          if (app.id === id) {
+            return { ...app, ...updates }
+          }
+          return app
+        }),
+      )
+    }
+    // Note: Default apps cannot be updated (they always come from GEOFENCE_APPS)
   }, [])
 
   const deleteApp = useCallback((id: string) => {
-    // Prevent deletion of default apps
-    if (id === "banking" || id === "telco" || id === "maison") {
+    const defaultIds = GEOFENCE_APPS.map(app => app.id)
+
+    // Prevent deletion of default apps (automatic check)
+    if (defaultIds.includes(id)) {
       console.warn(`Cannot delete default app: ${id}`)
       return
     }
-    setApps(prev => prev.filter(app => app.id !== id))
+
+    setCustomApps(prev => prev.filter(app => app.id !== id))
   }, [])
 
   const getApp = useCallback(
@@ -77,8 +99,9 @@ export function GeofenceAppsProvider({ children }: { children: React.ReactNode }
   )
 
   const resetToDefaults = useCallback(() => {
-    setApps(GEOFENCE_APPS)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(GEOFENCE_APPS))
+    // Clear all custom apps - defaults will remain from GEOFENCE_APPS
+    setCustomApps([])
+    localStorage.removeItem(STORAGE_KEY)
   }, [])
 
   return (

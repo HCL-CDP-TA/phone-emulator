@@ -2,7 +2,7 @@
 
 import { AppProps } from "@/types/app"
 import { useGeofenceApps } from "@/contexts/GeofenceAppsContext"
-import { GeofenceAppConfig } from "@/components/apps/geofenceAppsConfig"
+import { GeofenceAppConfig, GEOFENCE_APPS } from "@/components/apps/geofenceAppsConfig"
 import { geofenceIconPresets, iconPresetNames } from "@/components/apps/geofenceIconPresets"
 import { useState } from "react"
 
@@ -364,8 +364,8 @@ export default function SettingsApp({ onClose }: AppProps) {
                         className="text-blue-500 text-sm font-medium px-3 py-1.5 hover:bg-blue-50 rounded-lg transition-colors">
                         Edit
                       </button>
-                      {/* Only allow deletion of non-default apps */}
-                      {app.id !== "banking" && app.id !== "telco" && app.id !== "maison" && (
+                      {/* Only allow deletion of custom apps (not default apps) */}
+                      {!GEOFENCE_APPS.some(defaultApp => defaultApp.id === app.id) && (
                         <button
                           onClick={() => handleDelete(app.id)}
                           className="text-red-500 text-sm font-medium px-3 py-1.5 hover:bg-red-50 rounded-lg transition-colors">
