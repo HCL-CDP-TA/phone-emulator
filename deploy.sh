@@ -211,7 +211,7 @@ echo -e "${GREEN}✓ Container started${NC}"
 
 # Wait for application to be ready
 echo -e "${YELLOW}Waiting for application to start...${NC}"
-MAX_ATTEMPTS=30
+MAX_ATTEMPTS=10
 ATTEMPT=0
 
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
