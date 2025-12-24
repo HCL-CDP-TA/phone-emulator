@@ -122,6 +122,17 @@ else
   fi
 fi
 
+# Get DATABASE_URL and other env vars early (before build)
+if [ -f "$DEPLOY_DIR/.env" ]; then
+  echo -e "${YELLOW}Loading environment variables from .env...${NC}"
+  export $(grep -v '^#' "$DEPLOY_DIR/.env" | xargs)
+  echo -e "${GREEN}✓ Environment variables loaded${NC}"
+else
+  echo -e "${RED}ERROR: .env file not found at $DEPLOY_DIR/.env${NC}"
+  echo -e "${YELLOW}Please create a .env file in the same directory as deploy.sh${NC}"
+  exit 1
+fi
+
 # Build Docker image
 echo -e "${YELLOW}[4/7] Building Docker image...${NC}"
 
@@ -129,42 +140,53 @@ echo -e "${YELLOW}[4/7] Building Docker image...${NC}"
 DOCKER_TAG=$(echo "$VERSION_TAG" | sed 's/\//-/g')
 IMAGE_TAG="$IMAGE_NAME:$DOCKER_TAG-$COMMIT_SHA"
 
+# Prepare build args for NEXT_PUBLIC_ variables (needed at build time)
+BUILD_ARGS=""
+if [ -n "$SOCIAL_APP_KEY" ]; then
+  BUILD_ARGS="$BUILD_ARGS --build-arg SOCIAL_APP_KEY=$SOCIAL_APP_KEY"
+fi
+if [ -n "$NEXT_PUBLIC_SOCIAL_APP_KEY" ]; then
+  BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_SOCIAL_APP_KEY=$NEXT_PUBLIC_SOCIAL_APP_KEY"
+fi
+if [ -n "$NEXT_PUBLIC_SOCIAL_APP_BASE_URL" ]; then
+  BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_SOCIAL_APP_BASE_URL=$NEXT_PUBLIC_SOCIAL_APP_BASE_URL"
+fi
+if [ -n "$NEXT_PUBLIC_GEOFENCE_API_URL" ]; then
+  BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_GEOFENCE_API_URL=$NEXT_PUBLIC_GEOFENCE_API_URL"
+fi
+if [ -n "$NEXT_PUBLIC_GEOFENCE_API_KEY" ]; then
+  BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_GEOFENCE_API_KEY=$NEXT_PUBLIC_GEOFENCE_API_KEY"
+fi
+
 if [ "$USE_LOCAL" = true ]; then
-  docker build -t "$IMAGE_NAME:latest" -t "$IMAGE_TAG" .
+  docker build $BUILD_ARGS -t "$IMAGE_NAME:latest" -t "$IMAGE_TAG" .
 else
-  docker build -t "$IMAGE_NAME:latest" -t "$IMAGE_TAG" "$BUILD_DIR"
+  docker build $BUILD_ARGS -t "$IMAGE_NAME:latest" -t "$IMAGE_TAG" "$BUILD_DIR"
 fi
 
 echo -e "${GREEN}✓ Docker image built: $IMAGE_TAG${NC}"
 
-# Get DATABASE_URL
-if [ -f "$DEPLOY_DIR/.env" ]; then
-  echo -e "${YELLOW}[5/7] Loading environment variables from .env...${NC}"
-  export $(grep -v '^#' "$DEPLOY_DIR/.env" | xargs)
+# Configure database connection
+echo -e "${YELLOW}[5/7] Configuring database connection...${NC}"
 
-  # Determine database connection mode
-  if [[ "$DATABASE_URL" == *"@localhost:"* ]] || [[ "$DATABASE_URL" == *"@127.0.0.1:"* ]]; then
-    # Local PostgreSQL - use host.docker.internal for Mac/Windows
-    DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/@localhost:/@host.docker.internal:/' | sed 's/@127.0.0.1:/@host.docker.internal:/')
-    USE_DOCKER_NETWORK=false
-    echo -e "${GREEN}✓ Database URL configured for host machine (via host.docker.internal)${NC}"
-  else
-    # Docker networked PostgreSQL
-    USE_DOCKER_NETWORK=true
-
-    echo -e "${YELLOW}[6/7] Checking Docker network...${NC}"
-    if ! docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
-      echo -e "${RED}ERROR: Docker network '$DOCKER_NETWORK' does not exist${NC}"
-      echo -e "${YELLOW}Please create it first:${NC}"
-      echo -e "  docker network create $DOCKER_NETWORK"
-      exit 1
-    fi
-    echo -e "${GREEN}✓ Docker network exists${NC}"
-  fi
+# Determine database connection mode
+if [[ "$DATABASE_URL" == *"@localhost:"* ]] || [[ "$DATABASE_URL" == *"@127.0.0.1:"* ]]; then
+  # Local PostgreSQL - use host.docker.internal for Mac/Windows
+  DATABASE_URL=$(echo "$DATABASE_URL" | sed 's/@localhost:/@host.docker.internal:/' | sed 's/@127.0.0.1:/@host.docker.internal:/')
+  USE_DOCKER_NETWORK=false
+  echo -e "${GREEN}✓ Database URL configured for host machine (via host.docker.internal)${NC}"
 else
-  echo -e "${RED}ERROR: .env file not found at $DEPLOY_DIR/.env${NC}"
-  echo -e "${YELLOW}Please create a .env file in the same directory as deploy.sh${NC}"
-  exit 1
+  # Docker networked PostgreSQL
+  USE_DOCKER_NETWORK=true
+
+  echo -e "${YELLOW}[6/7] Checking Docker network...${NC}"
+  if ! docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1; then
+    echo -e "${RED}ERROR: Docker network '$DOCKER_NETWORK' does not exist${NC}"
+    echo -e "${YELLOW}Please create it first:${NC}"
+    echo -e "  docker network create $DOCKER_NETWORK"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ Docker network exists${NC}"
 fi
 
 # Verify required environment variables
