@@ -12,7 +12,6 @@ import { useWhatsAppReceiver } from "@/hooks/useWhatsAppReceiver"
 import packageJson from "@/package.json"
 import { Clock, MapPin, Route, Map, Circle, RefreshCw } from "lucide-react"
 import { LocationPreset } from "@/types/app"
-import { DEFAULT_LOCATION_PRESETS } from "@/lib/locationPresets"
 import { useGeofences, Geofence } from "@/hooks/useGeofences"
 
 const MapPanel = dynamic(() => import("@/components/phone/MapPanel"), { ssr: false })
@@ -206,14 +205,15 @@ function PhoneEmulator() {
 
   const handleRefreshLocations = async () => {
     setIsRefreshing(true)
-    // Refetch location presets from localStorage (in case config page updated them)
-    const stored = localStorage.getItem("locationPresets")
-    if (stored) {
-      try {
-        setLocationPresets(JSON.parse(stored))
-      } catch (error) {
-        console.error("Failed to reload location presets:", error)
+    // Refetch location presets from API (in case config page updated them)
+    try {
+      const response = await fetch("/api/location-presets")
+      if (response.ok) {
+        const data = await response.json()
+        setLocationPresets(data.data)
       }
+    } catch (error) {
+      console.error("Failed to reload location presets:", error)
     }
     // Refetch geofences from API
     refetchGeofences()
@@ -299,20 +299,21 @@ function PhoneEmulator() {
     }
   }, [])
 
-  // Load location presets from localStorage
+  // Load location presets from API
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const stored = localStorage.getItem("locationPresets")
-    if (stored) {
+    const fetchLocationPresets = async () => {
       try {
-        setLocationPresets(JSON.parse(stored))
+        const response = await fetch("/api/location-presets")
+        if (!response.ok) throw new Error("Failed to fetch presets")
+        const data = await response.json()
+        setLocationPresets(data.data)
       } catch (error) {
         console.error("Failed to load location presets:", error)
-        setLocationPresets(DEFAULT_LOCATION_PRESETS)
+        setLocationPresets([])
       }
-    } else {
-      setLocationPresets(DEFAULT_LOCATION_PRESETS)
     }
+
+    fetchLocationPresets()
   }, [])
 
   // Close dropdowns when clicking outside

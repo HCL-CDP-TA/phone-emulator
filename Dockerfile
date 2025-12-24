@@ -24,6 +24,12 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Copy Prisma schema
+COPY prisma ./prisma
+
+# Generate Prisma Client
+RUN npx prisma generate
+
 # Build arguments
 ARG NODE_ENV=production
 ARG BUILD_DATE
@@ -54,35 +60,49 @@ RUN mkdir -p /app/public
 FROM base AS runner
 WORKDIR /app
 
+# Install postgresql-client and OpenSSL for Prisma
+RUN apk add --no-cache postgresql-client openssl
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Copy Prisma for migrations - copy all Prisma packages and dependencies
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
 
 # Copy built application from standalone output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
+# Copy docker entrypoint script
+COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3003
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV NPM_CONFIG_CACHE=/app/.npm-cache
+
+# Create npm cache directory with proper permissions
+RUN mkdir -p /app/.npm-cache && chown -R nextjs:nodejs /app/.npm-cache
 
 # Add labels for metadata
 LABEL org.opencontainers.image.title="Phone Emulator"
 LABEL org.opencontainers.image.description="Realistic smartphone emulator for demonstrating martech software"
 LABEL org.opencontainers.image.source="https://github.com/HCL-CDP-TA/phone-emulator"
 
+# Expose port
+EXPOSE 3000
+
 # Switch to non-root user
 USER nextjs
 
-# Expose port
-EXPOSE 3003
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3003/ || exit 1
-
-# Start the application
+# Use entrypoint for database setup and migrations
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["node", "server.js"]

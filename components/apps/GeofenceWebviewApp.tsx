@@ -52,8 +52,17 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
   useEffect(() => {
     if (!config || !userId) return
 
+    const apiUrl = process.env.NEXT_PUBLIC_GEOFENCE_API_URL
+    console.log(`[${config.name}] 🔍 NEXT_PUBLIC_GEOFENCE_API_URL value:`, apiUrl)
+
+    if (!apiUrl) {
+      console.error(`[${config.name}] ❌ NEXT_PUBLIC_GEOFENCE_API_URL is not configured`)
+      return
+    }
+
+    console.log(`[${config.name}] ✅ Initializing GeofenceMonitor with apiUrl:`, apiUrl)
     const newMonitor = new GeofenceMonitor({
-      apiUrl: process.env.NEXT_PUBLIC_GEOFENCE_API_URL || "",
+      apiUrl: apiUrl,
       userId: userId,
       appId: config.id,
       enableServerEvaluation: true,

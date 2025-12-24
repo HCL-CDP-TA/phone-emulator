@@ -68,11 +68,11 @@ export default function Phone() {
         {/* Home Button Trigger Area - invisible area to detect hover/touch */}
         {activeApp && (
           <div
-            className="absolute bottom-0 left-0 right-0 h-24 z-50 pointer-events-auto"
+            className="absolute bottom-0 left-0 right-0 h-8 z-50 pointer-events-auto"
             onMouseEnter={() => setShowHomeButton(true)}
             onMouseLeave={() => setShowHomeButton(false)}
             onTouchStart={() => setShowHomeButton(true)}
-            style={{ background: 'transparent' }}
+            style={{ background: "transparent" }}
           />
         )}
 
@@ -81,8 +81,7 @@ export default function Phone() {
           <div
             className="absolute bottom-0 left-0 right-0 pb-4 pt-6 flex justify-center z-50 bg-gradient-to-t from-black/70 to-transparent pointer-events-none animate-in slide-in-from-bottom duration-200"
             onMouseEnter={() => setShowHomeButton(true)}
-            onMouseLeave={() => setShowHomeButton(false)}
-          >
+            onMouseLeave={() => setShowHomeButton(false)}>
             <button
               onClick={closeApp}
               className="w-32 h-1.5 bg-white rounded-full hover:bg-white/90 transition-colors active:scale-95 shadow-2xl pointer-events-auto"

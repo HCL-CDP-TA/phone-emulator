@@ -1,0 +1,36 @@
+// Prisma schema for phone emulator location presets
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LocationPreset {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  type        PresetType
+
+  // Static location fields (only used when type = STATIC)
+  latitude  Float?
+  longitude Float?
+
+  // Route fields (only used when type = ROUTE)
+  waypoints Json? // Array of {latitude: number, longitude: number, speed?: number}
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("location_presets")
+}
+
+enum PresetType {
+  STATIC
+  ROUTE
+
+  @@map("preset_type")
+}

@@ -17,6 +17,7 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
     labels:
       - "app=phone-emulator"
       - "environment=${ENVIRONMENT:-production}"

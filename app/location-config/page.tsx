@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { LocationPreset } from "@/types/app"
-import { DEFAULT_LOCATION_PRESETS } from "@/lib/locationPresets"
 import { useGeofences } from "@/hooks/useGeofences"
 import dynamic from "next/dynamic"
 import PresetPanel from "@/components/location-config/PresetPanel"
@@ -29,18 +28,9 @@ interface Waypoint {
 }
 
 export default function LocationConfigPage() {
-  const [presets, setPresets] = useState<LocationPreset[]>(() => {
-    if (typeof window === "undefined") return DEFAULT_LOCATION_PRESETS
-    const stored = localStorage.getItem("locationPresets")
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch (error) {
-        console.error("Failed to load location presets:", error)
-      }
-    }
-    return DEFAULT_LOCATION_PRESETS
-  })
+  const [presets, setPresets] = useState<LocationPreset[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [viewMode, setViewMode] = useState<ViewMode>("idle")
   const [formMode, setFormMode] = useState<FormMode>(null)
@@ -62,7 +52,7 @@ export default function LocationConfigPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [hasSetInitialLocation, setHasSetInitialLocation] = useState(false)
 
-  const { geofences, isLoading: geofencesLoading, error: geofencesError, refetch } = useGeofences()
+  const { geofences, isLoading: geofencesLoading } = useGeofences()
 
   // Mark as client-side mounted to avoid hydration mismatch
   useEffect(() => {
@@ -88,12 +78,25 @@ export default function LocationConfigPage() {
     }
   }, [hasSetInitialLocation])
 
-  // Save presets to localStorage whenever they change
+  // Fetch presets from API on mount
   useEffect(() => {
-    if (isClient) {
-      localStorage.setItem("locationPresets", JSON.stringify(presets))
+    fetchPresets()
+  }, [])
+
+  const fetchPresets = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch("/api/location-presets")
+      if (!response.ok) throw new Error("Failed to fetch presets")
+      const data = await response.json()
+      setPresets(data.data)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch presets")
+    } finally {
+      setIsLoading(false)
     }
-  }, [presets, isClient])
+  }
 
   // ESC key handler to cancel operations
   useEffect(() => {
@@ -228,44 +231,64 @@ export default function LocationConfigPage() {
     return true
   }
 
-  const savePreset = () => {
+  const savePreset = async () => {
     if (!validateForm()) return
 
-    const newPreset: LocationPreset = {
-      id: editingId || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    const payload = {
       name: name.trim(),
       description: description.trim() || undefined,
       type,
       ...(type === "static"
-        ? {
-            latitude: parseFloat(latitude),
-            longitude: parseFloat(longitude),
-          }
-        : {
-            waypoints: waypoints.map(wp => ({
-              latitude: wp.latitude,
-              longitude: wp.longitude,
-              speed: wp.speed,
-            })),
-          }),
+        ? { latitude: parseFloat(latitude), longitude: parseFloat(longitude) }
+        : { waypoints }),
     }
 
-    if (formMode === "edit" && editingId) {
-      setPresets(prev => prev.map(p => (p.id === editingId ? newPreset : p)))
-      showToast("Preset updated successfully")
-    } else {
-      setPresets(prev => [...prev, newPreset])
-      showToast("Preset added successfully")
-    }
+    try {
+      const url =
+        formMode === "edit" ? `/api/location-presets/${editingId}` : "/api/location-presets"
+      const method = formMode === "edit" ? "PUT" : "POST"
 
-    resetForm()
-    cancelCreation()
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) throw new Error("Failed to save preset")
+      const { data } = await response.json()
+
+      // Optimistic update
+      if (formMode === "edit") {
+        setPresets(prev => prev.map(p => (p.id === editingId ? data : p)))
+        showToast("Preset updated successfully")
+      } else {
+        setPresets(prev => [...prev, data])
+        showToast("Preset added successfully")
+      }
+
+      resetForm()
+      cancelCreation()
+    } catch (err) {
+      showToast(`Error: ${err instanceof Error ? err.message : "Failed to save"}`)
+    }
   }
 
-  const deletePreset = (id: string) => {
-    if (confirm("Are you sure you want to delete this preset?")) {
+  const deletePreset = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this preset?")) return
+
+    try {
+      const response = await fetch(`/api/location-presets/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) throw new Error("Failed to delete")
+
       setPresets(prev => prev.filter(p => p.id !== id))
       showToast("Preset deleted")
+    } catch (err) {
+      showToast(`Error: ${err instanceof Error ? err.message : "Failed to delete"}`)
+      // Reload on error
+      fetchPresets()
     }
   }
 
@@ -285,14 +308,6 @@ export default function LocationConfigPage() {
     setWaypoints(prev => prev.map((wp, i) => (i === index ? { ...wp, [field]: value } : wp)))
   }
 
-  const resetToDefaults = () => {
-    if (confirm("Reset all presets to defaults? This will overwrite your current configuration.")) {
-      setPresets(DEFAULT_LOCATION_PRESETS)
-      resetForm()
-      cancelCreation()
-      showToast("Reset to defaults")
-    }
-  }
 
   const handleMapClick = (latlng: { lat: number; lng: number }) => {
     if (viewMode === "creating-static") {
@@ -403,18 +418,6 @@ export default function LocationConfigPage() {
             onAddWaypoint={() => showToast("Click on map to add waypoint")}
           />
         )}
-
-        {/* Geofence Error */}
-        {geofencesError && (
-          <div className="absolute top-4 left-4 right-4 p-4 bg-red-50 border border-red-200 rounded-lg shadow-lg z-[1000]">
-            <p className="text-sm text-red-700">
-              Failed to load geofences from server.
-              <button onClick={refetch} className="ml-2 underline font-medium">
-                Retry
-              </button>
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Preset Panel - 40% */}
@@ -430,6 +433,8 @@ export default function LocationConfigPage() {
           longitude={longitude}
           waypoints={waypoints}
           isClient={isClient}
+          isLoading={isLoading}
+          error={error}
           onOpenAddStaticForm={openAddStaticForm}
           onOpenAddRouteForm={openAddRouteForm}
           onOpenEditForm={openEditForm}
@@ -444,8 +449,8 @@ export default function LocationConfigPage() {
           onAddWaypoint={addWaypoint}
           onRemoveWaypoint={removeWaypoint}
           onUpdateWaypoint={updateWaypoint}
-          onResetToDefaults={resetToDefaults}
           onGeocodeSelect={handleGeocodeSelect}
+          onRetryFetch={fetchPresets}
         />
       </div>
 

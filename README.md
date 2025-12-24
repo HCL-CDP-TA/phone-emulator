@@ -42,6 +42,7 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 
 - Node.js 18+
 - npm, yarn, pnpm, or bun
+- PostgreSQL 14+ (for location presets)
 
 ### Installation
 
@@ -49,11 +50,72 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 # Install dependencies
 npm install
 
+# Configure database connection
+cp .env.example .env.local
+# Edit .env.local and set DATABASE_URL to your PostgreSQL connection string
+
+# Run database migrations
+npm run prisma:migrate
+
 # Run development server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the phone emulator.
+
+### Database Setup
+
+The emulator uses PostgreSQL to store location presets centrally. All users share the same location configurations.
+
+**Quick Start:**
+
+```bash
+# If you have PostgreSQL running locally
+DATABASE_URL=postgresql://user:password@localhost:5432/phone_emulator?schema=public
+
+# Run migrations to create schema
+npm run prisma:migrate
+
+# Optional: Open Prisma Studio to view/edit data
+npm run prisma:studio
+```
+
+See [CLAUDE.md](CLAUDE.md#database-setup) for detailed database documentation.
+
+### Production Deployment
+
+The project includes an automated deployment script that handles everything:
+
+```bash
+# Deploy a specific version tag
+./deploy.sh v1.0.0 production
+
+# Deploy from local directory (for testing)
+./deploy.sh local development --local
+
+# Deploy from a specific branch
+./deploy.sh feature/my-feature development --branch
+```
+
+**What the deployment script does:**
+1. Stops and removes existing container/image
+2. Clones repository (or uses local directory with `--local`)
+3. Builds Docker image
+4. Loads environment variables from `.env`
+5. Creates database and runs Prisma migrations automatically
+6. Starts container with proper network configuration
+7. Waits for health check and displays access URL
+
+**Requirements:**
+- Docker running
+- `.env` file in project root with `DATABASE_URL` and other config
+- For remote deployments: SSH key configured for GitHub access
+
+The docker-entrypoint.sh automatically handles:
+- Waiting for PostgreSQL to be ready
+- Creating database if it doesn't exist
+- Running Prisma migrations
+- Handling migration drift/failures
 
 ### Quick Test
 
@@ -250,12 +312,16 @@ phone-emulator/
 │   │   │   ├── route.ts        # Main SMS API (SSE + queue)
 │   │   │   ├── stream/         # SSE endpoint ✨ NEW
 │   │   │   └── poll/           # Polling fallback (deprecated)
-│   │   └── email/
-│   │       ├── route.ts        # Email API endpoint ✨ NEW
-│   │       └── stream/         # Email SSE endpoint ✨ NEW
+│   │   ├── email/
+│   │   │   ├── route.ts        # Email API endpoint ✨ NEW
+│   │   │   └── stream/         # Email SSE endpoint ✨ NEW
+│   │   └── location-presets/
+│   │       ├── route.ts        # Location presets API (GET, POST) ✨ NEW
+│   │       └── [id]/route.ts   # Single preset (GET, PUT, DELETE) ✨ NEW
 │   ├── page.tsx                # Main page with phone number login + tester dropdown
 │   ├── tester/page.tsx         # SMS tester
 │   ├── email-tester/page.tsx   # Email tester ✨ NEW
+│   ├── location-config/page.tsx # Location preset configuration ✨ NEW
 │   └── layout.tsx              # Root layout
 ├── components/
 │   ├── apps/
@@ -276,7 +342,11 @@ phone-emulator/
 │   ├── useEmailReceiver.ts     # Email SSE connection ✨ NEW
 │   └── useLocation.ts          # Location access hook ✨ NEW
 ├── lib/
-│   └── appRegistry.tsx         # App registration
+│   ├── appRegistry.tsx         # App registration
+│   ├── prisma.ts               # Prisma client singleton ✨ NEW
+│   └── locationPresetValidation.ts # Preset validation ✨ NEW
+├── prisma/
+│   └── schema.prisma           # Database schema ✨ NEW
 ├── types/
 │   └── app.ts                  # TypeScript definitions
 └── docs/
@@ -317,9 +387,11 @@ Edit `components/phone/StatusBar.tsx` to customize time format, battery display,
 ## 🛠️ Technology Stack
 
 - **Framework:** Next.js 16 (App Router)
+- **Database:** PostgreSQL 14+ with Prisma ORM 5
 - **Styling:** Tailwind CSS 4
 - **Language:** TypeScript 5
 - **State Management:** React Context
+- **Real-time:** Server-Sent Events (SSE)
 - **Fonts:** Geist Sans & Geist Mono
 
 ## 📋 Requirements Met

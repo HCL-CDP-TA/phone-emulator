@@ -22,9 +22,122 @@ npm start
 
 # Lint code
 npm run lint
+
+# Prisma commands
+npm run prisma:generate  # Generate Prisma Client
+npm run prisma:migrate   # Run database migrations
+npm run prisma:studio    # Open Prisma Studio (GUI)
 ```
 
 The development server runs on `http://localhost:3000` by default.
+
+## Database Setup
+
+The application uses **PostgreSQL** with **Prisma ORM** for storing location presets centrally. This allows all users to share the same location configurations.
+
+### Initial Setup
+
+1. **Configure database connection** in `.env.local`:
+```bash
+DATABASE_URL=postgresql://multitenant_user:multitenant_password@localhost:5432/phone_emulator?schema=public
+```
+
+2. **Run migrations** to create database schema:
+```bash
+npm run prisma:migrate
+```
+
+3. **Generate Prisma Client**:
+```bash
+npm run prisma:generate
+```
+
+### Database Schema
+
+**LocationPreset Model** (`location_presets` table):
+- `id` (UUID, primary key)
+- `name` (String) - Preset display name
+- `description` (String, optional) - Preset description
+- `type` (Enum: STATIC | ROUTE) - Location type
+- `latitude` (Float, optional) - For static locations
+- `longitude` (Float, optional) - For static locations
+- `waypoints` (JSON, optional) - Array of waypoints for routes
+- `createdAt` (DateTime) - Auto-generated
+- `updatedAt` (DateTime) - Auto-updated
+
+### Production Deployment
+
+The project includes an automated deployment script (`deploy.sh`) that follows the same pattern as social-media-simulator-app:
+
+**Deployment Script Usage:**
+
+```bash
+# Deploy a tagged version
+./deploy.sh v1.0.0 production
+
+# Deploy from a specific branch
+./deploy.sh feature/my-feature development --branch
+
+# Deploy from local directory (for testing)
+./deploy.sh local development --local
+```
+
+**What the script does:**
+
+1. Stops and removes existing containers/images
+2. Handles GitHub SSH authentication (or uses local directory)
+3. Clones repository and checks out specified version/branch/tag
+4. Builds Docker image with all build args
+5. Loads environment variables from `.env` file in deploy directory
+6. Configures database connection (Docker network or host.docker.internal)
+7. Runs container with all required environment variables
+8. Waits for health check and reports success/failure
+
+**The docker-entrypoint.sh automatically handles:**
+
+- Waits for PostgreSQL to be ready (pg_isready checks)
+- Creates database if it doesn't exist
+- Runs `prisma migrate deploy` automatically
+- Handles migration drift (resets schema if migrations are in bad state)
+- Idempotent - safe to run multiple times
+
+**Environment Variables Required:**
+
+Create a `.env` file in the project root:
+
+```bash
+# Database (required)
+DATABASE_URL=postgresql://user:password@host:5432/phone_emulator?schema=public
+
+# Social media app (optional)
+SOCIAL_APP_KEY=your-key
+NEXT_PUBLIC_SOCIAL_APP_KEY=your-key
+NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
+
+# Geofence API (optional)
+NEXT_PUBLIC_GEOFENCE_API_URL=https://geofence-api-url
+NEXT_PUBLIC_GEOFENCE_API_KEY=your-key
+
+# GitHub SSH key (optional, for remote deployments)
+GITHUB_SSH_KEY_PATH=/path/to/ssh/key
+```
+
+**Database Connection Modes:**
+
+- **Local PostgreSQL**: If DATABASE_URL contains `localhost` or `127.0.0.1`, automatically uses `host.docker.internal`
+- **Docker Network**: If DATABASE_URL references a Docker container, uses `multitenant-network` (must exist)
+
+**Manual Migration (if needed):**
+
+```bash
+# Inside running container
+docker exec -it phone-emulator npx prisma migrate deploy
+
+# Or using Prisma CLI directly
+npx prisma migrate deploy
+```
+
+**No Default Presets**: The application starts with an empty database. Users create location presets via the Location Config screen.
 
 ## Architecture Overview
 
@@ -94,7 +207,7 @@ The emulator includes a sophisticated location override system for testing locat
 - **Static Overrides**: Set fixed latitude/longitude coordinates
 - **Route Playback**: Animate movement along pre-defined waypoints with smooth interpolation
 - **Visual Map Panel**: Leaflet.js-based map viewer shows real-time location tracking
-- **Location Presets**: Pre-configured static locations and routes stored in localStorage
+- **Location Presets**: Centrally managed static locations and routes stored in PostgreSQL database
 - **Interactive Preset Configuration**: Click-to-create interface for building presets with live map preview
 - **Geofence Display**: Read-only geofence zones from external API shown on location-config map
 - **Location Search**: Geocoding integration (Nominatim) for finding locations by name
@@ -110,7 +223,8 @@ The emulator includes a sophisticated location override system for testing locat
 - `RouteBuilder.tsx`: Floating controls for route creation (waypoint count, undo, finish)
 - `PhoneContext.effectiveLocation`: Computed location (override or real GPS) exposed to all components
 - `locationUtils.ts`: Haversine distance calculation, heading computation, point-in-polygon checking
-- `locationPresets.ts`: Default static locations and routes (San Francisco, NYC, London)
+- `locationPresetValidation.ts`: Shared validation logic for preset API endpoints
+- `prisma.ts`: Prisma client singleton for database connections
 - `geofencePresets.ts`: Default geofence zones for testing
 - `useGeofences.ts`: Hook to fetch geofences from external API with bearer token support
 - `useGeocoding.ts`: Hook for location search with 500ms debouncing
@@ -247,6 +361,8 @@ interface Geofence {
   /api/sms/poll/route.ts        - DEPRECATED polling fallback
   /api/email/route.ts           - Email API endpoint
   /api/email/stream/route.ts    - Email SSE endpoint for real-time delivery
+  /api/location-presets/route.ts       - Location presets API (GET all, POST create)
+  /api/location-presets/[id]/route.ts  - Single preset API (GET, PUT, DELETE)
 
 /components
   /phone
@@ -285,9 +401,13 @@ interface Geofence {
 /lib
   /appRegistry.tsx              - Central app registry (CRITICAL for extensions)
   /locationUtils.ts             - Haversine distance, heading calculation, geofence checking
-  /locationPresets.ts           - Default location presets (3 static, 2 routes)
+  /locationPresetValidation.ts  - Validation logic for location preset API endpoints
+  /prisma.ts                    - Prisma client singleton (prevents connection pool exhaustion)
   /geofencePresets.ts           - Default geofence zones (3 zones)
   /debounce.ts                  - Utility function for debouncing user input (used in search)
+
+/prisma
+  /schema.prisma                - Database schema (LocationPreset model, PresetType enum)
 
 /types
   /app.ts                       - TypeScript interfaces (includes LocationOverride, LocationPreset, GeofenceZone)
@@ -553,6 +673,98 @@ Server-Sent Events endpoint for real-time email delivery. Works identically to S
 
 Query params: `phoneNumber` (required, URL-encoded)
 
+### GET /api/location-presets
+
+Fetch all location presets from the database.
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "name": "San Francisco Downtown",
+      "description": "Downtown SF location",
+      "type": "static",
+      "latitude": 37.7749,
+      "longitude": -122.4194
+    },
+    {
+      "id": "uuid",
+      "name": "Route to Golden Gate",
+      "description": "Walking route",
+      "type": "route",
+      "waypoints": [
+        {"latitude": 37.7749, "longitude": -122.4194, "speed": 5},
+        {"latitude": 37.8024, "longitude": -122.4058, "speed": 5}
+      ]
+    }
+  ]
+}
+```
+
+### POST /api/location-presets
+
+Create a new location preset.
+
+**Request (Static Location)**:
+
+```json
+{
+  "name": "Times Square",
+  "description": "NYC landmark",
+  "type": "static",
+  "latitude": 40.7580,
+  "longitude": -73.9855
+}
+```
+
+**Request (Route)**:
+
+```json
+{
+  "name": "Central Park Loop",
+  "description": "Running route",
+  "type": "route",
+  "waypoints": [
+    {"latitude": 40.7829, "longitude": -73.9654, "speed": 10},
+    {"latitude": 40.7849, "longitude": -73.9684, "speed": 10},
+    {"latitude": 40.7869, "longitude": -73.9714, "speed": 10}
+  ]
+}
+```
+
+**Response**: Returns created preset with `201` status.
+
+### GET /api/location-presets/[id]
+
+Fetch a single location preset by ID.
+
+**Response**: Same format as individual preset in list above.
+
+### PUT /api/location-presets/[id]
+
+Update an existing location preset.
+
+**Request**: Same format as POST (all fields required).
+
+**Response**: Returns updated preset.
+
+### DELETE /api/location-presets/[id]
+
+Delete a location preset.
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "message": "Preset deleted"
+}
+```
+
 ## Important Design Decisions
 
 1. **No Top Padding in Apps**: Apps render full height. Phone component adds `pt-11` to wrapper for StatusBar clearance.
@@ -598,10 +810,11 @@ Breaking changes: Add `!` after type or `BREAKING CHANGE:` in footer.
 - **Framework**: Next.js 16 (App Router)
 - **Styling**: Tailwind CSS 4
 - **Language**: TypeScript 5 (strict mode)
+- **Database**: PostgreSQL 14+ with Prisma ORM 5
 - **State**: React Context API
 - **Real-time**: Server-Sent Events (SSE)
 - **Cross-tab**: BroadcastChannel API
-- **Storage**: localStorage for message persistence
+- **Storage**: localStorage for message persistence, PostgreSQL for location presets
 - **Social Integration**: Iframe webviews with PostMessage API
 - **Maps**: Leaflet.js with React-Leaflet for interactive maps
 - **Location**: Browser Geolocation API with override system
@@ -665,8 +878,7 @@ curl -X POST http://localhost:3000/api/sms \
 2. Click the **Map** button (top-left corner) to show the map viewer alongside the phone
 3. Click the **Location** button (pin icon, top-left) to select a preset:
    - **Real GPS**: Use actual device location
-   - **Static Locations**: San Francisco Downtown, Times Square, Tower of London
-   - **Routes**: SF to Golden Gate, NYC to Central Park
+   - **Custom Presets**: Any presets created via the Location Config screen
 4. Status bar shows blue dot when location override is active
 
 **Route Playback Controls:**
@@ -712,7 +924,7 @@ The Location Config screen (`/location-config`) provides an interactive map-base
 - **Location Search**: Type location names (e.g., "Sydney Opera House") in search bar to navigate map (doesn't create presets)
 - **Geofence Display**: Read-only geofence zones from external API displayed as dashed blue polygons
 - **Delete Presets**: Click "Delete" button on any preset
-- All presets saved to localStorage and immediately available in location selector
+- All presets saved to PostgreSQL database and immediately available across all users/sessions
 
 **Testing Location in Apps:**
 
@@ -748,7 +960,7 @@ The Location Config screen (`/location-config`) provides an interactive map-base
 
 1. **Browser App**: Cannot navigate back within iframe (browser security limitation)
 2. **SMS Delivery**: Local mode requires same origin (domain/port)
-3. **No Server State**: Client-side only, no database, SSE connections are in-memory
+3. **Limited Server State**: PostgreSQL database for location presets only; SMS/email messages and SSE connections are in-memory only
 4. **Single Device Per Tab**: Each browser tab emulates one phone
 5. **Link Detection**: Simple regex for URL parsing
 6. **Social Apps**: Require external backend, iframe sandbox restrictions apply, postMessage only works from same-origin or with proper CORS

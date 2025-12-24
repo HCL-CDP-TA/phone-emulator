@@ -24,6 +24,8 @@ interface PresetPanelProps {
   longitude: string
   waypoints: Waypoint[]
   isClient: boolean
+  isLoading?: boolean
+  error?: string | null
   onOpenAddStaticForm: () => void
   onOpenAddRouteForm: () => void
   onOpenEditForm: (preset: LocationPreset) => void
@@ -38,8 +40,8 @@ interface PresetPanelProps {
   onAddWaypoint: () => void
   onRemoveWaypoint: (index: number) => void
   onUpdateWaypoint: (index: number, field: keyof Waypoint, value: number | undefined) => void
-  onResetToDefaults: () => void
   onGeocodeSelect: (lat: number, lon: number) => void
+  onRetryFetch?: () => void
 }
 
 export default function PresetPanel({
@@ -53,6 +55,8 @@ export default function PresetPanel({
   longitude,
   waypoints,
   isClient,
+  isLoading = false,
+  error = null,
   onOpenAddStaticForm,
   onOpenAddRouteForm,
   onOpenEditForm,
@@ -67,8 +71,8 @@ export default function PresetPanel({
   onAddWaypoint,
   onRemoveWaypoint,
   onUpdateWaypoint,
-  onResetToDefaults,
   onGeocodeSelect,
+  onRetryFetch,
 }: PresetPanelProps) {
   const { search, results, isSearching, clearResults } = useGeocoding()
   const [searchQuery, setSearchQuery] = useState("")
@@ -344,23 +348,29 @@ export default function PresetPanel({
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-800">
-              Configured Presets {isClient && `(${presets.length})`}
+              Configured Presets {isClient && !isLoading && `(${presets.length})`}
             </h2>
-            <button
-              onClick={onResetToDefaults}
-              className="text-xs text-gray-600 hover:text-gray-800 underline transition-colors">
-              Reset to Defaults
-            </button>
           </div>
 
-          {!isClient ? (
-            <div className="text-center py-12 text-gray-500">
-              <p>Loading...</p>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400 mb-3" />
+              <p className="text-gray-600">Loading presets...</p>
+            </div>
+          ) : error ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700 mb-2">{error}</p>
+              {onRetryFetch && (
+                <button onClick={onRetryFetch} className="text-sm text-red-600 underline font-medium">
+                  Retry
+                </button>
+              )}
             </div>
           ) : presets.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <p>No presets configured yet.</p>
-              <p className="text-sm mt-1">Add your first preset above to get started.</p>
+              <MapPin className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>No presets yet</p>
+              <p className="text-sm mt-1">Create your first location preset</p>
             </div>
           ) : (
             <div className="space-y-3">

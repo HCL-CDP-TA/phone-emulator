@@ -46,8 +46,24 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
   useEffect(() => {
     if (!userId) return
 
+    const apiUrl = process.env.NEXT_PUBLIC_GEOFENCE_API_URL
+    console.log("[GeofenceApp] 🔍 NEXT_PUBLIC_GEOFENCE_API_URL value:", apiUrl)
+    console.log(
+      "[GeofenceApp] 🔍 All NEXT_PUBLIC env vars:",
+      Object.keys(process.env).filter(k => k.startsWith("NEXT_PUBLIC_")),
+    )
+
+    if (!apiUrl) {
+      console.error("[GeofenceApp] ❌ NEXT_PUBLIC_GEOFENCE_API_URL is not configured")
+      setSdkError(
+        new Error("Geofence API URL is not configured. Please set NEXT_PUBLIC_GEOFENCE_API_URL in your environment."),
+      )
+      return
+    }
+
+    console.log("[GeofenceApp] ✅ Initializing GeofenceMonitor with apiUrl:", apiUrl)
     const newMonitor = new GeofenceMonitor({
-      apiUrl: process.env.NEXT_PUBLIC_GEOFENCE_API_URL || "",
+      apiUrl: apiUrl,
       userId: userId,
       appId: "geofence",
       enableServerEvaluation: true,

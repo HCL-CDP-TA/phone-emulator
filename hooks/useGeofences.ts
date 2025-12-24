@@ -122,13 +122,14 @@ async function fetchGeofencesShared(): Promise<void> {
       notifyListeners()
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Unknown error")
-      console.error(`[Geofences] Fetch failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error.message)
+      console.warn(`[Geofences] Fetch failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error.message)
 
       retryCount++
 
+      // Store error internally but don't expose it to components (fail gracefully)
       cache = {
         geofences: [],
-        error,
+        error: null, // Don't expose error to UI
         timestamp: Date.now(),
         promise: null,
       }
@@ -137,12 +138,12 @@ async function fetchGeofencesShared(): Promise<void> {
 
       // If we haven't hit max retries, schedule a retry
       if (retryCount < MAX_RETRIES) {
-        console.log(`[Geofences] Retrying in ${RETRY_DELAY / 1000}s...`)
+        console.warn(`[Geofences] Retrying in ${RETRY_DELAY / 1000}s...`)
         setTimeout(() => {
           fetchGeofencesShared()
         }, RETRY_DELAY)
       } else {
-        console.error(`[Geofences] Max retries reached. No more automatic retries. Call refetch() to try again.`)
+        console.warn(`[Geofences] Max retries reached. Continuing without geofences. Call refetch() to try again.`)
       }
     }
   })()
