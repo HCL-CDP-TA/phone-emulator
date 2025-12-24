@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.2.0...phone-emulator-v3.2.1) (2025-12-24)
+
+
+### Bug Fixes
+
+* deploy .env settings ([c79f23a](https://github.com/HCL-CDP-TA/phone-emulator/commit/c79f23abefb22b5dc1df49f7c412911f2dc17e79))
+
 ## [3.2.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.1.2...phone-emulator-v3.2.0) (2025-12-24)
 
 
