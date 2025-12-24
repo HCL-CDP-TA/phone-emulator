@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.2.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.1.2...phone-emulator-v3.2.0) (2025-12-24)
+
+
+### Features
+
+* moved geolocation configuration to database ([641714a](https://github.com/HCL-CDP-TA/phone-emulator/commit/641714abec6f7529a2429c0ddc919f4c72cb4b06))
+
+
+### Bug Fixes
+
+* db deploy fix ([2487901](https://github.com/HCL-CDP-TA/phone-emulator/commit/24879013025f21a3b1896b4bc60d5005c90db3e3))
+* deploy target ([7df877e](https://github.com/HCL-CDP-TA/phone-emulator/commit/7df877e6559e480442ef50d91b99be3a5faee61e))
+
 ## [3.1.2](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.1.1...phone-emulator-v3.1.2) (2025-12-22)
 
 
