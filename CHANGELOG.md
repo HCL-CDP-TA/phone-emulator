@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.2.0...phone-emulator-v3.2.1) (2025-12-29)
+
+
+### Bug Fixes
+
+* change Maison to postMessage ([50fbb5d](https://github.com/HCL-CDP-TA/phone-emulator/commit/50fbb5dc79e016434d164ff4017c9d63809c3236))
+* deploy .env settings ([c79f23a](https://github.com/HCL-CDP-TA/phone-emulator/commit/c79f23abefb22b5dc1df49f7c412911f2dc17e79))
+
 ## [3.2.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.1.2...phone-emulator-v3.2.0) (2025-12-24)
 
 
