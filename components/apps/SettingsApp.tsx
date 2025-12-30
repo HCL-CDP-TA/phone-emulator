@@ -94,7 +94,7 @@ const UserIdModeSelector = ({ value, onChange }: { value: string; onChange: (val
           <div className="flex-1">
             <div className="font-medium text-sm">Manual Entry</div>
             <div className="text-xs text-gray-600 mt-0.5">
-              User enters their ID via a button in the app (best for brand websites)
+              User enters their ID via a button in the app (best for brand websites). Choose this if unsure.
             </div>
           </div>
         </div>
