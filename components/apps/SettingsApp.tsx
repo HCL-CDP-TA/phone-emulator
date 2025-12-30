@@ -229,7 +229,7 @@ const AppForm = ({
 )
 
 export default function SettingsApp({ onClose }: AppProps) {
-  const { apps, addApp, updateApp, deleteApp, resetToDefaults } = useGeofenceApps()
+  const { apps, addApp, updateApp, updateDefaultAppSettings, deleteApp, resetToDefaults } = useGeofenceApps()
   const [editingApp, setEditingApp] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [formData, setFormData] = useState<Partial<GeofenceAppConfig>>({
@@ -310,6 +310,68 @@ export default function SettingsApp({ onClose }: AppProps) {
     }
   }
 
+  const handleToggleMonitoring = (appId: string) => {
+    const app = apps.find(a => a.id === appId)
+    if (!app) return
+
+    const isDefault = GEOFENCE_APPS.some(defaultApp => defaultApp.id === appId)
+    const newEnabled = !app.geotrackingEnabled
+
+    if (isDefault) {
+      updateDefaultAppSettings(appId, { geotrackingEnabled: newEnabled })
+    } else {
+      updateApp(appId, { geotrackingEnabled: newEnabled })
+    }
+  }
+
+  const handleToggleNotifyEnter = (appId: string) => {
+    const app = apps.find(a => a.id === appId)
+    if (!app) return
+
+    const isDefault = GEOFENCE_APPS.some(defaultApp => defaultApp.id === appId)
+    const newEnabled = !app.notifications.enter.enabled
+
+    if (isDefault) {
+      updateDefaultAppSettings(appId, {
+        notifications: {
+          ...app.notifications,
+          enter: { enabled: newEnabled },
+        },
+      })
+    } else {
+      updateApp(appId, {
+        notifications: {
+          ...app.notifications,
+          enter: { enabled: newEnabled },
+        },
+      })
+    }
+  }
+
+  const handleToggleNotifyExit = (appId: string) => {
+    const app = apps.find(a => a.id === appId)
+    if (!app) return
+
+    const isDefault = GEOFENCE_APPS.some(defaultApp => defaultApp.id === appId)
+    const newEnabled = !app.notifications.exit.enabled
+
+    if (isDefault) {
+      updateDefaultAppSettings(appId, {
+        notifications: {
+          ...app.notifications,
+          exit: { enabled: newEnabled },
+        },
+      })
+    } else {
+      updateApp(appId, {
+        notifications: {
+          ...app.notifications,
+          exit: { enabled: newEnabled },
+        },
+      })
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
@@ -375,36 +437,39 @@ export default function SettingsApp({ onClose }: AppProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  {/* Visible toggle - only show for custom apps (default apps are always visible) */}
+                  {!GEOFENCE_APPS.some(defaultApp => defaultApp.id === app.id) && (
+                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                        <span className="text-sm font-medium text-gray-700">Visible on home screen</span>
+                      </div>
+                      <button
+                        onClick={() => updateApp(app.id, { visible: !app.visible })}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${
+                          app.visible ? "bg-green-500" : "bg-gray-300"
+                        }`}>
+                        <div
+                          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
+                            app.visible ? "translate-x-5" : ""
+                          }`}
                         />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                      </svg>
-                      <span className="text-sm font-medium text-gray-700">Visible on home screen</span>
+                      </button>
                     </div>
-                    <button
-                      onClick={() => updateApp(app.id, { visible: !app.visible })}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${
-                        app.visible ? "bg-green-500" : "bg-gray-300"
-                      }`}>
-                      <div
-                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
-                          app.visible ? "translate-x-5" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
+                  )}
 
                   <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -425,13 +490,63 @@ export default function SettingsApp({ onClose }: AppProps) {
                       <span className="text-sm font-medium text-gray-700">Geofence monitoring</span>
                     </div>
                     <button
-                      onClick={() => updateApp(app.id, { geotrackingEnabled: !app.geotrackingEnabled })}
+                      onClick={() => handleToggleMonitoring(app.id)}
                       className={`relative w-11 h-6 rounded-full transition-colors ${
                         app.geotrackingEnabled ? "bg-green-500" : "bg-gray-300"
                       }`}>
                       <div
                         className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
                           app.geotrackingEnabled ? "translate-x-5" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">Notify on enter</span>
+                    </div>
+                    <button
+                      onClick={() => handleToggleNotifyEnter(app.id)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${
+                        app.notifications.enter.enabled ? "bg-blue-500" : "bg-gray-300"
+                      }`}>
+                      <div
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
+                          app.notifications.enter.enabled ? "translate-x-5" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">Notify on exit</span>
+                    </div>
+                    <button
+                      onClick={() => handleToggleNotifyExit(app.id)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${
+                        app.notifications.exit.enabled ? "bg-blue-500" : "bg-gray-300"
+                      }`}>
+                      <div
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
+                          app.notifications.exit.enabled ? "translate-x-5" : ""
                         }`}
                       />
                     </button>

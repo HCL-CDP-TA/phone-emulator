@@ -2,11 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { GeofenceAppConfig, GEOFENCE_APPS } from "@/components/apps/geofenceAppsConfig"
+import { GeofenceAppOverrides } from "@/types/app"
 
 interface GeofenceAppsContextType {
   apps: GeofenceAppConfig[]
   addApp: (app: GeofenceAppConfig) => void
   updateApp: (id: string, updates: Partial<GeofenceAppConfig>) => void
+  updateDefaultAppSettings: (appId: string, updates: Partial<GeofenceAppConfig>) => void
   deleteApp: (id: string) => void
   getApp: (id: string) => GeofenceAppConfig | undefined
   resetToDefaults: () => void
@@ -15,16 +17,35 @@ interface GeofenceAppsContextType {
 const GeofenceAppsContext = createContext<GeofenceAppsContextType | undefined>(undefined)
 
 const STORAGE_KEY = "geofence-apps-config"
+const OVERRIDES_STORAGE_KEY = "geofence-default-app-overrides"
 
 export function GeofenceAppsProvider({ children }: { children: React.ReactNode }) {
   // Store only custom apps in state - default apps always come from GEOFENCE_APPS
   const [customApps, setCustomApps] = useState<GeofenceAppConfig[]>([])
+  const [defaultAppOverrides, setDefaultAppOverrides] = useState<GeofenceAppOverrides>({})
   const [isInitialized, setIsInitialized] = useState(false)
 
-  // Computed: merge default apps with custom apps
+  // Computed: merge default apps with overrides, then add custom apps
   const apps = React.useMemo(() => {
-    return [...GEOFENCE_APPS, ...customApps]
-  }, [customApps])
+    const mergedDefaults = GEOFENCE_APPS.map(defaultApp => {
+      const overrides = defaultAppOverrides[defaultApp.id]
+      if (!overrides) {
+        return defaultApp
+      }
+
+      // Deep merge notifications to preserve structure
+      return {
+        ...defaultApp,
+        geotrackingEnabled: overrides.geotrackingEnabled ?? defaultApp.geotrackingEnabled,
+        notifications: {
+          enter: overrides.notifications?.enter ?? defaultApp.notifications.enter,
+          exit: overrides.notifications?.exit ?? defaultApp.notifications.exit,
+        },
+        visible: true, // Always force visible for defaults
+      }
+    })
+    return [...mergedDefaults, ...customApps]
+  }, [customApps, defaultAppOverrides])
 
   // Load custom apps from localStorage and cleanup any default app IDs
   useEffect(() => {
@@ -49,6 +70,20 @@ export function GeofenceAppsProvider({ children }: { children: React.ReactNode }
       }
     }
     setIsInitialized(true)
+  }, [])
+
+  // Load default app overrides from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(OVERRIDES_STORAGE_KEY)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as GeofenceAppOverrides
+        setDefaultAppOverrides(parsed)
+      } catch (error) {
+        console.error("Failed to parse default app overrides from localStorage:", error)
+        setDefaultAppOverrides({})
+      }
+    }
   }, [])
 
   // Save custom apps to localStorage whenever they change (but skip initial load)
@@ -91,6 +126,31 @@ export function GeofenceAppsProvider({ children }: { children: React.ReactNode }
     setCustomApps(prev => prev.filter(app => app.id !== id))
   }, [])
 
+  const updateDefaultAppSettings = useCallback((appId: string, updates: Partial<GeofenceAppConfig>) => {
+    setDefaultAppOverrides(prev => {
+      const existingOverride = prev[appId] || {}
+
+      // Deep merge notifications
+      const mergedNotifications = updates.notifications
+        ? {
+            enter: updates.notifications.enter ?? existingOverride.notifications?.enter,
+            exit: updates.notifications.exit ?? existingOverride.notifications?.exit,
+          }
+        : existingOverride.notifications
+
+      const newOverrides = {
+        ...prev,
+        [appId]: {
+          ...existingOverride,
+          geotrackingEnabled: updates.geotrackingEnabled ?? existingOverride.geotrackingEnabled,
+          notifications: mergedNotifications,
+        },
+      }
+      localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(newOverrides))
+      return newOverrides
+    })
+  }, [])
+
   const getApp = useCallback(
     (id: string) => {
       return apps.find(app => app.id === id)
@@ -110,6 +170,7 @@ export function GeofenceAppsProvider({ children }: { children: React.ReactNode }
         apps,
         addApp,
         updateApp,
+        updateDefaultAppSettings,
         deleteApp,
         getApp,
         resetToDefaults,

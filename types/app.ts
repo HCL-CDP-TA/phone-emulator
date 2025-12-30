@@ -118,3 +118,13 @@ export interface LocationPreset {
     speed?: number
   }>
 }
+
+export interface GeofenceAppOverrides {
+  [appId: string]: {
+    geotrackingEnabled?: boolean
+    notifications?: {
+      enter?: { enabled: boolean }
+      exit?: { enabled: boolean }
+    }
+  }
+}
