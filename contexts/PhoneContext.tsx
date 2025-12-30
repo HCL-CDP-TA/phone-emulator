@@ -173,6 +173,9 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
   // BroadcastChannel for location updates
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
 
+  // Store watch ID for continuous GPS tracking
+  const locationWatchIdRef = useRef<number | null>(null)
+
   // Time management state (not persisted - reverts to real time on refresh)
   const [timeOffset, setTimeOffsetState] = useState<number>(0)
   const [currentTime, setCurrentTime] = useState<Date>(new Date(Date.now() + timeOffset))
@@ -570,9 +573,9 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval)
   }, [timeOffset])
 
-  // Request location on mount to make it available to all apps
+  // Start continuous location watching on mount to make it available to all apps
   useEffect(() => {
-    // Only request once on initial mount
+    // Only start watching on initial mount
     if (typeof window === "undefined" || !navigator.geolocation) return
 
     // Use setTimeout to avoid cascading render warning
@@ -580,7 +583,8 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       if (navigator.geolocation) {
         setLocation(prev => ({ ...prev, isLoading: true }))
 
-        navigator.geolocation.getCurrentPosition(
+        // Start continuous watching instead of one-time request
+        const watchId = navigator.geolocation.watchPosition(
           position => {
             setLocation({
               position,
@@ -603,10 +607,20 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
             maximumAge: 0,
           },
         )
+
+        // Store watch ID for cleanup
+        locationWatchIdRef.current = watchId
       }
     }, 0)
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      clearTimeout(timeoutId)
+      // Clean up location watch on unmount
+      if (locationWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(locationWatchIdRef.current)
+        locationWatchIdRef.current = null
+      }
+    }
     // Empty dependency array - only run once on mount
   }, [])
 
@@ -620,6 +634,13 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
       broadcastChannelRef.current?.close()
     }
   }, [])
+
+  // Broadcast location updates whenever effectiveLocation changes
+  useEffect(() => {
+    if (effectiveLocation) {
+      broadcastLocationToIframes()
+    }
+  }, [effectiveLocation, broadcastLocationToIframes])
 
   // Route animation effect - runs every 100ms when route is playing
   useEffect(() => {
@@ -700,13 +721,10 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
           },
         })
       }
-
-      // Broadcast the updated location
-      broadcastLocationToIframes()
     }, 100)
 
     return () => clearInterval(interval)
-  }, [locationOverride, setLocationOverrideConfig, broadcastLocationToIframes])
+  }, [locationOverride, setLocationOverrideConfig])
 
   return (
     <PhoneContext.Provider

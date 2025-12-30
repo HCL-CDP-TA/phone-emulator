@@ -33,7 +33,7 @@ export const GEOFENCE_APPS: GeofenceAppConfig[] = [
         enabled: false,
       },
     },
-    geotrackingEnabled: true,
+    geotrackingEnabled: false,
     visible: true,
   },
   {
@@ -51,7 +51,7 @@ export const GEOFENCE_APPS: GeofenceAppConfig[] = [
         enabled: false,
       },
     },
-    geotrackingEnabled: true,
+    geotrackingEnabled: false,
     visible: true,
   },
   {
@@ -69,7 +69,7 @@ export const GEOFENCE_APPS: GeofenceAppConfig[] = [
         enabled: false,
       },
     },
-    geotrackingEnabled: true,
+    geotrackingEnabled: false,
     visible: true,
   },
 ]

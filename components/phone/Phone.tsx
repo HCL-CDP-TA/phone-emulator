@@ -7,12 +7,19 @@ import HomeScreen from "./HomeScreen"
 import NotificationBanner from "./NotificationBanner"
 import LocationPermissionBanner from "./LocationPermissionBanner"
 import GeofenceApp from "@/components/apps/GeofenceApp"
+import GeofenceWebviewApp from "@/components/apps/GeofenceWebviewApp"
+import { useGeofenceApps } from "@/contexts/GeofenceAppsContext"
+import { geofenceAppIcons } from "@/components/apps/geofenceAppIcons"
 import { useState, useEffect } from "react"
 
 export default function Phone() {
   const { activeApp, closeApp, addNotification, location, requestLocation } = usePhone()
   const appRegistry = useAppRegistry()
+  const { apps: geofenceApps } = useGeofenceApps()
   const [showHomeButton, setShowHomeButton] = useState(false)
+
+  // Get list of geofence apps with geotracking enabled
+  const activeGeofenceApps = geofenceApps.filter(app => app.geotrackingEnabled)
 
   // Ensure home button is hidden when app changes
   useEffect(() => {
@@ -47,9 +54,32 @@ export default function Phone() {
           />
         </div>
 
+        {/* Geofence Webview Apps with geotracking enabled - always mounted but hidden */}
+        {activeGeofenceApps.map(geofenceApp => {
+          const icon = geofenceAppIcons[geofenceApp.iconName as keyof typeof geofenceAppIcons]
+          return (
+            <div
+              key={geofenceApp.id}
+              className={`w-full h-full pt-11 ${activeApp === geofenceApp.id ? "block" : "hidden"}`}>
+              <GeofenceWebviewApp
+                appId={geofenceApp.id}
+                icon={icon}
+                onClose={closeApp}
+                onSendNotification={addNotification}
+                location={location.position}
+                locationError={location.error}
+                requestLocation={requestLocation}
+              />
+            </div>
+          )
+        })}
+
         {/* App Content or Home Screen */}
-        <div className={`w-full h-full pt-11 ${activeApp === "geofence" ? "hidden" : "block"}`}>
-          {AppComponent && activeApp !== "geofence" ? (
+        <div
+          className={`w-full h-full pt-11 ${
+            activeApp === "geofence" || activeGeofenceApps.some(app => app.id === activeApp) ? "hidden" : "block"
+          }`}>
+          {AppComponent && activeApp !== "geofence" && !activeGeofenceApps.some(app => app.id === activeApp) ? (
             <AppComponent
               onClose={closeApp}
               onSendNotification={addNotification}
