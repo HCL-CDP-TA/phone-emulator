@@ -16,7 +16,7 @@ interface GeofenceEvent {
 
 export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
   // Get location from context (for display only - SDK uses its own GPS)
-  const { effectiveLocation, openApp } = usePhone()
+  const { effectiveLocation, openApp, setGeofenceMonitoring } = usePhone()
 
   // User ID management
   const [userId, setUserId] = useState<string | null>(null)
@@ -80,8 +80,9 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     return () => {
       newMonitor.stop()
       setIsMonitoring(false)
+      setGeofenceMonitoring(false)
     }
-  }, [userId])
+  }, [userId, setGeofenceMonitoring])
 
   // Update SDK position when effectiveLocation changes
   useEffect(() => {
@@ -175,17 +176,19 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     if (!monitor || hasAutoStarted) return
 
     const autoStart = async () => {
-      // Check saved preference (defaults to true for first-time users)
+      // Check saved preference (defaults to false for first-time users)
       const savedMonitoring = localStorage.getItem("geofence-monitoring-enabled")
-      const shouldMonitor = savedMonitoring === null || savedMonitoring === "true"
+      const shouldMonitor = savedMonitoring === "true"
 
       if (!shouldMonitor) {
         setHasAutoStarted(true) // Mark as handled, but don't start
+        setGeofenceMonitoring(false) // Ensure global state is synced
         return
       }
 
       try {
         setIsMonitoring(true)
+        setGeofenceMonitoring(true)
         setHasAutoStarted(true)
         setSdkError(null)
         await monitor.start()
@@ -194,11 +197,12 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
         console.error("Failed to start monitoring:", error)
         setSdkError(error as Error)
         setIsMonitoring(false)
+        setGeofenceMonitoring(false)
       }
     }
 
     autoStart()
-  }, [monitor, hasAutoStarted])
+  }, [monitor, hasAutoStarted, setGeofenceMonitoring])
 
   const handleUserIdSubmit = () => {
     if (!userIdInput.trim()) return
@@ -215,6 +219,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
       monitor.stop()
     }
     setIsMonitoring(false)
+    setGeofenceMonitoring(false)
     setGeofenceEvents([])
     // Don't change the monitoring preference in localStorage - keep it for the next user
   }
@@ -223,6 +228,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     if (monitor) {
       monitor.stop()
       setIsMonitoring(false)
+      setGeofenceMonitoring(false)
       localStorage.setItem("geofence-monitoring-enabled", "false")
     }
   }
@@ -231,6 +237,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
     if (!monitor) return
     try {
       setIsMonitoring(true)
+      setGeofenceMonitoring(true)
       setSdkError(null)
       await monitor.start()
       localStorage.setItem("geofence-monitoring-enabled", "true")
@@ -238,6 +245,7 @@ export default function GeofenceApp({ onClose, onSendNotification }: AppProps) {
       console.error("Failed to start monitoring:", error)
       setSdkError(error as Error)
       setIsMonitoring(false)
+      setGeofenceMonitoring(false)
       localStorage.setItem("geofence-monitoring-enabled", "false")
     }
   }

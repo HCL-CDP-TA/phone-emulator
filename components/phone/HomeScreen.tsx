@@ -2,15 +2,28 @@
 
 import { usePhone } from "@/contexts/PhoneContext"
 import { useAppRegistry } from "@/lib/appRegistry"
+import { useGeofenceApps } from "@/contexts/GeofenceAppsContext"
 
 export default function HomeScreen() {
-  const { openApp, currentTime } = usePhone()
+  const { openApp, currentTime, geofenceMonitoring } = usePhone()
   const appRegistry = useAppRegistry()
+  const { apps: geofenceApps } = useGeofenceApps()
 
   // Limit to 24 apps (4 columns × 6 rows) to fit on screen
   // Apps beyond this limit (dummy apps at bottom of registry) are hidden
   const MAX_APPS = 24
   const visibleApps = appRegistry.slice(0, MAX_APPS)
+
+  // Helper to check if an app is actively tracking location
+  const isAppTracking = (appId: string) => {
+    // Check if it's the test GeofenceApp with monitoring enabled
+    if (appId === "geofence") {
+      return geofenceMonitoring
+    }
+    // Check if it's a geofence webview app with tracking enabled
+    const geofenceApp = geofenceApps.find(app => app.id === appId)
+    return geofenceApp?.geotrackingEnabled || false
+  }
 
   // Format time: e.g., "2:30 PM"
   const formattedTime = currentTime.toLocaleTimeString(undefined, {
@@ -48,9 +61,19 @@ export default function HomeScreen() {
             key={app.id}
             onClick={() => openApp(app.id)}
             className="flex flex-col items-center gap-2 active:opacity-70 transition-opacity">
-            <div
-              className={`w-14 h-14 ${app.iconColor} rounded-full flex items-center justify-center text-white shadow-lg p-3`}>
-              {app.icon}
+            <div className="relative">
+              <div
+                className={`w-14 h-14 ${app.iconColor} rounded-full flex items-center justify-center text-white shadow-lg p-3`}>
+                {app.icon}
+              </div>
+              {/* Location Tracking Indicator */}
+              {isAppTracking(app.id) && (
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                  <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
+                </div>
+              )}
             </div>
             <span className="text-white text-xs font-medium text-center leading-tight drop-shadow">{app.name}</span>
           </button>

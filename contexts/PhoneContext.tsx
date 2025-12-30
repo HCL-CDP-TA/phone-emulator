@@ -184,7 +184,12 @@ export function PhoneProvider({ children }: { children: ReactNode }) {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
 
   // Geofence monitoring state (system-wide indicator)
-  const [geofenceMonitoring, setGeofenceMonitoring] = useState<boolean>(false)
+  // Initialize from localStorage to match GeofenceApp's auto-start behavior
+  const [geofenceMonitoring, setGeofenceMonitoring] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false
+    const saved = localStorage.getItem("geofence-monitoring-enabled")
+    return saved === "true"
+  })
 
   const openApp = useCallback((appId: string) => {
     setActiveApp(appId)
