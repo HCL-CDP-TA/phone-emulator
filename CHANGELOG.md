@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.3.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.2.1...phone-emulator-v3.3.0) (2025-12-30)
+
+
+### Features
+
+* added pin to tracking apps on home page ([cabd560](https://github.com/HCL-CDP-TA/phone-emulator/commit/cabd5605059dca7667175eb3270691ba5fc7536f))
+
+
+### Bug Fixes
+
+* change wording for postMessage app setup description ([e01f0ca](https://github.com/HCL-CDP-TA/phone-emulator/commit/e01f0cafab132952df8037e17da2d5ade45396db))
+* default app overrides ([2737025](https://github.com/HCL-CDP-TA/phone-emulator/commit/2737025045ac6f3cb3df55848442aef36f53138f))
+* geo apps monitor automatically ([edc6186](https://github.com/HCL-CDP-TA/phone-emulator/commit/edc618690bcd7a1f00e389258e08800262c2743f))
+
 ## [3.2.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.2.0...phone-emulator-v3.2.1) (2025-12-29)
 
 
