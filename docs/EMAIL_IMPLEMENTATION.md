@@ -92,7 +92,7 @@ All HTML content is sanitized using DOMPurify with strict allowlist:
 ### Sending Email via API
 
 ```bash
-curl -X POST http://localhost:3000/api/email \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/email \
   -H "Content-Type: application/json" \
   -d '{
     "phoneNumber": "+12345678901",
@@ -105,7 +105,7 @@ curl -X POST http://localhost:3000/api/email \
 
 ### Using Email Tester
 
-1. Navigate to `http://localhost:3000/email-tester`
+1. Navigate to `https://phone-emulator.demo.now.hclsoftware.cloud/email-tester`
 2. Enter phone number (must match phone logged into emulator)
 3. Fill in from, subject, and HTML content
 4. Click "Send Email"
@@ -174,12 +174,12 @@ If `htmlContent` provided, it's rendered (sanitized). Otherwise, `textContent` i
 
 ```bash
 # Test local delivery (no phone number)
-curl -X POST http://localhost:3000/api/email \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/email \
   -H "Content-Type: application/json" \
   -d '{"from":"test@example.com","subject":"Test","textContent":"Hello"}'
 
 # Test remote delivery (with phone number)
-curl -X POST http://localhost:3000/api/email \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/email \
   -H "Content-Type: application/json" \
   -d '{"phoneNumber":"+12345678901","from":"test@example.com","subject":"Test","htmlContent":"<h1>Hello</h1>"}'
 ```

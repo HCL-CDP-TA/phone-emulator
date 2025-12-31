@@ -26,7 +26,7 @@ Content-Type: application/json
 ### Example Request
 
 ```bash
-curl -X POST http://localhost:3000/api/sms \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/sms \
   -H "Content-Type: application/json" \
   -d '{
     "sender": "Demo Company",

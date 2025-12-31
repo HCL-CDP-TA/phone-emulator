@@ -98,6 +98,7 @@ The project includes an automated deployment script that handles everything:
 ```
 
 **What the deployment script does:**
+
 1. Stops and removes existing container/image
 2. Clones repository (or uses local directory with `--local`)
 3. Builds Docker image
@@ -107,11 +108,13 @@ The project includes an automated deployment script that handles everything:
 7. Waits for health check and displays access URL
 
 **Requirements:**
+
 - Docker running
 - `.env` file in project root with `DATABASE_URL` and other config
 - For remote deployments: SSH key configured for GitHub access
 
 The docker-entrypoint.sh automatically handles:
+
 - Waiting for PostgreSQL to be ready
 - Creating database if it doesn't exist
 - Running Prisma migrations
@@ -135,7 +138,7 @@ Use the built-in SMS Tester (bottom-right corner) to send a test SMS:
 Send SMS messages to the phone via HTTP API:
 
 ```bash
-curl -X POST http://localhost:3000/api/sms \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/sms \
   -H "Content-Type: application/json" \
   -d '{
     "sender": "YourCompany",
@@ -148,7 +151,7 @@ curl -X POST http://localhost:3000/api/sms \
 Send SMS from marketing automation systems or external applications:
 
 ```bash
-curl -X POST http://localhost:3000/api/sms \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/sms \
   -H "Content-Type: application/json" \
   -d '{
     "phoneNumber": "+12345678901",
@@ -189,7 +192,7 @@ await fetch("https://your-emulator.com/api/sms", {
 Send HTML or plain text emails to the phone via HTTP API:
 
 ```bash
-curl -X POST http://localhost:3000/api/email \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/email \
   -H "Content-Type: application/json" \
   -d '{
     "phoneNumber": "+12345678901",

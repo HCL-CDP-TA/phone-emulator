@@ -88,7 +88,7 @@ A complete remote SMS delivery system using Server-Sent Events (SSE) for real-ti
 ### Local Delivery (Same Browser)
 
 ```bash
-curl -X POST http://localhost:3000/api/sms \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/sms \
   -H "Content-Type: application/json" \
   -d '{"sender":"Test","message":"Hello!"}'
 ```
@@ -96,7 +96,7 @@ curl -X POST http://localhost:3000/api/sms \
 ### Remote Delivery (Marketing Automation)
 
 ```bash
-curl -X POST http://localhost:3000/api/sms \
+curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/sms \
   -H "Content-Type: application/json" \
   -d '{"phoneNumber":"+12345678901","sender":"Campaign","message":"Offer!"}'
 ```
@@ -132,7 +132,7 @@ curl -X POST http://localhost:3000/api/sms \
 2. Login with `+12345678901`
 3. From another terminal:
    ```bash
-   curl -X POST http://localhost:3000/api/sms \
+   curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/sms \
      -H "Content-Type: application/json" \
      -d '{"phoneNumber":"+12345678901","sender":"Test","message":"Remote!"}'
    ```

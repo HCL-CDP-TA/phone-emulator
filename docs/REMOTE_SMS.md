@@ -254,7 +254,7 @@ Format: `+[country code][number]`
 1. **Open phone in Browser A**: Enter phone number `+12345678901`
 2. **From Browser B** (or curl):
    ```bash
-   curl -X POST http://localhost:3000/api/sms \
+   curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/sms \
      -H "Content-Type: application/json" \
      -d '{"phoneNumber":"+12345678901","sender":"Test","message":"Hello!"}'
    ```

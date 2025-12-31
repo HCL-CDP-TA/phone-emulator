@@ -36,7 +36,7 @@ function TesterContent() {
       return
     }
 
-    const industry = industryProfiles.find((i) => i.id === industryId)
+    const industry = industryProfiles.find(i => i.id === industryId)
     if (!industry) return
 
     setSelectedIndustry(industryId)
@@ -332,8 +332,8 @@ function TesterContent() {
                     src={profilePictureUrl}
                     alt="Avatar preview"
                     className="w-12 h-12 rounded-full border-2 border-gray-200"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
+                    onError={e => {
+                      e.currentTarget.style.display = "none"
                     }}
                   />
                   <div className="flex flex-col">
@@ -389,9 +389,7 @@ function TesterContent() {
                         <option value="url">URL</option>
                         <option value="custom">Custom</option>
                       </select>
-                      <button
-                        onClick={() => removeButton(index)}
-                        className="text-red-500 hover:text-red-700 px-2">
+                      <button onClick={() => removeButton(index)} className="text-red-500 hover:text-red-700 px-2">
                         ✕
                       </button>
                     </div>
@@ -407,7 +405,9 @@ function TesterContent() {
                   </div>
                 ))}
                 {buttons.length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">No buttons added. Click "Add Button" to create interactive buttons.</p>
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No buttons added. Click "Add Button" to create interactive buttons.
+                  </p>
                 )}
               </div>
             </div>
@@ -446,9 +446,7 @@ function TesterContent() {
             {status && (
               <div
                 className={`p-3 rounded-lg text-center font-medium ${
-                  status.startsWith("✅")
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
+                  status.startsWith("✅") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                 }`}>
                 {status}
               </div>
@@ -468,7 +466,7 @@ function TesterContent() {
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-1">Example Request:</p>
                 <pre className="bg-gray-900 text-gray-300 p-3 rounded text-xs overflow-x-auto">
-                  {`curl -X POST http://localhost:3000/api/whatsapp \\
+                  {`curl -X POST https://phone-emulator.demo.now.hclsoftware.cloud/api/whatsapp \\
   -H "Content-Type: application/json" \\
   -d '{
     "phoneNumber": "${phoneNumber}",
