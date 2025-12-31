@@ -14,7 +14,7 @@ function TesterContent() {
   )
   const [status, setStatus] = useState("")
   const [sessionId] = useState(() => searchParams.get("session") || "")
-  const [deliveryMethod, setDeliveryMethod] = useState<"local" | "remote">("local")
+  const [deliveryMethod, setDeliveryMethod] = useState<"local" | "remote">("remote")
   const [phoneNumber, setPhoneNumber] = useState("+12345678901")
   const [isLoaded, setIsLoaded] = useState(false)
   const [savedNumbers, setSavedNumbers] = useState<string[]>([])
