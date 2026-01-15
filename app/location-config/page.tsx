@@ -73,7 +73,7 @@ export default function LocationConfigPage() {
           console.log("Could not get initial location, using default:", error.message)
           setHasSetInitialLocation(true)
         },
-        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 },
       )
     }
   }, [hasSetInitialLocation])
@@ -238,14 +238,11 @@ export default function LocationConfigPage() {
       name: name.trim(),
       description: description.trim() || undefined,
       type,
-      ...(type === "static"
-        ? { latitude: parseFloat(latitude), longitude: parseFloat(longitude) }
-        : { waypoints }),
+      ...(type === "static" ? { latitude: parseFloat(latitude), longitude: parseFloat(longitude) } : { waypoints }),
     }
 
     try {
-      const url =
-        formMode === "edit" ? `/api/location-presets/${editingId}` : "/api/location-presets"
+      const url = formMode === "edit" ? `/api/location-presets/${editingId}` : "/api/location-presets"
       const method = formMode === "edit" ? "PUT" : "POST"
 
       const response = await fetch(url, {
@@ -307,7 +304,6 @@ export default function LocationConfigPage() {
   const updateWaypoint = (index: number, field: keyof Waypoint, value: number | undefined) => {
     setWaypoints(prev => prev.map((wp, i) => (i === index ? { ...wp, [field]: value } : wp)))
   }
-
 
   const handleMapClick = (latlng: { lat: number; lng: number }) => {
     if (viewMode === "creating-static") {
@@ -374,11 +370,7 @@ export default function LocationConfigPage() {
 
     // Update the form waypoints data
     setWaypoints(prev =>
-      prev.map((wp, i) =>
-        i === index
-          ? { ...wp, latitude: latlng.lat, longitude: latlng.lng }
-          : wp
-      )
+      prev.map((wp, i) => (i === index ? { ...wp, latitude: latlng.lat, longitude: latlng.lng } : wp)),
     )
   }
 

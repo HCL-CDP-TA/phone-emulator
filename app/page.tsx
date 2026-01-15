@@ -77,6 +77,18 @@ function PhoneEmulator() {
     }
   }, [phoneNumber, isLoaded])
 
+  // Close all SSE connections on page unload (refresh/navigate)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [])
+
   // Connect to SSE stream for remote SMS messages when logged in with a phone number
   useEffect(() => {
     if (!phoneNumber || phoneNumber === "skip" || !isLoaded) return
@@ -93,6 +105,11 @@ function PhoneEmulator() {
         await new Promise(resolve => setTimeout(resolve, 500))
       }
 
+      if (!isMounted) return
+
+      // Delay SSE connection to allow other HTTP requests to complete first
+      // This prevents connection exhaustion in browsers (6 connection limit per origin)
+      await new Promise(resolve => setTimeout(resolve, 1000))
       if (!isMounted) return
 
       console.log(`[SSE] Connecting to stream for ${phoneNumber}`)

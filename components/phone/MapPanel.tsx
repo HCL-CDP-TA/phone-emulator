@@ -22,9 +22,17 @@ const defaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = defaultIcon
 
-// Component to handle map updates
+// Component to handle map updates and ensure proper sizing
 function MapUpdater({ position }: { position: { lat: number; lng: number } }) {
   const map = useMap()
+
+  useEffect(() => {
+    // Invalidate size on mount to ensure map renders correctly
+    // This fixes issues when the container is initially hidden or has dynamic size
+    setTimeout(() => {
+      map.invalidateSize()
+    }, 100)
+  }, [map])
 
   useEffect(() => {
     // Update map view smoothly on every position change
@@ -48,6 +56,9 @@ function MapClickHandler({
   return null
 }
 
+// Default location (San Francisco) when no location is available
+const DEFAULT_POSITION = { lat: 37.7749, lng: -122.4194 }
+
 export default function MapPanel() {
   const { effectiveLocation, locationOverride, setLocationOverrideConfig } = usePhone()
   const { geofences } = useGeofences()
@@ -59,6 +70,9 @@ export default function MapPanel() {
       }
     : null
 
+  // Use current position or default for map center
+  const mapCenter = currentPosition || DEFAULT_POSITION
+
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
@@ -68,86 +82,94 @@ export default function MapPanel() {
       </div>
 
       {/* Content */}
-      {effectiveLocation && currentPosition ? (
-        <div className="flex-1 flex flex-col">
-          {/* Map */}
-          <div className="flex-1 relative bg-gray-100">
-            <MapContainer
-              center={[currentPosition.lat, currentPosition.lng]}
-              zoom={16}
-              style={{ height: "100%", width: "100%" }}
-              zoomControl={true}>
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <Marker position={[currentPosition.lat, currentPosition.lng]} />
-              <GeofenceLayer geofences={geofences} />
-              <MapUpdater position={currentPosition} />
-              <MapClickHandler
-                onLocationSet={(lat, lng) => {
-                  setLocationOverrideConfig({
-                    enabled: true,
-                    mode: "static",
-                    staticPosition: {
-                      latitude: lat,
-                      longitude: lng,
-                      accuracy: 10,
-                      altitude: null,
-                      altitudeAccuracy: null,
-                      heading: null,
-                      speed: null,
-                    },
-                  })
-                }}
-              />
-            </MapContainer>
-          </div>
+      <div className="flex-1 flex flex-col">
+        {/* Map - always shown */}
+        <div className="flex-1 relative bg-gray-100">
+          <MapContainer
+            center={[mapCenter.lat, mapCenter.lng]}
+            zoom={currentPosition ? 16 : 12}
+            style={{ height: "100%", width: "100%" }}
+            zoomControl={true}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {currentPosition && <Marker position={[currentPosition.lat, currentPosition.lng]} />}
+            <GeofenceLayer geofences={geofences} />
+            <MapUpdater position={mapCenter} />
+            <MapClickHandler
+              onLocationSet={(lat, lng) => {
+                setLocationOverrideConfig({
+                  enabled: true,
+                  mode: "static",
+                  staticPosition: {
+                    latitude: lat,
+                    longitude: lng,
+                    accuracy: 10,
+                    altitude: null,
+                    altitudeAccuracy: null,
+                    heading: null,
+                    speed: null,
+                  },
+                })
+              }}
+            />
+          </MapContainer>
+        </div>
 
-          {/* Info Panel */}
-          <div className="bg-white border-t border-gray-200 p-4">
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-xs font-medium text-gray-500 uppercase mb-1">Latitude</div>
-                <div className="font-mono text-gray-800">{effectiveLocation.coords.latitude.toFixed(6)}</div>
-              </div>
-              <div>
-                <div className="text-xs font-medium text-gray-500 uppercase mb-1">Longitude</div>
-                <div className="font-mono text-gray-800">{effectiveLocation.coords.longitude.toFixed(6)}</div>
-              </div>
-              {effectiveLocation.coords.accuracy !== undefined && (
+        {/* Info Panel */}
+        <div className="bg-white border-t border-gray-200 p-4">
+          {effectiveLocation ? (
+            <>
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Accuracy</div>
-                  <div className="text-gray-800">±{Math.round(effectiveLocation.coords.accuracy)}m</div>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Latitude</div>
+                  <div className="font-mono text-gray-800">{effectiveLocation.coords.latitude.toFixed(6)}</div>
                 </div>
-              )}
-              {effectiveLocation.coords.speed !== null && effectiveLocation.coords.speed !== undefined && (
                 <div>
-                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Speed</div>
-                  <div className="text-gray-800">
-                    {effectiveLocation.coords.speed.toFixed(1)} m/s
-                    <span className="text-gray-500 ml-1">({(effectiveLocation.coords.speed * 2.237).toFixed(1)} mph)</span>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Longitude</div>
+                  <div className="font-mono text-gray-800">{effectiveLocation.coords.longitude.toFixed(6)}</div>
+                </div>
+                {effectiveLocation.coords.accuracy !== undefined && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Accuracy</div>
+                    <div className="text-gray-800">±{Math.round(effectiveLocation.coords.accuracy)}m</div>
                   </div>
-                </div>
-              )}
-              {effectiveLocation.coords.heading !== null && effectiveLocation.coords.heading !== undefined && (
-                <div>
-                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Heading</div>
-                  <div className="text-gray-800">{Math.round(effectiveLocation.coords.heading)}°</div>
-                </div>
-              )}
-              {effectiveLocation.coords.altitude !== null && effectiveLocation.coords.altitude !== undefined && (
-                <div>
-                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Altitude</div>
-                  <div className="text-gray-800">{Math.round(effectiveLocation.coords.altitude)}m</div>
-                </div>
-              )}
-            </div>
+                )}
+                {effectiveLocation.coords.speed !== null && effectiveLocation.coords.speed !== undefined && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Speed</div>
+                    <div className="text-gray-800">
+                      {effectiveLocation.coords.speed.toFixed(1)} m/s
+                      <span className="text-gray-500 ml-1">({(effectiveLocation.coords.speed * 2.237).toFixed(1)} mph)</span>
+                    </div>
+                  </div>
+                )}
+                {effectiveLocation.coords.heading !== null && effectiveLocation.coords.heading !== undefined && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Heading</div>
+                    <div className="text-gray-800">{Math.round(effectiveLocation.coords.heading)}°</div>
+                  </div>
+                )}
+                {effectiveLocation.coords.altitude !== null && effectiveLocation.coords.altitude !== undefined && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Altitude</div>
+                    <div className="text-gray-800">{Math.round(effectiveLocation.coords.altitude)}m</div>
+                  </div>
+                )}
+              </div>
 
-            <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-xs text-gray-600">Live tracking active</span>
+              <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs text-gray-600">Live tracking active</span>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-2">
+              <p className="text-sm text-gray-600">Click on the map to set a location</p>
+              <p className="text-xs text-gray-400 mt-1">Or select a preset from the Location menu</p>
             </div>
+          )}
 
             {/* Route Controls */}
             {locationOverride.enabled && locationOverride.mode === "route" && locationOverride.route && (
@@ -249,19 +271,8 @@ export default function MapPanel() {
                 </div>
               </div>
             )}
-          </div>
         </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center">
-            <svg className="w-16 h-16 mx-auto mb-3 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-            </svg>
-            <p className="text-gray-600 font-medium mb-1">Waiting for location...</p>
-            <p className="text-gray-500 text-sm">Enable location or select a preset</p>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
