@@ -1,5 +1,97 @@
 # Changelog
 
+## [4.0.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v3.2.1...v4.0.0) (2026-01-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* updated to use SDK V2
+
+### Features
+
+* add email app and sending capability ([7e6360e](https://github.com/HCL-CDP-TA/phone-emulator/commit/7e6360e580002465d666d9a1c348256249ef756f))
+* added deployment scripts ([2bac855](https://github.com/HCL-CDP-TA/phone-emulator/commit/2bac85555a1d8bc11d49ea37c0b59f6dcc22115b))
+* added google app linked to fake google ([1de4495](https://github.com/HCL-CDP-TA/phone-emulator/commit/1de4495c81eb89def73b7ae3346787829f3809ee))
+* added history for phone numbers ([7436c43](https://github.com/HCL-CDP-TA/phone-emulator/commit/7436c438ed7fa2b502a0f0b3518b57b288bc5cdb))
+* added location access ([6625102](https://github.com/HCL-CDP-TA/phone-emulator/commit/66251028aa8ad6a5525a788acc6f565378cdc9e9))
+* added pin to tracking apps on home page ([cabd560](https://github.com/HCL-CDP-TA/phone-emulator/commit/cabd5605059dca7667175eb3270691ba5fc7536f))
+* added recipient capability for to-number sending ([3909119](https://github.com/HCL-CDP-TA/phone-emulator/commit/39091193b60e92273db3c7ff64395f9add4e398e))
+* added SEE (server side events) to replace polling ([fd8964a](https://github.com/HCL-CDP-TA/phone-emulator/commit/fd8964a4e165b72c69238bc5d5b2510db91b7edd))
+* added social apps ([bc6292f](https://github.com/HCL-CDP-TA/phone-emulator/commit/bc6292f9bda68af71f115b24574b40d4a6b24f88))
+* added whatsapp ([73d1b75](https://github.com/HCL-CDP-TA/phone-emulator/commit/73d1b75e16e6ed4e9beac4d1cc3b116c020bab2c))
+* added youtube app ([ba57e13](https://github.com/HCL-CDP-TA/phone-emulator/commit/ba57e13aa5be3420ce21ca09a16375875842c098))
+* client-side geolocation tracking ([9ce8b47](https://github.com/HCL-CDP-TA/phone-emulator/commit/9ce8b47fd2a5d0406c3faf8c69ca05f7331b7035))
+* configurable apps ([121714a](https://github.com/HCL-CDP-TA/phone-emulator/commit/121714aa5b3eff9fe4a7bb685cd7238a198314f3))
+* dragable waypoints on routes ([c12f66c](https://github.com/HCL-CDP-TA/phone-emulator/commit/c12f66c09b4422918e2bdbce11e24d38404b7c96))
+* Initial Commit ([a0bae93](https://github.com/HCL-CDP-TA/phone-emulator/commit/a0bae9381a23ae6b1b8db38815c133d0c4fe2a6b))
+* moved geolocation configuration to database ([641714a](https://github.com/HCL-CDP-TA/phone-emulator/commit/641714abec6f7529a2429c0ddc919f4c72cb4b06))
+* remote sending from the tester page and number dropdown ([9e4d440](https://github.com/HCL-CDP-TA/phone-emulator/commit/9e4d4408f86bd546721280bcadc003326c54ea9a))
+* simplified app configuration ([1ebea40](https://github.com/HCL-CDP-TA/phone-emulator/commit/1ebea40766ef3dacaa7ca43ae8ab6441dc5618c1))
+* time travel ([623c173](https://github.com/HCL-CDP-TA/phone-emulator/commit/623c1733e9c4345f90f189d369ffd8001e680f5a))
+* time travel ([7c1676c](https://github.com/HCL-CDP-TA/phone-emulator/commit/7c1676cabea555574daabd8d293c3217e8f0bf5f))
+* updated to use SDK V2 ([3edb847](https://github.com/HCL-CDP-TA/phone-emulator/commit/3edb847c4a183b8f503a9de1f39c0ba41f3bde6e))
+
+
+### Bug Fixes
+
+* added appid to gelocation, fixed framed apps ([04bb429](https://github.com/HCL-CDP-TA/phone-emulator/commit/04bb4292847719d9d3fdf4b372fdc2a13f5565ef))
+* added version ([574fb9c](https://github.com/HCL-CDP-TA/phone-emulator/commit/574fb9c656c92e2ddfbd33749f64c3ad16ea508e))
+* amend docs & copy to use production URL, not localhost ([bfd6714](https://github.com/HCL-CDP-TA/phone-emulator/commit/bfd6714c9fe7b9551f54c628a66870ec95d08968))
+* **api:** improve SSE connection lifecycle management ([5802349](https://github.com/HCL-CDP-TA/phone-emulator/commit/5802349c7bf2417209f540b29891591f45d53e67))
+* build errors and deploy fixes ([ea5ed83](https://github.com/HCL-CDP-TA/phone-emulator/commit/ea5ed83909d3d5afd907d25edb3aacca9bfded38))
+* change Maison to postMessage ([50fbb5d](https://github.com/HCL-CDP-TA/phone-emulator/commit/50fbb5dc79e016434d164ff4017c9d63809c3236))
+* change wording for postMessage app setup description ([e01f0ca](https://github.com/HCL-CDP-TA/phone-emulator/commit/e01f0cafab132952df8037e17da2d5ade45396db))
+* changed Costco to Maison ([b43a744](https://github.com/HCL-CDP-TA/phone-emulator/commit/b43a744b2e5ed8140af5f14d0da8911d8b0aa9c4))
+* consistent navigation across apps ([f8ee9a3](https://github.com/HCL-CDP-TA/phone-emulator/commit/f8ee9a37fe9dd47198c08c79ac8694b93f125185))
+* db deploy fix ([2487901](https://github.com/HCL-CDP-TA/phone-emulator/commit/24879013025f21a3b1896b4bc60d5005c90db3e3))
+* default app overrides ([2737025](https://github.com/HCL-CDP-TA/phone-emulator/commit/2737025045ac6f3cb3df55848442aef36f53138f))
+* deploy ([d1df236](https://github.com/HCL-CDP-TA/phone-emulator/commit/d1df236e51c9136b9d93a740a271929787d52df9))
+* deploy ([f995934](https://github.com/HCL-CDP-TA/phone-emulator/commit/f99593409e7232b6bca5c6b0bc7cb02cec5d9fe2))
+* deploy ([66189b3](https://github.com/HCL-CDP-TA/phone-emulator/commit/66189b3f6af7194d020da2f83dfe8f2a724a6d7e))
+* deploy ([73f6131](https://github.com/HCL-CDP-TA/phone-emulator/commit/73f6131c13fe4ab2c3d8b2477cab86de9fb2a046))
+* deploy .env settings ([c79f23a](https://github.com/HCL-CDP-TA/phone-emulator/commit/c79f23abefb22b5dc1df49f7c412911f2dc17e79))
+* deploy errors ([86130f8](https://github.com/HCL-CDP-TA/phone-emulator/commit/86130f8be07ecda28c24cd3b0644adb3f254440a))
+* deploy fix ([0265f8e](https://github.com/HCL-CDP-TA/phone-emulator/commit/0265f8e0eeed6ffa9ae6996cfb4d020b93d4ac4c))
+* deploy fix 2 for .env ([ebc3723](https://github.com/HCL-CDP-TA/phone-emulator/commit/ebc3723cfffea57e5a84fefa257af74718b9f582))
+* deploy fix for .env ([046cb77](https://github.com/HCL-CDP-TA/phone-emulator/commit/046cb77c98355e5d2ad7ecba11ea85e8132715ac))
+* deploy fixes ([8f84a85](https://github.com/HCL-CDP-TA/phone-emulator/commit/8f84a85e25d8bba3ff6c6212d13097537f7f7a5a))
+* deploy script ([1b1cf37](https://github.com/HCL-CDP-TA/phone-emulator/commit/1b1cf375dbe87a179e3cff690fa07dc6cc889885))
+* deploy script env vars ([60b980e](https://github.com/HCL-CDP-TA/phone-emulator/commit/60b980ef22d67505f5ed1224b757969b45e1de44))
+* deploy target ([7df877e](https://github.com/HCL-CDP-TA/phone-emulator/commit/7df877e6559e480442ef50d91b99be3a5faee61e))
+* dockerfile fix ([581e0af](https://github.com/HCL-CDP-TA/phone-emulator/commit/581e0af851439f663614540848062bb4c5011513))
+* drop release prefix ([35a9358](https://github.com/HCL-CDP-TA/phone-emulator/commit/35a9358b9a156073b74f8a18bcc4c7b47c2c8bc5))
+* expect null or empty string if no user for geofencing ([904fc80](https://github.com/HCL-CDP-TA/phone-emulator/commit/904fc80a3a3edffc805180edaba4901406423b04))
+* fix map not showing errors ([fb126c1](https://github.com/HCL-CDP-TA/phone-emulator/commit/fb126c12b31b1f4499cce6c39f2f16b2c8c6df39))
+* geo apps monitor automatically ([edc6186](https://github.com/HCL-CDP-TA/phone-emulator/commit/edc618690bcd7a1f00e389258e08800262c2743f))
+* geofence autostart fix ([b045d8e](https://github.com/HCL-CDP-TA/phone-emulator/commit/b045d8e838a7c87340f0fc7fe1bf22a394179e83))
+* iframe window size & home button improvement ([90eae8d](https://github.com/HCL-CDP-TA/phone-emulator/commit/90eae8d9286fbfe3c200c59f144eda3f5efa5333))
+* increase geo polling to 1 second (from 10) ([ddad5b2](https://github.com/HCL-CDP-TA/phone-emulator/commit/ddad5b243dc533156cce4a1fd7b06dcf1e521ee5))
+* location in social apps ([b8509ff](https://github.com/HCL-CDP-TA/phone-emulator/commit/b8509ff18e5c6dca2a3cf8796644a332b19133ca))
+* location permission fix ([2ff5161](https://github.com/HCL-CDP-TA/phone-emulator/commit/2ff516101295f710cd4ba63b84f436b944b2b88e))
+* move location notification ([93ad4ac](https://github.com/HCL-CDP-TA/phone-emulator/commit/93ad4acc8111e3a91a43f65979fd39e9ca8121db))
+* open tester in a new tab ([8c2522b](https://github.com/HCL-CDP-TA/phone-emulator/commit/8c2522b8189a32d2f96dfffefb95c7958e93f8be))
+* pass through geolocation to browser ([067953d](https://github.com/HCL-CDP-TA/phone-emulator/commit/067953d9118f53496c1cfd090445bcad219a1d15))
+* release please ([15c2944](https://github.com/HCL-CDP-TA/phone-emulator/commit/15c29442a454a49e714571ac50340468e362d168))
+* release script fix ([195bae4](https://github.com/HCL-CDP-TA/phone-emulator/commit/195bae42b7267813d5733ce1da154e56919d54aa))
+* remove package name from release please config ([d28f966](https://github.com/HCL-CDP-TA/phone-emulator/commit/d28f9667e263d979ed9555153817a41eaf817e8d))
+* select all on enter the URL ([be53776](https://github.com/HCL-CDP-TA/phone-emulator/commit/be53776503ef7127cd2114f20432ba1a266d4f78))
+* sending fixes, chrome icon ([f6f5585](https://github.com/HCL-CDP-TA/phone-emulator/commit/f6f558501954c2594bd2ea6237a42d1eaf6942e4))
+* sms tester default method as remote ([fb3518d](https://github.com/HCL-CDP-TA/phone-emulator/commit/fb3518d2ac5dd8aea32abb8b7ba61c14a335ff85))
+* stop chatty traffic for email/whatsapp ([efd2140](https://github.com/HCL-CDP-TA/phone-emulator/commit/efd214013ade0d70bc228c61b6ea243e5505bb5d))
+* tik tok autoplay & home button ([a94d77f](https://github.com/HCL-CDP-TA/phone-emulator/commit/a94d77f07517e78ec29ce5e3621ae2e327024301))
+* update @hcl-cdp-ta/geofence-sdk 2.0.1 ([61018c9](https://github.com/HCL-CDP-TA/phone-emulator/commit/61018c900bde898c84206c3d775c2d6a9b91efb2))
+* update default message with correct URL ([75ef801](https://github.com/HCL-CDP-TA/phone-emulator/commit/75ef8019ac2fbf8030cce0f403c1cfb26b7a0985))
+* update documentation with email app ([0e66521](https://github.com/HCL-CDP-TA/phone-emulator/commit/0e665211f4dabe49957008728566e67c964a0d34))
+* update node version to 22 ([e3d32c2](https://github.com/HCL-CDP-TA/phone-emulator/commit/e3d32c244592332aaa25ca6618615258067fa267))
+* updated favicon ([b0bb6f3](https://github.com/HCL-CDP-TA/phone-emulator/commit/b0bb6f32671e3f5f9c7daeb7edb172d13d343bce))
+* updated Google icon ([40be8c5](https://github.com/HCL-CDP-TA/phone-emulator/commit/40be8c54957126f0b63c9585e3e7f09a10b69f8c))
+* x url to lowercase ([ccfd674](https://github.com/HCL-CDP-TA/phone-emulator/commit/ccfd6742a58c2416be07cd7548ece7d12b9c46e4))
+
+
+### Documentation
+
+* updated documentation for SSE changes ([e10573b](https://github.com/HCL-CDP-TA/phone-emulator/commit/e10573b67eb035d2fbc82d27289484b05f1b87d0))
+
 ## [3.2.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/phone-emulator-v3.2.0...phone-emulator-v3.2.1) (2025-12-29)
 
 
