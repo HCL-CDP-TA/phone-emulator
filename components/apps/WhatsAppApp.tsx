@@ -105,7 +105,7 @@ function ProfilePicture({
 }
 
 export default function WhatsAppApp({ onClose }: AppProps) {
-  const { whatsappMessages, markWhatsAppAsRead, openApp, deleteWhatsAppConversation } = usePhone()
+  const { whatsappMessages, markWhatsAppAsRead, deleteWhatsAppConversation } = usePhone()
   const [selectedSender, setSelectedSender] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [loadingButtonId, setLoadingButtonId] = useState<string | null>(null)
@@ -170,14 +170,8 @@ export default function WhatsAppApp({ onClose }: AppProps) {
     sender: string,
     senderNumber: string | undefined,
   ) => {
-    // Handle URL button - open in browser
-    if (buttonType === "url" && buttonUrl) {
-      localStorage.setItem("browserUrl", buttonUrl)
-      openApp("browser")
-      return
-    }
-
-    // For other button types, POST to API
+    // For all button types (including URL buttons), POST to API
+    // This matches real WhatsApp behavior where button clicks send callbacks
     setLoadingButtonId(buttonId)
     try {
       const response = await fetch("/api/whatsapp/button", {
@@ -187,6 +181,8 @@ export default function WhatsAppApp({ onClose }: AppProps) {
           messageId,
           buttonId,
           buttonText,
+          buttonType,
+          buttonUrl, // Include full URL with query parameters for server processing
           sender,
           senderNumber,
           payload: {},

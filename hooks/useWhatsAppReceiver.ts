@@ -38,7 +38,11 @@ export function useWhatsAppReceiver(phoneNumber: string | null) {
 
           // It's a WhatsApp message
           const { sender, message, senderNumber, profilePictureUrl, buttons } = data
-          console.log("[WhatsApp SSE] Received message:", { sender, hasButtons: !!buttons })
+          console.log("[WhatsApp SSE] Received message:", {
+            sender,
+            hasButtons: !!buttons,
+            eventData: JSON.parse(event.data),
+          })
 
           if (sender && message) {
             addWhatsApp({
