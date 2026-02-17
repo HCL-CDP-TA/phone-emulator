@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "database": {
+      "type": "stdio",
+      "command": "bash",
+      "args": [
+        "-c",
+        "set -a && source ./.env && npx -y @modelcontextprotocol/server-postgres \"$DATABASE_URL\""
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    }
+  }
+}
