@@ -98,7 +98,7 @@ export default function Phone() {
         {/* Home Button Trigger Area - invisible area to detect hover/touch */}
         {activeApp && (
           <div
-            className="absolute bottom-0 left-0 right-0 h-8 z-50 pointer-events-auto"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-36 h-8 z-50 pointer-events-auto"
             onMouseEnter={() => setShowHomeButton(true)}
             onMouseLeave={() => setShowHomeButton(false)}
             onTouchStart={() => setShowHomeButton(true)}
