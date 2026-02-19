@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.1.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.0.1...v4.1.0) (2026-02-19)
+
+
+### Features
+
+* add app push notifications ([f8f8d52](https://github.com/HCL-CDP-TA/phone-emulator/commit/f8f8d52370ae4ec143cdbfd024ac88e3e88026d0))
+* show/hide browser address bar ([b8d1209](https://github.com/HCL-CDP-TA/phone-emulator/commit/b8d12093846fcce6e643c76f336ebe099d782f95))
+
+
+### Bug Fixes
+
+* browser app location bar colour readable ([67edd24](https://github.com/HCL-CDP-TA/phone-emulator/commit/67edd248cd24c1fb0a35d68f33b6c0abc991ac2e))
+
 ## [4.0.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.0.0...v4.0.1) (2026-02-17)
 
 
