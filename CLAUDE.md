@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS and HTML emails via API, displaying notifications, and running modular apps including a functional web browser.
+A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS, HTML emails, and push notifications via API, displaying notifications, and running modular apps including a functional web browser.
 
 **Key Design Principle**: The emulator uses a modular architecture where new apps can be added without modifying core infrastructure - just create a component and register it.
 
@@ -175,7 +175,19 @@ Two communication mechanisms:
 
 SSE endpoint (`/app/api/sms/stream/route.ts`) maintains persistent connections and broadcasts messages instantly when received via API.
 
-**4. Phone Shell Component Pattern**
+**4. Push Notification System**
+
+Push notifications are distinct from SMS/email - they target a specific app by ID and support rich content:
+
+- **SSE Delivery**: Real-time delivery via `/api/push/stream` (same pattern as SMS/email)
+- **App Targeting**: Each notification specifies an `appId` to resolve the correct icon and color
+- **Rich Content**: Supports optional `imageUrl` (displayed as h-32 banner) and up to 3 `actionButtons`
+- **Action Buttons**: Clicking a button stores the URL in `localStorage` as `app-navigate-{appId}`, fires a `app-navigate` CustomEvent, then opens the target app - allowing apps to deep-link on open
+- **App Resolution**: `usePushReceiver` resolves icon/color by searching appRegistry, SOCIAL_APPS, GEOFENCE_APPS, then custom geofence apps from localStorage
+- **Tester UI**: `/push-tester` page (orange theme) accessible from settings dropdown; includes interactive form, app selector, and live curl example
+- **Notification Banner**: Icon shape is `rounded-full`; app name shown in gray; title bold; images and action buttons rendered below the body text
+
+**5. Phone Shell Component Pattern**
 
 The `Phone.tsx` component orchestrates the UI shell:
 
@@ -270,6 +282,13 @@ interface Email {
   read: boolean
 }
 
+// Push notification action button
+interface NotificationActionButton {
+  id: string
+  label: string
+  url: string // Opens in BrowserApp when tapped; empty string = dismiss only
+}
+
 // App registry entry
 interface App {
   id: string
@@ -355,12 +374,15 @@ interface Geofence {
   /page.tsx                     - Main entry: phone number login + SSE connection + map viewer + control buttons
   /tester/page.tsx              - SMS tester (opens in new window)
   /email-tester/page.tsx        - Email tester (opens in new window)
+  /push-tester/page.tsx         - Push notification tester (opens in new window)
   /location-config/page.tsx     - Location preset configuration (CRUD for static/route presets)
   /api/sms/route.ts             - Main SMS API (SSE + queue fallback)
   /api/sms/stream/route.ts      - SSE endpoint for real-time delivery
   /api/sms/poll/route.ts        - DEPRECATED polling fallback
   /api/email/route.ts           - Email API endpoint
   /api/email/stream/route.ts    - Email SSE endpoint for real-time delivery
+  /api/push/route.ts            - Push notification API (POST, requires phoneNumber + active SSE)
+  /api/push/stream/route.ts     - Push SSE endpoint for real-time delivery
   /api/location-presets/route.ts       - Location presets API (GET all, POST create)
   /api/location-presets/[id]/route.ts  - Single preset API (GET, PUT, DELETE)
 
@@ -394,6 +416,7 @@ interface Geofence {
 /hooks
   /useSMSReceiver.ts            - BroadcastChannel setup, SMS delivery
   /useEmailReceiver.ts          - Email SSE connection hook
+  /usePushReceiver.ts           - Push notification SSE connection hook
   /useLocation.ts               - Location access hook
   /useGeofences.ts              - Fetch geofences from external API (with bearer token support)
   /useGeocoding.ts              - Nominatim API integration for location search (debounced)
@@ -670,6 +693,50 @@ Delivery methods:
 ### GET /api/email/stream
 
 Server-Sent Events endpoint for real-time email delivery. Works identically to SMS stream but for emails.
+
+Query params: `phoneNumber` (required, URL-encoded)
+
+### POST /api/push
+
+Send a push notification to a specific app on the phone emulator. Unlike SMS/email, push notifications target an app by ID and support rich content.
+
+**Required fields**: `phoneNumber`, `appId`, `title`, `body`
+
+**Request**:
+
+```json
+{
+  "phoneNumber": "+12345678901",
+  "appId": "unibank",
+  "title": "Summer Sale!",
+  "body": "Get 50% off all items this weekend only.",
+  "imageUrl": "https://example.com/banner.jpg",
+  "actionButtons": [
+    { "id": "shop", "label": "Shop Now", "url": "https://example.com/sale" },
+    { "id": "dismiss", "label": "Dismiss", "url": "" }
+  ]
+}
+```
+
+- `imageUrl` (optional): Displayed as an h-32 banner image in the notification
+- `actionButtons` (optional): Max 3 buttons; `url` opens in the phone's browser app; empty `url` just dismisses the notification
+
+**Delivery**: Instant via SSE if phone is connected; returns 404 if no active connection (no queue).
+
+```bash
+curl -X POST http://localhost:3000/api/push \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumber": "+12345678901",
+    "appId": "unibank",
+    "title": "Special Offer",
+    "body": "Tap to view your personalised deal."
+  }'
+```
+
+### GET /api/push/stream
+
+Server-Sent Events endpoint for real-time push notification delivery. Phone establishes a persistent connection on load (2.5s after other SSE connections). Keep-alive ping every 30 seconds.
 
 Query params: `phoneNumber` (required, URL-encoded)
 
