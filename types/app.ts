@@ -25,6 +25,12 @@ export interface LocationState {
   hasPermission: boolean | null
 }
 
+export interface NotificationActionButton {
+  id: string
+  label: string
+  url: string // Opens in BrowserApp when tapped
+}
+
 export interface Notification {
   id: string
   appId: string
@@ -34,6 +40,8 @@ export interface Notification {
   timestamp: Date
   icon?: ReactNode
   iconColor?: string
+  imageUrl?: string
+  actionButtons?: NotificationActionButton[]
   data?: Record<string, unknown>
   onClick?: () => void
 }

@@ -1,13 +1,14 @@
 "use client"
 
 import { usePhone } from "@/contexts/PhoneContext"
-import { useEffect, useState, useRef, useMemo } from "react"
+import { useEffect, useState, useRef, useMemo, useCallback } from "react"
 import { Notification } from "@/types/app"
 
 export default function NotificationBanner() {
-  const { notifications, dismissNotification } = usePhone()
+  const { notifications, dismissNotification, openApp } = usePhone()
   const [visibleAppId, setVisibleAppId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Group notifications by appId
@@ -89,6 +90,16 @@ export default function NotificationBanner() {
     }
   }, [visibleAppId, groupedNotifications])
 
+  const handleActionButtonClick = useCallback((e: React.MouseEvent, url: string, notificationId: string, appId: string) => {
+    e.stopPropagation()
+    if (url) {
+      localStorage.setItem(`app-navigate-${appId}`, url)
+      window.dispatchEvent(new CustomEvent("app-navigate", { detail: { appId, url } }))
+      openApp(appId)
+    }
+    dismissNotification(notificationId)
+  }, [openApp, dismissNotification])
+
   const currentGroup = visibleAppId ? groupedNotifications.get(visibleAppId) : null
 
   if (!currentGroup || currentGroup.length === 0) return null
@@ -100,7 +111,6 @@ export default function NotificationBanner() {
     e.stopPropagation()
     if (groupCount > 1) {
       setExpanded(!expanded)
-      // Clear auto-hide timer when expanding
       if (timerRef.current) {
         clearTimeout(timerRef.current)
         timerRef.current = undefined
@@ -135,7 +145,7 @@ export default function NotificationBanner() {
           onClick={() => !expanded && handleNotificationClick(latestInGroup)}
           className={`p-4 ${!expanded && groupCount === 1 ? "cursor-pointer active:scale-95" : ""} transition-transform`}>
           <div className="flex items-start gap-3">
-            <div className={`shrink-0 w-10 h-10 ${latestInGroup.iconColor || "bg-gray-500"} rounded-lg flex items-center justify-center text-white p-2`}>
+            <div className={`shrink-0 w-10 h-10 ${latestInGroup.iconColor || "bg-gray-500"} rounded-full flex items-center justify-center text-white p-2`}>
               {latestInGroup.icon || (
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
@@ -144,7 +154,7 @@ export default function NotificationBanner() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-semibold text-sm">{latestInGroup.appName}</span>
+                <span className="text-sm text-gray-500">{latestInGroup.appName}</span>
                 <div className="flex items-center gap-2">
                   {groupCount > 1 && !expanded && (
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
@@ -161,8 +171,30 @@ export default function NotificationBanner() {
               </div>
               {!expanded ? (
                 <>
-                  <p className="font-medium text-sm mb-0.5">{latestInGroup.title}</p>
-                  <p className="text-sm text-gray-600 line-clamp-2">{shortenMessage(latestInGroup.message)}</p>
+                  <p className="font-semibold text-sm mb-0.5">{latestInGroup.title}</p>
+                  <p className="text-sm text-gray-900 line-clamp-2">{shortenMessage(latestInGroup.message)}</p>
+                  {latestInGroup.imageUrl && !failedImages.has(latestInGroup.id) && (
+                    <div className="mt-2 rounded-lg overflow-hidden">
+                      <img
+                        src={latestInGroup.imageUrl}
+                        alt=""
+                        className="w-full h-32 object-cover rounded-lg"
+                        onError={() => setFailedImages(prev => new Set(prev).add(latestInGroup.id))}
+                      />
+                    </div>
+                  )}
+                  {latestInGroup.actionButtons && latestInGroup.actionButtons.length > 0 && (
+                    <div className="flex justify-center gap-4 mt-2">
+                      {latestInGroup.actionButtons.map(btn => (
+                        <button
+                          key={btn.id}
+                          onClick={(e) => handleActionButtonClick(e, btn.url, latestInGroup.id, latestInGroup.appId)}
+                          className="text-sm font-bold text-gray-700 hover:text-gray-900 transition-colors">
+                          {btn.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {groupCount > 1 && (
                     <button
                       onClick={handleToggleExpand}
@@ -225,7 +257,7 @@ export default function NotificationBanner() {
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-medium text-sm">{notification.title}</p>
+                      <p className="font-semibold text-sm">{notification.title}</p>
                       <span className="text-xs text-gray-500">
                         {new Date(notification.timestamp).toLocaleTimeString("en-US", {
                           hour: "numeric",
@@ -233,9 +265,31 @@ export default function NotificationBanner() {
                         })}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-gray-900 line-clamp-2">
                       {shortenMessage(notification.message)}
                     </p>
+                    {notification.imageUrl && !failedImages.has(notification.id) && (
+                      <div className="mt-2 rounded-lg overflow-hidden">
+                        <img
+                          src={notification.imageUrl}
+                          alt=""
+                          className="w-full h-32 object-cover rounded-lg"
+                          onError={() => setFailedImages(prev => new Set(prev).add(notification.id))}
+                        />
+                      </div>
+                    )}
+                    {notification.actionButtons && notification.actionButtons.length > 0 && (
+                      <div className="flex justify-center gap-4 mt-2">
+                        {notification.actionButtons.map(btn => (
+                          <button
+                            key={btn.id}
+                            onClick={(e) => handleActionButtonClick(e, btn.url, notification.id, notification.appId)}
+                            className="text-sm font-bold text-gray-700 hover:text-gray-900 transition-colors">
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={(e) => handleDismissNotification(e, notification.id)}

@@ -38,6 +38,33 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
   const userIdStorageKey = config ? `geofence-app-${config.id}-user-id` : ""
   const monitoringEnabledKey = config ? `geofence-app-${config.id}-monitoring-enabled` : ""
 
+  // Check for pending navigation URL (from push notification action buttons)
+  useEffect(() => {
+    if (!config) return
+    const navigateKey = `app-navigate-${config.id}`
+
+    const consumePendingUrl = () => {
+      const pendingUrl = localStorage.getItem(navigateKey)
+      if (pendingUrl && iframeRef.current) {
+        iframeRef.current.src = pendingUrl
+        localStorage.removeItem(navigateKey)
+      }
+    }
+
+    // Check on mount (app just opened via openApp)
+    consumePendingUrl()
+
+    // Listen for navigation while app is already open
+    const handleNavigate = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.appId === config.id) {
+        consumePendingUrl()
+      }
+    }
+    window.addEventListener("app-navigate", handleNavigate)
+    return () => window.removeEventListener("app-navigate", handleNavigate)
+  }, [config])
+
   // Load userId from localStorage on mount
   useEffect(() => {
     if (!config) return
@@ -178,6 +205,24 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
     return () => window.removeEventListener("message", handleMessage)
   }, [config, userIdStorageKey])
 
+  // Check if geofence API is reachable before attempting to start monitor
+  const checkGeofenceApi = async (): Promise<boolean> => {
+    const apiUrl = process.env.NEXT_PUBLIC_GEOFENCE_API_URL
+    if (!apiUrl) return false
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 3000)
+      const res = await fetch(`${apiUrl}/api/public/geofences`, {
+        method: "HEAD",
+        signal: controller.signal,
+      })
+      clearTimeout(timeout)
+      return res.ok
+    } catch {
+      return false
+    }
+  }
+
   // Auto-start monitoring when monitor is created (only once, if enabled)
   useEffect(() => {
     if (!config || !monitor || hasAutoStarted || !userId) return
@@ -190,6 +235,14 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
       // Check if geotracking is enabled in config
       if (!shouldMonitor || !config.geotrackingEnabled) {
         setHasAutoStarted(true) // Mark as handled, but don't start
+        return
+      }
+
+      // Check API reachability before attempting to start
+      const apiReachable = await checkGeofenceApi()
+      if (!apiReachable) {
+        console.warn(`[${config.name}] Geofence API not reachable, skipping auto-start`)
+        setHasAutoStarted(true)
         return
       }
 
@@ -217,18 +270,24 @@ export default function GeofenceWebviewApp({ appId, onSendNotification }: Geofen
     if (config.geotrackingEnabled && userId) {
       // Geotracking enabled - start if not already monitoring
       if (!isMonitoring) {
-        monitor
-          .start()
-          .then(() => {
-            setIsMonitoring(true)
-            setGeofenceMonitoring(true)
-            localStorage.setItem(monitoringEnabledKey, "true")
-          })
-          .catch(error => {
-            console.error(`[${config.name}] Failed to start monitoring:`, error)
-            setIsMonitoring(false)
-            setGeofenceMonitoring(false)
-          })
+        checkGeofenceApi().then(reachable => {
+          if (!reachable) {
+            console.warn(`[${config.name}] Geofence API not reachable, skipping start`)
+            return
+          }
+          monitor
+            .start()
+            .then(() => {
+              setIsMonitoring(true)
+              setGeofenceMonitoring(true)
+              localStorage.setItem(monitoringEnabledKey, "true")
+            })
+            .catch(error => {
+              console.error(`[${config.name}] Failed to start monitoring:`, error)
+              setIsMonitoring(false)
+              setGeofenceMonitoring(false)
+            })
+        })
       }
     } else {
       // Geotracking disabled - stop if monitoring

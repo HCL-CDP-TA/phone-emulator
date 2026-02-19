@@ -281,7 +281,7 @@ export default function SettingsApp({ onClose }: AppProps) {
     } else {
       // Add new
       const newApp: GeofenceAppConfig = {
-        id: `geofence-${Date.now()}`,
+        id: formData.name!.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
         name: formData.name!,
         url: formData.url!,
         iconName: formData.iconName || "Store",

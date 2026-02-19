@@ -19,7 +19,7 @@ export interface GeofenceAppConfig {
 
 export const GEOFENCE_APPS: GeofenceAppConfig[] = [
   {
-    id: "banking",
+    id: "unibank",
     name: "UniBank",
     url: "https://banking.demo.now.hclsoftware.cloud/",
     iconName: "Banking",
@@ -37,7 +37,7 @@ export const GEOFENCE_APPS: GeofenceAppConfig[] = [
     visible: true,
   },
   {
-    id: "telco",
+    id: "unitel",
     name: "UniTel",
     url: "https://telco.demo.now.hclsoftware.cloud/",
     iconName: "Telco",
