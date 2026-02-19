@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.1](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.0.0...v4.0.1) (2026-02-17)
+
+
+### Bug Fixes
+
+* reduce home button hot zone to allow access to horizontal scroll ([14579ec](https://github.com/HCL-CDP-TA/phone-emulator/commit/14579ec53269d43d1e18e57ea5e85cfac28fb12e))
+* whatsapp action URLs to include querystring parameters ([b4f59c0](https://github.com/HCL-CDP-TA/phone-emulator/commit/b4f59c0915606f87cc2f783451a19229755157d0))
+
 ## [4.0.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v3.2.1...v4.0.0) (2026-01-15)
 
 
