@@ -21,6 +21,7 @@ export default function BrowserApp({ onClose }: AppProps) {
     }
     return ""
   })
+  const [navVisible, setNavVisible] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const { location } = usePhone()
@@ -60,6 +61,7 @@ export default function BrowserApp({ onClose }: AppProps) {
       processedUrl = "https://" + processedUrl
     }
 
+    setNavVisible(true)
     setCurrentUrl(processedUrl)
   }
 
@@ -76,6 +78,7 @@ export default function BrowserApp({ onClose }: AppProps) {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Address Bar with Navigation */}
+      <div className={`transition-all duration-300 overflow-hidden ${navVisible ? "max-h-20" : "max-h-0"}`}>
       <form onSubmit={handleSubmit} className="flex items-center gap-2 p-3 bg-gray-100 border-b">
         <button
           type="button"
@@ -108,6 +111,19 @@ export default function BrowserApp({ onClose }: AppProps) {
           />
         </div>
       </form>
+      </div>
+
+      {/* Discrete pull-down handle — visible only when nav is hidden */}
+      {!navVisible && (
+        <button
+          type="button"
+          onClick={() => setNavVisible(true)}
+          className="flex items-center justify-center w-full h-3 bg-gray-100 border-b border-gray-200 cursor-pointer"
+          aria-label="Show navigation bar"
+        >
+          <div className="w-8 h-0.5 rounded-full bg-gray-400" />
+        </button>
+      )}
 
       {/* Browser Content */}
       <div className="flex-1 relative bg-white overflow-hidden">
@@ -120,6 +136,7 @@ export default function BrowserApp({ onClose }: AppProps) {
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
             allow="geolocation *; autoplay *; fullscreen *; picture-in-picture *; encrypted-media *"
             title="Browser content"
+            onLoad={() => setNavVisible(false)}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400">
