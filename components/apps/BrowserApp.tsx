@@ -107,7 +107,7 @@ export default function BrowserApp({ onClose }: AppProps) {
             onChange={e => setUrl(e.target.value)}
             onFocus={e => e.target.select()}
             placeholder="Enter URL"
-            className="flex-1 outline-none text-sm"
+            className="flex-1 outline-none text-sm text-gray-900"
           />
         </div>
       </form>
