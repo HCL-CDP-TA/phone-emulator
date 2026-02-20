@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.2.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.1.0...v4.2.0) (2026-02-20)
+
+
+### Features
+
+* add USSD functionality with configuration ([ff27507](https://github.com/HCL-CDP-TA/phone-emulator/commit/ff27507853c673f6b7f6e40180812547db932815))
+
+
+### Documentation
+
+* update claude.md with push notification changes ([2fea710](https://github.com/HCL-CDP-TA/phone-emulator/commit/2fea710eb822d164fe48194d88426d8ab3134427))
+
 ## [4.1.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.0.1...v4.1.0) (2026-02-19)
 
 
