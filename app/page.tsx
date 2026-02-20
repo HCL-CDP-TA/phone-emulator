@@ -11,11 +11,12 @@ import { useEmailReceiver } from "@/hooks/useEmailReceiver"
 import { useWhatsAppReceiver } from "@/hooks/useWhatsAppReceiver"
 import { usePushReceiver } from "@/hooks/usePushReceiver"
 import packageJson from "@/package.json"
-import { Clock, MapPin, Route, Map, Circle, RefreshCw } from "lucide-react"
+import { Clock, MapPin, Route, Map, Circle, RefreshCw, Hash } from "lucide-react"
 import { LocationPreset } from "@/types/app"
 import { useGeofences, Geofence } from "@/hooks/useGeofences"
 
 const MapPanel = dynamic(() => import("@/components/phone/MapPanel"), { ssr: false })
+import USSDPanel from "@/components/phone/USSDPanel"
 
 interface TimePreset {
   id: string
@@ -40,6 +41,7 @@ function PhoneEmulator() {
   const [locationPresets, setLocationPresets] = useState<LocationPreset[]>([])
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false)
   const [isMapVisible, setIsMapVisible] = useState(false)
+  const [isUSSDPanelVisible, setIsUSSDPanelVisible] = useState(false)
   const locationDropdownRef = useRef<HTMLDivElement>(null)
   const { geofences, refetch: refetchGeofences, isLoading: isGeofencesLoading } = useGeofences()
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -312,6 +314,11 @@ function PhoneEmulator() {
     setIsDropdownOpen(false)
   }
 
+  const handleOpenUSSDConfig = () => {
+    window.open("/ussd-config", "_blank")
+    setIsDropdownOpen(false)
+  }
+
   // Load time presets from localStorage
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -388,6 +395,9 @@ function PhoneEmulator() {
           <MapPanel />
         </div>
       )}
+
+      {/* USSD Panel */}
+      {isUSSDPanelVisible && <USSDPanel />}
 
       {/* Version indicator */}
       <div className="fixed bottom-4 right-4 text-gray-400 text-xs font-mono">v{packageJson.version}</div>
@@ -580,6 +590,20 @@ function PhoneEmulator() {
               <Map className="w-5 h-5" />
             </button>
           </div>
+
+          {/* USSD Panel Toggle */}
+          <div className="relative">
+            <button
+              onClick={() => setIsUSSDPanelVisible(!isUSSDPanelVisible)}
+              className={`bg-white rounded-lg shadow-lg p-2 transition-colors ${
+                isUSSDPanelVisible
+                  ? "text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              title={isUSSDPanelVisible ? "Hide USSD shortcuts" : "Show USSD shortcuts"}>
+              <Hash className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Phone Number & Tester Dropdown */}
@@ -727,6 +751,14 @@ function PhoneEmulator() {
                     />
                   </svg>
                   Location Config
+                </button>
+                <button
+                  onClick={handleOpenUSSDConfig}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors flex items-center gap-2">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                  </svg>
+                  USSD Config
                 </button>
               </div>
             )}

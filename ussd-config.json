@@ -1,0 +1,768 @@
+{
+  "networkName": "Safaricom",
+  "codes": {
+    "*100#": {
+      "response": "Safaricom Self Service\n1. My Balance\n2. Buy Airtime\n3. Transfer Airtime\n0. Exit",
+      "cdpEvent": {
+        "eventId": "ussd_session_started",
+        "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*100#" }
+      },
+      "options": {
+        "1": {
+          "response": "My Balance\n1. Airtime Balance\n2. Data Balance\n3. M-PESA Balance\n0. Back",
+          "cdpEvent": {
+            "eventId": "balance_menu_opened",
+            "properties": { "channel": "ussd", "operator": "safaricom" }
+          },
+          "options": {
+            "1": {
+              "response": "Airtime Balance\nKES 47.50\n\nValid until: 28 Feb 2026\n\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "airtime_balance_checked",
+                "properties": { "channel": "ussd", "operator": "safaricom", "service": "airtime_balance" }
+              },
+              "options": {
+                "0": { "goto": "*100#", "response": "" }
+              }
+            },
+            "2": {
+              "response": "Data Balance\nMain Bundle: 1.2GB\nValid until: 24 Feb 2026\n\nBonus Data: 200MB\nValid until: 21 Feb 2026\n\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "data_balance_checked",
+                "properties": { "channel": "ussd", "operator": "safaricom", "service": "data_balance" }
+              },
+              "options": {
+                "0": { "goto": "*100#", "response": "" }
+              }
+            },
+            "3": {
+              "response": "M-PESA Balance\nKES 1,340.00\n\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "mpesa_balance_checked",
+                "properties": { "channel": "ussd", "operator": "safaricom", "service": "mpesa_balance" }
+              },
+              "options": {
+                "0": { "goto": "*100#", "response": "" }
+              }
+            },
+            "0": { "goto": "*100#", "response": "" }
+          }
+        },
+        "2": {
+          "response": "Buy Airtime\nEnter amount (KES):",
+          "isInput": true,
+          "cdpEvent": {
+            "eventId": "airtime_purchase_initiated",
+            "properties": { "channel": "ussd", "operator": "safaricom" }
+          },
+          "options": {
+            "*": {
+              "response": "Confirm airtime purchase?\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "airtime_purchase_amount_entered",
+                "properties": { "channel": "ussd", "operator": "safaricom", "amount_kes": "$input" }
+              },
+              "options": {
+                "1": {
+                  "response": "Airtime purchase successful!\nYour balance will be updated shortly.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "airtime_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "service": "airtime_purchase", "amount_kes": "$input" }
+                  },
+                  "options": {
+                    "0": { "goto": "*100#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "airtime_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "amount_kes": "$input" }
+                  },
+                  "options": {
+                    "0": { "goto": "*100#", "response": "" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "3": {
+          "response": "Transfer Airtime\nEnter recipient number:",
+          "isInput": true,
+          "cdpEvent": {
+            "eventId": "airtime_transfer_initiated",
+            "properties": { "channel": "ussd", "operator": "safaricom" }
+          },
+          "options": {
+            "*": {
+              "response": "Enter amount to transfer (KES):",
+              "isInput": true,
+              "cdpEvent": {
+                "eventId": "airtime_transfer_recipient_entered",
+                "properties": { "channel": "ussd", "operator": "safaricom", "recipient": "$input" }
+              },
+              "options": {
+                "*": {
+                  "response": "Airtime transfer successful!\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "airtime_transferred",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "service": "airtime_transfer", "recipient": "$input_prev", "amount_kes": "$input" }
+                  },
+                  "options": {
+                    "0": { "goto": "*100#", "response": "" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "0": {
+          "response": "Thank you for using Safaricom.\nGoodbye!",
+          "sessionEnd": true,
+          "cdpEvent": {
+            "eventId": "ussd_session_ended",
+            "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*100#" }
+          }
+        }
+      }
+    },
+
+    "*544#": {
+      "response": "Safaricom Data Bundles\n1. Daily Bundles\n2. Weekly Bundles\n3. Monthly Bundles\n4. My Data Balance\n0. Exit",
+      "cdpEvent": {
+        "eventId": "ussd_session_started",
+        "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*544#" }
+      },
+      "options": {
+        "1": {
+          "response": "Daily Bundles:\n1. 100MB    - KES 20\n2. 1GB      - KES 50\n3. 3GB      - KES 100\n0. Back",
+          "cdpEvent": {
+            "eventId": "bundle_category_selected",
+            "properties": { "channel": "ussd", "operator": "safaricom", "category": "daily" }
+          },
+          "options": {
+            "1": {
+              "response": "Confirm:\n100MB Daily Bundle\nKES 20.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "100MB", "price_kes": 20 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n100MB added to your account.\nValid for 24 hours.\nKES 20.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "100MB", "price_kes": 20 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "100MB", "price_kes": 20 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "2": {
+              "response": "Confirm:\n1GB Daily Bundle\nKES 50.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "1GB", "price_kes": 50 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n1GB added to your account.\nValid for 24 hours.\nKES 50.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "1GB", "price_kes": 50 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "1GB", "price_kes": 50 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "3": {
+              "response": "Confirm:\n3GB Daily Bundle\nKES 100.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "3GB", "price_kes": 100 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n3GB added to your account.\nValid for 24 hours.\nKES 100.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "3GB", "price_kes": 100 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "3GB", "price_kes": 100 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "0": { "goto": "*544#", "response": "" }
+          }
+        },
+        "2": {
+          "response": "Weekly Bundles:\n1. 1.5GB    - KES 150\n2. 3GB      - KES 250\n3. 7GB      - KES 500\n0. Back",
+          "cdpEvent": {
+            "eventId": "bundle_category_selected",
+            "properties": { "channel": "ussd", "operator": "safaricom", "category": "weekly" }
+          },
+          "options": {
+            "1": {
+              "response": "Confirm:\n1.5GB Weekly Bundle\nKES 150.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "1.5GB", "price_kes": 150 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n1.5GB added to your account.\nValid for 7 days.\nKES 150.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "1.5GB", "price_kes": 150 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "1.5GB", "price_kes": 150 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "2": {
+              "response": "Confirm:\n3GB Weekly Bundle\nKES 250.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "3GB", "price_kes": 250 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n3GB added to your account.\nValid for 7 days.\nKES 250.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "3GB", "price_kes": 250 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "3GB", "price_kes": 250 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "3": {
+              "response": "Confirm:\n7GB Weekly Bundle\nKES 500.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "7GB", "price_kes": 500 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n7GB added to your account.\nValid for 7 days.\nKES 500.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "7GB", "price_kes": 500 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "weekly", "bundle_size": "7GB", "price_kes": 500 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "0": { "goto": "*544#", "response": "" }
+          }
+        },
+        "3": {
+          "response": "Monthly Bundles:\n1. 5GB      - KES 500\n2. 15GB     - KES 1,000\n3. 30GB     - KES 1,500\n0. Back",
+          "cdpEvent": {
+            "eventId": "bundle_category_selected",
+            "properties": { "channel": "ussd", "operator": "safaricom", "category": "monthly" }
+          },
+          "options": {
+            "1": {
+              "response": "Confirm:\n5GB Monthly Bundle\nKES 500.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "5GB", "price_kes": 500 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n5GB added to your account.\nValid for 30 days.\nKES 500.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "5GB", "price_kes": 500 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "5GB", "price_kes": 500 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "2": {
+              "response": "Confirm:\n15GB Monthly Bundle\nKES 1,000.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "15GB", "price_kes": 1000 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n15GB added to your account.\nValid for 30 days.\nKES 1,000.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "15GB", "price_kes": 1000 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "15GB", "price_kes": 1000 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "3": {
+              "response": "Confirm:\n30GB Monthly Bundle\nKES 1,500.00\n\n1. Confirm\n2. Cancel",
+              "cdpEvent": {
+                "eventId": "bundle_purchase_initiated",
+                "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "30GB", "price_kes": 1500 }
+              },
+              "options": {
+                "1": {
+                  "response": "Success!\n30GB added to your account.\nValid for 30 days.\nKES 1,500.00 charged.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchased",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "30GB", "price_kes": 1500 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                },
+                "2": {
+                  "response": "Purchase cancelled.\n\n0. Main Menu",
+                  "cdpEvent": {
+                    "eventId": "bundle_purchase_cancelled",
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "monthly", "bundle_size": "30GB", "price_kes": 1500 }
+                  },
+                  "options": {
+                    "0": { "goto": "*544#", "response": "" }
+                  }
+                }
+              }
+            },
+            "0": { "goto": "*544#", "response": "" }
+          }
+        },
+        "4": {
+          "response": "Data Balance\nMain Bundle: 1.2GB\nValid until: 24 Feb 2026\n\nBonus Data: 200MB\nValid until: 21 Feb 2026\n\n0. Main Menu",
+          "cdpEvent": {
+            "eventId": "data_balance_checked",
+            "properties": { "channel": "ussd", "operator": "safaricom", "service": "data_balance" }
+          },
+          "options": {
+            "0": { "goto": "*544#", "response": "" }
+          }
+        },
+        "0": {
+          "response": "Thank you for using Safaricom.\nGoodbye!",
+          "sessionEnd": true,
+          "cdpEvent": {
+            "eventId": "ussd_session_ended",
+            "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*544#" }
+          }
+        }
+      }
+    },
+
+    "*247#": {
+      "response": "Welcome to Equity Bank\n1. Account Services\n2. Send Money\n3. Buy Airtime\n4. Loans\n0. Exit",
+      "cdpEvent": {
+        "eventId": "ussd_session_started",
+        "properties": { "channel": "ussd", "bank": "equity", "service_code": "*247#" }
+      },
+      "options": {
+        "1": {
+          "response": "Account Services\n1. Account Balance\n2. Mini Statement\n3. Account Details\n0. Back",
+          "cdpEvent": {
+            "eventId": "account_menu_opened",
+            "properties": { "channel": "ussd", "bank": "equity" }
+          },
+          "options": {
+            "1": {
+              "response": "Equity Bank\nAccount Balance\n\nAvailable: KES 34,210.00\nActual:    KES 34,210.00\n\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "balance_checked",
+                "properties": { "channel": "ussd", "bank": "equity", "service": "balance_inquiry" }
+              },
+              "options": {
+                "0": { "goto": "*247#", "response": "" }
+              }
+            },
+            "2": {
+              "response": "Equity Bank\nMini Statement\n\n18 Feb  +KES 5,000  Salary\n17 Feb  -KES 800    Airtime\n15 Feb  -KES 2,400  Naivas\n12 Feb  +KES 1,000  Transfer\n\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "mini_statement_viewed",
+                "properties": { "channel": "ussd", "bank": "equity", "service": "mini_statement" }
+              },
+              "options": {
+                "0": { "goto": "*247#", "response": "" }
+              }
+            },
+            "3": {
+              "response": "Equity Bank\nAccount Details\n\nName: Account Holder\nA/C:  XXXX XXXX 4821\nBranch: Nairobi Main\n\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "account_details_viewed",
+                "properties": { "channel": "ussd", "bank": "equity" }
+              },
+              "options": {
+                "0": { "goto": "*247#", "response": "" }
+              }
+            },
+            "0": { "goto": "*247#", "response": "" }
+          }
+        },
+        "2": {
+          "response": "Send Money\n1. To Equity Account\n2. To M-PESA\n0. Back",
+          "cdpEvent": {
+            "eventId": "send_money_menu_opened",
+            "properties": { "channel": "ussd", "bank": "equity" }
+          },
+          "options": {
+            "1": {
+              "response": "To Equity Account\nEnter account number:",
+              "isInput": true,
+              "cdpEvent": {
+                "eventId": "money_transfer_initiated",
+                "properties": { "channel": "ussd", "bank": "equity", "destination": "equity" }
+              },
+              "options": {
+                "*": {
+                  "response": "Enter amount (KES):",
+                  "isInput": true,
+                  "cdpEvent": {
+                    "eventId": "money_transfer_account_entered",
+                    "properties": { "channel": "ussd", "bank": "equity", "destination": "equity", "account": "$input" }
+                  },
+                  "options": {
+                    "*": {
+                      "response": "Enter your PIN:",
+                      "isInput": true,
+                      "cdpEvent": {
+                        "eventId": "money_transfer_amount_entered",
+                        "properties": { "channel": "ussd", "bank": "equity", "destination": "equity", "amount_kes": "$input" }
+                      },
+                      "options": {
+                        "*": {
+                          "response": "Transfer successful!\nFunds sent to Equity account.\nRef: EQ20260220\n\n0. Main Menu",
+                          "cdpEvent": {
+                            "eventId": "money_transferred",
+                            "properties": { "channel": "ussd", "bank": "equity", "service": "send_money", "destination": "equity", "amount_kes": "$input_prev" }
+                          },
+                          "options": {
+                            "0": { "goto": "*247#", "response": "" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "2": {
+              "response": "To M-PESA\nEnter M-PESA number:",
+              "isInput": true,
+              "cdpEvent": {
+                "eventId": "money_transfer_initiated",
+                "properties": { "channel": "ussd", "bank": "equity", "destination": "mpesa" }
+              },
+              "options": {
+                "*": {
+                  "response": "Enter amount (KES):",
+                  "isInput": true,
+                  "cdpEvent": {
+                    "eventId": "money_transfer_recipient_entered",
+                    "properties": { "channel": "ussd", "bank": "equity", "destination": "mpesa", "recipient": "$input" }
+                  },
+                  "options": {
+                    "*": {
+                      "response": "Enter your PIN:",
+                      "isInput": true,
+                      "cdpEvent": {
+                        "eventId": "money_transfer_amount_entered",
+                        "properties": { "channel": "ussd", "bank": "equity", "destination": "mpesa", "amount_kes": "$input" }
+                      },
+                      "options": {
+                        "*": {
+                          "response": "Transfer successful!\nFunds sent to M-PESA.\nRef: EQ20260220\n\n0. Main Menu",
+                          "cdpEvent": {
+                            "eventId": "money_transferred",
+                            "properties": { "channel": "ussd", "bank": "equity", "service": "send_money", "destination": "mpesa", "recipient": "$input_prev2", "amount_kes": "$input_prev" }
+                          },
+                          "options": {
+                            "0": { "goto": "*247#", "response": "" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "0": { "goto": "*247#", "response": "" }
+          }
+        },
+        "3": {
+          "response": "Buy Airtime\n1. For Myself\n2. For Another Number\n0. Back",
+          "cdpEvent": {
+            "eventId": "airtime_menu_opened",
+            "properties": { "channel": "ussd", "bank": "equity" }
+          },
+          "options": {
+            "1": {
+              "response": "Enter airtime amount (KES):",
+              "isInput": true,
+              "cdpEvent": {
+                "eventId": "airtime_purchase_initiated",
+                "properties": { "channel": "ussd", "bank": "equity", "for": "self" }
+              },
+              "options": {
+                "*": {
+                  "response": "Enter your PIN:",
+                  "isInput": true,
+                  "cdpEvent": {
+                    "eventId": "airtime_purchase_amount_entered",
+                    "properties": { "channel": "ussd", "bank": "equity", "for": "self", "amount_kes": "$input" }
+                  },
+                  "options": {
+                    "*": {
+                      "response": "Airtime purchase successful!\nAirtime will be credited shortly.\n\n0. Main Menu",
+                      "cdpEvent": {
+                        "eventId": "airtime_purchased",
+                        "properties": { "channel": "ussd", "bank": "equity", "service": "buy_airtime", "for": "self", "amount_kes": "$input_prev" }
+                      },
+                      "options": {
+                        "0": { "goto": "*247#", "response": "" }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "2": {
+              "response": "Enter recipient number:",
+              "isInput": true,
+              "cdpEvent": {
+                "eventId": "airtime_purchase_initiated",
+                "properties": { "channel": "ussd", "bank": "equity", "for": "other" }
+              },
+              "options": {
+                "*": {
+                  "response": "Enter airtime amount (KES):",
+                  "isInput": true,
+                  "cdpEvent": {
+                    "eventId": "airtime_purchase_recipient_entered",
+                    "properties": { "channel": "ussd", "bank": "equity", "for": "other", "recipient": "$input" }
+                  },
+                  "options": {
+                    "*": {
+                      "response": "Enter your PIN:",
+                      "isInput": true,
+                      "cdpEvent": {
+                        "eventId": "airtime_purchase_amount_entered",
+                        "properties": { "channel": "ussd", "bank": "equity", "for": "other", "amount_kes": "$input" }
+                      },
+                      "options": {
+                        "*": {
+                          "response": "Airtime purchase successful!\nAirtime sent to recipient.\n\n0. Main Menu",
+                          "cdpEvent": {
+                            "eventId": "airtime_purchased",
+                            "properties": { "channel": "ussd", "bank": "equity", "service": "buy_airtime_for_other", "for": "other", "recipient": "$input_prev2", "amount_kes": "$input_prev" }
+                          },
+                          "options": {
+                            "0": { "goto": "*247#", "response": "" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "0": { "goto": "*247#", "response": "" }
+          }
+        },
+        "4": {
+          "response": "Equity Loans\n1. Check Eligibility\n2. Apply for Loan\n3. Loan Balance\n0. Back",
+          "cdpEvent": {
+            "eventId": "loans_menu_opened",
+            "properties": { "channel": "ussd", "bank": "equity" }
+          },
+          "options": {
+            "1": {
+              "response": "Equity Bank Loans\nBased on your profile you\nare eligible for:\n\nUp to KES 50,000\nat 12% p.a.\n\n1. Apply Now\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "loan_eligibility_checked",
+                "properties": { "channel": "ussd", "bank": "equity", "service": "loan_eligibility" }
+              },
+              "options": {
+                "1": {
+                  "response": "Loan Application\nEnter loan amount (KES):",
+                  "isInput": true,
+                  "cdpEvent": {
+                    "eventId": "loan_application_initiated",
+                    "properties": { "channel": "ussd", "bank": "equity", "source": "eligibility_check" }
+                  },
+                  "options": {
+                    "*": {
+                      "response": "Enter your PIN to apply:",
+                      "isInput": true,
+                      "cdpEvent": {
+                        "eventId": "loan_amount_entered",
+                        "properties": { "channel": "ussd", "bank": "equity", "source": "eligibility_check", "amount_kes": "$input" }
+                      },
+                      "options": {
+                        "*": {
+                          "response": "Loan application submitted!\nYou will receive an SMS\nwith the outcome shortly.\n\n0. Main Menu",
+                          "cdpEvent": {
+                            "eventId": "loan_applied",
+                            "properties": { "channel": "ussd", "bank": "equity", "service": "loan_application", "source": "eligibility_check", "amount_kes": "$input_prev" }
+                          },
+                          "options": {
+                            "0": { "goto": "*247#", "response": "" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "0": { "goto": "*247#", "response": "" }
+              }
+            },
+            "2": {
+              "response": "Loan Application\nEnter loan amount (KES):",
+              "isInput": true,
+              "cdpEvent": {
+                "eventId": "loan_application_initiated",
+                "properties": { "channel": "ussd", "bank": "equity", "source": "direct" }
+              },
+              "options": {
+                "*": {
+                  "response": "Enter your PIN to apply:",
+                  "isInput": true,
+                  "cdpEvent": {
+                    "eventId": "loan_amount_entered",
+                    "properties": { "channel": "ussd", "bank": "equity", "source": "direct", "amount_kes": "$input" }
+                  },
+                  "options": {
+                    "*": {
+                      "response": "Loan application submitted!\nYou will receive an SMS\nwith the outcome shortly.\n\n0. Main Menu",
+                      "cdpEvent": {
+                        "eventId": "loan_applied",
+                        "properties": { "channel": "ussd", "bank": "equity", "service": "loan_application", "source": "direct", "amount_kes": "$input_prev" }
+                      },
+                      "options": {
+                        "0": { "goto": "*247#", "response": "" }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "3": {
+              "response": "Equity Bank\nLoan Balance\n\nActive Loan: KES 15,000\nMonthly Repayment: KES 1,350\nNext Due: 01 Mar 2026\n\n0. Main Menu",
+              "cdpEvent": {
+                "eventId": "loan_balance_checked",
+                "properties": { "channel": "ussd", "bank": "equity", "service": "loan_balance" }
+              },
+              "options": {
+                "0": { "goto": "*247#", "response": "" }
+              }
+            },
+            "0": { "goto": "*247#", "response": "" }
+          }
+        },
+        "0": {
+          "response": "Thank you for banking\nwith Equity Bank.\nGoodbye!",
+          "sessionEnd": true,
+          "cdpEvent": {
+            "eventId": "ussd_session_ended",
+            "properties": { "channel": "ussd", "bank": "equity", "service_code": "*247#" }
+          }
+        }
+      }
+    }
+  }
+}

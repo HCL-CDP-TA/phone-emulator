@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS, HTML emails, and push notifications via API, displaying notifications, and running modular apps including a functional web browser.
+A Next.js-based phone emulator for demonstrating martech (marketing technology) software. The emulator displays a realistic smartphone interface in a desktop browser, capable of receiving SMS, HTML emails, and push notifications via API, displaying notifications, running modular apps including a functional web browser, and simulating USSD interactive sessions with a configurable menu tree and HCL CDP event integration.
 
 **Key Design Principle**: The emulator uses a modular architecture where new apps can be added without modifying core infrastructure - just create a component and register it.
 
@@ -118,6 +118,10 @@ NEXT_PUBLIC_SOCIAL_APP_BASE_URL=https://social.demo.now.hclsoftware.cloud
 NEXT_PUBLIC_GEOFENCE_API_URL=https://geofence-api-url
 NEXT_PUBLIC_GEOFENCE_API_KEY=your-key
 
+# HCL CDP integration for USSD events (optional)
+CDP_API_KEY=your-cdp-api-key
+CDP_PASS_KEY=your-cdp-pass-key
+
 # GitHub SSH key (optional, for remote deployments)
 GITHUB_SSH_KEY_PATH=/path/to/ssh/key
 ```
@@ -175,7 +179,30 @@ Two communication mechanisms:
 
 SSE endpoint (`/app/api/sms/stream/route.ts`) maintains persistent connections and broadcasts messages instantly when received via API.
 
-**4. Push Notification System**
+**4. USSD Dialer System**
+
+The emulator includes a fully interactive USSD (Unstructured Supplementary Service Data) simulation engine:
+
+- **Configurable Menu Tree**: USSD service menus are defined as a recursive `USSDNode` tree in `ussd-config.json` in the project root. The file is read on server start and written on Save.
+- **In-Memory Sessions**: Each USSD session is held in a server-side Map with a 5-minute timeout. No database required.
+- **Dialer App**: `DialerApp.tsx` is the first app on the home screen. White background, grey T9 keypad. Typing a code ending with `#` auto-triggers a USSD session. `*#06#` shows the device IMEI locally.
+- **Auto-Fire on Keypress**: When the current node presents numbered options, pressing a digit sends it immediately. Free-text input nodes (`isInput: true`) accumulate digits and send when the green button is tapped.
+- **goto Pattern**: Nodes can redirect to another root USSD code via `{ goto: "*100#", response: "" }` rather than duplicating an entire sub-tree for "Back to Main Menu" options.
+- **HCL CDP Integration**: Nodes with `cdpEvent` fire track events via `@hcl-cdp-ta/cdp-node-sdk`. Non-fatal if `CDP_API_KEY`/`CDP_PASS_KEY` are absent.
+- **Config Editor**: `/ussd-config` page (teal/green theme). Recursive node tree on the left, node editor on the right. Supports Save, Export JSON, Import JSON, and Load Defaults.
+- **Operator Header**: A green header bar in the dialer always shows the `networkName` from the config (e.g., "Safaricom"). This header is always present regardless of which service is active.
+- **Default Demo Config**: `ussd-config.json` ships with `*100#` (Safaricom self-service), `*544#` (data bundles), and `*247#` (Equity Bank Kenya).
+
+**Key Components:**
+- `DialerApp.tsx`: Dialer UI and USSD session orchestration
+- `/app/api/ussd/session/route.ts`: POST (new/continue session), DELETE (end session)
+- `/app/api/ussd/config/route.ts`: GET/POST/DELETE config; exports `getUSSDConfig()` singleton
+- `/app/ussd-config/page.tsx`: Visual config editor
+- `/types/ussd.ts`: `USSDNode`, `USSDConfig`, `USSDSession`, `USSDSessionResponse`, `USSDCDPEvent`
+- `/lib/ussdDefaults.ts`: Minimal cold-start fallback config
+- `/ussd-config.json`: Live config file (in project root, not in `/lib`)
+
+**5. Push Notification System**
 
 Push notifications are distinct from SMS/email - they target a specific app by ID and support rich content:
 
@@ -365,6 +392,47 @@ interface Geofence {
   createdAt?: string
   updatedAt?: string
 }
+
+// CDP event attached to a USSD node
+interface USSDCDPEvent {
+  eventId: string
+  properties?: Record<string, string | number | boolean>
+}
+
+// A single node in the USSD menu tree
+interface USSDNode {
+  response: string                        // Text shown to the user
+  options?: Record<string, USSDNode>      // Keyed by digit; "*" = wildcard for free-text input
+  isInput?: boolean                       // true = accumulate digits, send on green button
+  cdpEvent?: USSDCDPEvent                 // Fires when this node is reached
+  sessionEnd?: boolean                    // true = session terminates after this response
+  goto?: string                           // Redirect to another root code (e.g. "*100#")
+}
+
+// Top-level USSD configuration
+interface USSDConfig {
+  codes: Record<string, USSDNode>         // Keys are USSD codes e.g. "*100#"
+  networkName?: string                    // Operator name shown in dialer header
+}
+
+// Server-side session (in-memory)
+interface USSDSession {
+  sessionId: string
+  phoneNumber: string
+  currentNode: USSDNode
+  rootCode: string
+  history: string[]
+  startedAt: number
+}
+
+// Response returned by /api/ussd/session
+interface USSDSessionResponse {
+  sessionId: string | null               // null when session has ended
+  response: string
+  sessionActive: boolean
+  requiresInput: boolean
+  networkName: string
+}
 ```
 
 ## File Structure
@@ -376,6 +444,7 @@ interface Geofence {
   /email-tester/page.tsx        - Email tester (opens in new window)
   /push-tester/page.tsx         - Push notification tester (opens in new window)
   /location-config/page.tsx     - Location preset configuration (CRUD for static/route presets)
+  /ussd-config/page.tsx         - USSD config editor (teal theme, recursive node tree + node editor)
   /api/sms/route.ts             - Main SMS API (SSE + queue fallback)
   /api/sms/stream/route.ts      - SSE endpoint for real-time delivery
   /api/sms/poll/route.ts        - DEPRECATED polling fallback
@@ -385,6 +454,8 @@ interface Geofence {
   /api/push/stream/route.ts     - Push SSE endpoint for real-time delivery
   /api/location-presets/route.ts       - Location presets API (GET all, POST create)
   /api/location-presets/[id]/route.ts  - Single preset API (GET, PUT, DELETE)
+  /api/ussd/session/route.ts    - USSD session API (POST new/continue, DELETE end session)
+  /api/ussd/config/route.ts     - USSD config API (GET, POST replace, DELETE reset to defaults)
 
 /components
   /phone
@@ -400,6 +471,7 @@ interface Geofence {
     /GeofenceLayer.tsx          - Renders read-only geofence polygons from API
     /RouteBuilder.tsx           - Floating controls for route creation (waypoint count, undo, finish)
   /apps
+    /DialerApp.tsx              - Phone dialer + USSD session UI (first app in registry)
     /MessagesApp.tsx            - Conversation-based messaging with avatars
     /EmailApp.tsx               - HTML email with DOMPurify sanitization, notifications
     /BrowserApp.tsx             - iframe-based web browser with address bar + location forwarding
@@ -428,12 +500,16 @@ interface Geofence {
   /prisma.ts                    - Prisma client singleton (prevents connection pool exhaustion)
   /geofencePresets.ts           - Default geofence zones (3 zones)
   /debounce.ts                  - Utility function for debouncing user input (used in search)
+  /ussdDefaults.ts              - Minimal cold-start fallback USSD config (used when no ussd-config.json)
 
 /prisma
   /schema.prisma                - Database schema (LocationPreset model, PresetType enum)
 
 /types
   /app.ts                       - TypeScript interfaces (includes LocationOverride, LocationPreset, GeofenceZone)
+  /ussd.ts                      - USSD interfaces (USSDNode, USSDConfig, USSDSession, USSDSessionResponse, USSDCDPEvent)
+
+/ussd-config.json               - Live USSD config file (project root). Loaded at server start, written on Save.
 ```
 
 ## Common Development Tasks
@@ -832,6 +908,112 @@ Delete a location preset.
 }
 ```
 
+### POST /api/ussd/session
+
+Start a new USSD session or continue an existing one.
+
+**Start session** (provide `ussdCode`):
+
+```json
+{
+  "phoneNumber": "+254712345678",
+  "ussdCode": "*100#"
+}
+```
+
+**Continue session** (provide `sessionId` and `input`):
+
+```json
+{
+  "sessionId": "ussd_1234567890_abc1234",
+  "input": "1"
+}
+```
+
+**Response**:
+
+```json
+{
+  "sessionId": "ussd_1234567890_abc1234",
+  "response": "Safaricom Self Service\n1. My Balance\n2. Buy Airtime\n3. Transfer Airtime\n0. Exit",
+  "sessionActive": true,
+  "requiresInput": false,
+  "networkName": "Safaricom"
+}
+```
+
+- `sessionId` is `null` when the session has ended (`sessionActive: false`)
+- `requiresInput: true` means the node expects free-text entry (accumulate digits, send on green button)
+- If `ussdCode` is not found in the config, `sessionActive` is `false` and a "not recognised" message is returned
+
+### DELETE /api/ussd/session
+
+End an active USSD session.
+
+**Request**:
+
+```json
+{
+  "sessionId": "ussd_1234567890_abc1234"
+}
+```
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "deleted": true
+}
+```
+
+### GET /api/ussd/config
+
+Get the current USSD configuration (full `USSDConfig` object).
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "networkName": "Safaricom",
+    "codes": {
+      "*100#": { "response": "...", "options": {} }
+    }
+  }
+}
+```
+
+### POST /api/ussd/config
+
+Replace the entire USSD configuration. Writes to `ussd-config.json` on disk.
+
+**Request**: A `USSDConfig` object (see Key Interfaces above).
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+### DELETE /api/ussd/config
+
+Reset to built-in defaults. Deletes `ussd-config.json` from disk so defaults load on next server start.
+
+**Response**:
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Config reset to defaults"
+}
+```
+
 ## Important Design Decisions
 
 1. **No Top Padding in Apps**: Apps render full height. Phone component adds `pt-11` to wrapper for StatusBar clearance.
@@ -850,6 +1032,12 @@ Delete a location preset.
 
 8. **Custom Mobile Cursor**: CSS cursor styling in `/app/globals.css` creates touch-point appearance for desktop browsers.
 
+9. **USSD Config Persistence**: `ussd-config.json` in the project root is the single source of truth. The server reads it at startup via a module-level singleton in `/app/api/ussd/config/route.ts`. Writes are synchronous (`writeFileSync`) so the file is always consistent. Deleting the file reverts to the built-in defaults in `lib/ussdDefaults.ts`.
+
+10. **USSD goto Pattern**: Instead of duplicating an entire sub-tree for "Main Menu" navigation, any node can set `goto: "*100#"` (or any root code). The session route resolves this by looking up the root node in the config and setting it as the current node, keeping the session alive.
+
+11. **USSD serverExternalPackages**: `next.config.ts` declares `@hcl-cdp-ta/cdp-node-sdk` in `serverExternalPackages` to prevent Next.js from bundling the Node.js-only SDK through the webpack pipeline.
+
 ## Commit Message Conventions
 
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated releases:
@@ -860,7 +1048,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) f
 
 **Types**: `feat`, `fix`, `perf`, `docs`, `style`, `refactor`, `test`, `build`, `ci`, `chore`
 
-**Scopes**: `messages`, `email`, `browser`, `phone`, `sms`, `social`, `api`, `ui`, `context`, `hooks`, `location`, `maps`
+**Scopes**: `messages`, `email`, `browser`, `phone`, `sms`, `social`, `api`, `ui`, `context`, `hooks`, `location`, `maps`, `ussd`, `dialer`
 
 **Examples**:
 
@@ -885,6 +1073,8 @@ Breaking changes: Add `!` after type or `BREAKING CHANGE:` in footer.
 - **Social Integration**: Iframe webviews with PostMessage API
 - **Maps**: Leaflet.js with React-Leaflet for interactive maps
 - **Location**: Browser Geolocation API with override system
+- **USSD**: Custom tree-walking engine with file-backed config (`ussd-config.json`)
+- **CDP Events**: `@hcl-cdp-ta/cdp-node-sdk` (server-side, optional)
 
 ## Social Media Apps
 
@@ -1031,6 +1221,8 @@ The Location Config screen (`/location-config`) provides an interactive map-base
 4. **Single Device Per Tab**: Each browser tab emulates one phone
 5. **Link Detection**: Simple regex for URL parsing
 6. **Social Apps**: Require external backend, iframe sandbox restrictions apply, postMessage only works from same-origin or with proper CORS
+7. **USSD Sessions**: In-memory only (consistent with SSE connections). Sessions are lost on server restart. 5-minute timeout.
+8. **USSD Config**: Single shared config file (`ussd-config.json`). No per-user or per-session config isolation.
 
 ## Styling Conventions
 

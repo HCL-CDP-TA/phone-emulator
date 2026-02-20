@@ -19,11 +19,13 @@ A realistic smartphone emulator built with Next.js, designed for demonstrating m
 - **📞 Phone Number Login** - Optional phone number registration for remote SMS/Email delivery ✨ NEW
 - **⚡ Real-Time Delivery** - Server-Sent Events (SSE) for instant message delivery from external systems ✨ NEW
 - **📍 Location Services** - Browser-based geolocation for location-aware apps ✨ NEW
+- **📟 USSD Dialer** - Interactive USSD menu simulation with configurable tree, CDP event firing, and a visual config editor
 
 ### Included Apps
 
 **Functional Apps:**
 
+- **Phone / Dialer** - T9 keypad with USSD session support. Dial `*100#`, `*544#`, or `*247#` to start a USSD session. `*#06#` shows the device IMEI.
 - **Messages** - Display SMS, handle notifications, clickable URLs
 - **Email** - Full HTML email display with sanitization, sender name/email, notifications, link-to-browser integration ✨ NEW
 - **Browser** - Address bar + iframe-based web viewing
@@ -186,6 +188,7 @@ await fetch("https://your-emulator.com/api/sms", {
 - [docs/REMOTE_SMS.md](docs/REMOTE_SMS.md) - Remote SMS delivery guide ✨ NEW
 - [docs/EMAIL_IMPLEMENTATION.md](docs/EMAIL_IMPLEMENTATION.md) - Email app feature guide ✨ NEW
 - [docs/LOCATION.md](docs/LOCATION.md) - Location services guide ✨ NEW
+- [docs/ussd.md](docs/ussd.md) - USSD dialer feature guide
 
 ## 📧 Email API
 
@@ -318,16 +321,21 @@ phone-emulator/
 │   │   ├── email/
 │   │   │   ├── route.ts        # Email API endpoint ✨ NEW
 │   │   │   └── stream/         # Email SSE endpoint ✨ NEW
-│   │   └── location-presets/
-│   │       ├── route.ts        # Location presets API (GET, POST) ✨ NEW
-│   │       └── [id]/route.ts   # Single preset (GET, PUT, DELETE) ✨ NEW
+│   │   ├── location-presets/
+│   │   │   ├── route.ts        # Location presets API (GET, POST) ✨ NEW
+│   │   │   └── [id]/route.ts   # Single preset (GET, PUT, DELETE) ✨ NEW
+│   │   └── ussd/
+│   │       ├── session/        # USSD session (POST new/continue, DELETE end)
+│   │       └── config/         # USSD config (GET, POST replace, DELETE reset)
 │   ├── page.tsx                # Main page with phone number login + tester dropdown
 │   ├── tester/page.tsx         # SMS tester
 │   ├── email-tester/page.tsx   # Email tester ✨ NEW
 │   ├── location-config/page.tsx # Location preset configuration ✨ NEW
+│   ├── ussd-config/page.tsx    # USSD config editor (teal theme)
 │   └── layout.tsx              # Root layout
 ├── components/
 │   ├── apps/
+│   │   ├── DialerApp.tsx       # Phone dialer + USSD session UI
 │   │   ├── MessagesApp.tsx     # SMS conversations
 │   │   ├── EmailApp.tsx        # HTML email display ✨ NEW
 │   │   ├── BrowserApp.tsx      # Web browser
@@ -347,17 +355,21 @@ phone-emulator/
 ├── lib/
 │   ├── appRegistry.tsx         # App registration
 │   ├── prisma.ts               # Prisma client singleton ✨ NEW
-│   └── locationPresetValidation.ts # Preset validation ✨ NEW
+│   ├── locationPresetValidation.ts # Preset validation ✨ NEW
+│   └── ussdDefaults.ts         # Cold-start fallback USSD config
 ├── prisma/
 │   └── schema.prisma           # Database schema ✨ NEW
 ├── types/
-│   └── app.ts                  # TypeScript definitions
+│   ├── app.ts                  # TypeScript definitions
+│   └── ussd.ts                 # USSD interfaces
+├── ussd-config.json            # Live USSD config (project root)
 └── docs/
     ├── API.md                  # SMS & Email API documentation
     ├── APPS.md                 # App development guide
     ├── REMOTE_SMS.md           # Remote SMS feature guide ✨ NEW
     ├── EMAIL_IMPLEMENTATION.md # Email app feature guide ✨ NEW
-    └── LOCATION.md             # Location services guide ✨ NEW
+    ├── LOCATION.md             # Location services guide ✨ NEW
+    └── ussd.md                 # USSD dialer feature guide
 ```
 
 ## 🎨 Customization
@@ -435,6 +447,13 @@ The phone uses click-based navigation optimized for desktop:
   - Inbox shows emails with sender name, subject, preview
   - Click email to view full HTML content
   - Links in emails open in Browser app
+- **USSD / Dialer:**
+  - Open the Phone app (first icon on home screen)
+  - Type a USSD code such as `*100#` or `*247#` using the keypad
+  - The `#` key auto-triggers the session; the operator header appears immediately
+  - Numbered menu items: press the digit to select instantly
+  - Free-text inputs: type digits then press the green button to send
+  - Access "USSD Config" from the settings dropdown to edit menu trees
 
 ## 🤝 Contributing
 
@@ -453,6 +472,7 @@ This project was created for MarTech demonstration purposes.
 - **API Issues:** Check [docs/API.md](docs/API.md)
 - **App Development:** See [docs/APPS.md](docs/APPS.md)
 - **Location Services:** See [docs/LOCATION.md](docs/LOCATION.md) ✨ NEW
+- **USSD Dialer:** See [docs/ussd.md](docs/ussd.md)
 - **Browser Console:** Check for errors if things don't work
 
 ---

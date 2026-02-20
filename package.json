@@ -12,6 +12,7 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@hcl-cdp-ta/cdp-node-sdk": "^1.0.3",
     "@hcl-cdp-ta/geofence-sdk": "^3.0.0",
     "@prisma/client": "^5.22.0",
     "@types/dompurify": "^3.0.5",
