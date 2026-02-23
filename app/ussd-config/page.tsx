@@ -165,15 +165,23 @@ export default function USSDConfigPage() {
 
   const fetchConfig = useCallback(async () => {
     setIsLoading(true)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
     try {
-      const res = await fetch("/api/ussd/config")
+      const res = await fetch("/api/ussd/config", { signal: controller.signal })
       const data = await res.json()
       setConfig(data.data)
       setNetworkName(data.data.networkName ?? "")
       saveToLocalStorage(data.data)
-    } catch {
-      setStatus("Failed to load config")
+    } catch (err) {
+      if ((err as Error).name === "AbortError") {
+        setStatus("Timed out loading config — click Retry")
+      } else {
+        setStatus("Failed to load config")
+      }
+      setIsLoading(false)
     } finally {
+      clearTimeout(timeout)
       setIsLoading(false)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -330,8 +338,18 @@ export default function USSDConfigPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-teal-50 to-green-100">
+      <div className="flex flex-col items-center justify-center gap-4 min-h-screen bg-gradient-to-br from-teal-50 to-green-100">
         <p className="text-teal-700 font-medium">Loading USSD config...</p>
+        {status && (
+          <>
+            <p className="text-red-600 text-sm">{status}</p>
+            <button
+              onClick={fetchConfig}
+              className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors">
+              Retry
+            </button>
+          </>
+        )}
       </div>
     )
   }

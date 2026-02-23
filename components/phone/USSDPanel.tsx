@@ -1,23 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { usePhone } from "@/contexts/PhoneContext"
 import { USSDConfig } from "@/types/ussd"
 
-export default function USSDPanel() {
-  const { openApp } = usePhone()
-  const [config, setConfig] = useState<USSDConfig | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+interface USSDPanelProps {
+  config: USSDConfig | null
+  isLoading: boolean
+}
 
-  useEffect(() => {
-    fetch("/api/ussd/config")
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setConfig(data.data)
-      })
-      .catch(console.error)
-      .finally(() => setIsLoading(false))
-  }, [])
+export default function USSDPanel({ config, isLoading }: USSDPanelProps) {
+  const { openApp } = usePhone()
 
   function handleDial(code: string) {
     openApp("dialer")

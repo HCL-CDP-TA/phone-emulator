@@ -7,13 +7,12 @@ import PhoneNumberLogin from "@/components/phone/PhoneNumberLogin"
 import { PhoneProvider, usePhone } from "@/contexts/PhoneContext"
 import { GeofenceAppsProvider } from "@/contexts/GeofenceAppsContext"
 import { useSMSReceiver } from "@/hooks/useSMSReceiver"
-import { useEmailReceiver } from "@/hooks/useEmailReceiver"
-import { useWhatsAppReceiver } from "@/hooks/useWhatsAppReceiver"
-import { usePushReceiver } from "@/hooks/usePushReceiver"
+import { useUnifiedReceiver } from "@/hooks/useUnifiedReceiver"
 import packageJson from "@/package.json"
 import { Clock, MapPin, Route, Map, Circle, RefreshCw, Hash } from "lucide-react"
 import { LocationPreset } from "@/types/app"
 import { useGeofences, Geofence } from "@/hooks/useGeofences"
+import { USSDConfig } from "@/types/ussd"
 
 const MapPanel = dynamic(() => import("@/components/phone/MapPanel"), { ssr: false })
 import USSDPanel from "@/components/phone/USSDPanel"
@@ -30,9 +29,8 @@ interface TimePreset {
 
 function PhoneEmulator() {
   const sessionId = useSMSReceiver()
-  const { addSMS, setTimeOffset, timeOffset, setLocationOverrideConfig, phoneNumber, setPhoneNumber, closeApp } = usePhone()
+  const { setTimeOffset, timeOffset, setLocationOverrideConfig, phoneNumber, setPhoneNumber, closeApp, activeApp } = usePhone()
   const [isLoaded, setIsLoaded] = useState(false)
-  const eventSourceRef = useRef<EventSource | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false)
@@ -42,6 +40,8 @@ function PhoneEmulator() {
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false)
   const [isMapVisible, setIsMapVisible] = useState(false)
   const [isUSSDPanelVisible, setIsUSSDPanelVisible] = useState(false)
+  const [ussdConfig, setUssdConfig] = useState<USSDConfig | null>(null)
+  const [isUssdConfigLoading, setIsUssdConfigLoading] = useState(true)
   const locationDropdownRef = useRef<HTMLDivElement>(null)
   const { geofences, refetch: refetchGeofences, isLoading: isGeofencesLoading } = useGeofences()
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -57,14 +57,30 @@ function PhoneEmulator() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [closeApp])
 
-  // Connect to email SSE stream
-  useEmailReceiver(phoneNumber && phoneNumber !== "skip" ? phoneNumber : null)
+  // Close USSD panel when dialer app is closed
+  useEffect(() => {
+    if (activeApp !== "dialer") {
+      setIsUSSDPanelVisible(false)
+    }
+  }, [activeApp])
 
-  // Connect to WhatsApp SSE stream
-  useWhatsAppReceiver(phoneNumber && phoneNumber !== "skip" ? phoneNumber : null)
+  // Fetch USSD config early — before SSE connections are established — to avoid
+  // HTTP/1.1 connection pool exhaustion (4 SSE streams + this fetch = 5 of 6 slots)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch("/api/ussd/config", { signal: controller.signal })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setUssdConfig(data.data)
+      })
+      .catch(() => {/* non-fatal */})
+      .finally(() => setIsUssdConfigLoading(false))
+    return () => controller.abort()
+  }, [])
 
-  // Connect to Push notification SSE stream
-  usePushReceiver(phoneNumber && phoneNumber !== "skip" ? phoneNumber : null)
+  // Single unified SSE connection (replaces separate SMS/email/WhatsApp/push streams)
+  // This frees up 3 HTTP/1.1 connection slots, allowing config pages to load
+  useUnifiedReceiver(phoneNumber && phoneNumber !== "skip" ? phoneNumber : null)
 
   // Load from localStorage after mount (avoids hydration mismatch)
   useEffect(() => {
@@ -83,88 +99,6 @@ function PhoneEmulator() {
     }
   }, [phoneNumber, isLoaded])
 
-  // Close all SSE connections on page unload (refresh/navigate)
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close()
-        eventSourceRef.current = null
-      }
-    }
-    window.addEventListener("beforeunload", handleBeforeUnload)
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
-  }, [])
-
-  // Connect to SSE stream for remote SMS messages when logged in with a phone number
-  useEffect(() => {
-    if (!phoneNumber || phoneNumber === "skip" || !isLoaded) return
-
-    let isMounted = true
-
-    // Close existing connection if any and wait for cleanup
-    const connectToStream = async () => {
-      if (eventSourceRef.current) {
-        console.log("[SSE] Closing existing connection before creating new one")
-        eventSourceRef.current.close()
-        eventSourceRef.current = null
-        // Wait longer for server-side cleanup to complete
-        await new Promise(resolve => setTimeout(resolve, 500))
-      }
-
-      if (!isMounted) return
-
-      // Delay SSE connection to allow other HTTP requests to complete first
-      // This prevents connection exhaustion in browsers (6 connection limit per origin)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      if (!isMounted) return
-
-      console.log(`[SSE] Connecting to stream for ${phoneNumber}`)
-
-      const eventSource = new EventSource(`/api/sms/stream?phoneNumber=${encodeURIComponent(phoneNumber)}`)
-      eventSourceRef.current = eventSource
-
-      eventSource.onopen = () => {
-        console.log("[SSE] Connection established")
-      }
-
-      eventSource.onmessage = event => {
-        try {
-          const data = JSON.parse(event.data)
-
-          if (data.type === "connected") {
-            console.log(`[SSE] Connected to phone number: ${data.phoneNumber}`)
-            return
-          }
-
-          // Received SMS message
-          if (data.sender && data.message) {
-            console.log(`[SSE] Received message from ${data.sender}`)
-            addSMS({ sender: data.sender, message: data.message })
-          }
-        } catch (error) {
-          console.error("[SSE] Failed to parse message:", error)
-        }
-      }
-
-      eventSource.onerror = error => {
-        console.error("[SSE] Connection error:", error)
-        // EventSource automatically reconnects
-      }
-    }
-
-    connectToStream()
-
-    // Cleanup on unmount or phone number change
-    return () => {
-      isMounted = false
-      if (eventSourceRef.current) {
-        console.log("[SSE] Closing connection")
-        eventSourceRef.current.close()
-        eventSourceRef.current = null
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phoneNumber, isLoaded]) // Removed addSMS to prevent re-renders
 
   const handleLogin = (number: string) => {
     setPhoneNumber(number || "skip") // "skip" means no phone number (anonymous mode)
@@ -397,7 +331,7 @@ function PhoneEmulator() {
       )}
 
       {/* USSD Panel */}
-      {isUSSDPanelVisible && <USSDPanel />}
+      {isUSSDPanelVisible && <USSDPanel config={ussdConfig} isLoading={isUssdConfigLoading} />}
 
       {/* Version indicator */}
       <div className="fixed bottom-4 right-4 text-gray-400 text-xs font-mono">v{packageJson.version}</div>
@@ -591,19 +525,21 @@ function PhoneEmulator() {
             </button>
           </div>
 
-          {/* USSD Panel Toggle */}
-          <div className="relative">
-            <button
-              onClick={() => setIsUSSDPanelVisible(!isUSSDPanelVisible)}
-              className={`bg-white rounded-lg shadow-lg p-2 transition-colors ${
-                isUSSDPanelVisible
-                  ? "text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              }`}
-              title={isUSSDPanelVisible ? "Hide USSD shortcuts" : "Show USSD shortcuts"}>
-              <Hash className="w-5 h-5" />
-            </button>
-          </div>
+          {/* USSD Panel Toggle - only visible when Dialer app is open */}
+          {activeApp === "dialer" && (
+            <div className="relative">
+              <button
+                onClick={() => setIsUSSDPanelVisible(!isUSSDPanelVisible)}
+                className={`bg-white rounded-lg shadow-lg p-2 transition-colors ${
+                  isUSSDPanelVisible
+                    ? "text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                }`}
+                title={isUSSDPanelVisible ? "Hide USSD shortcuts" : "Show USSD shortcuts"}>
+                <Hash className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Phone Number & Tester Dropdown */}
