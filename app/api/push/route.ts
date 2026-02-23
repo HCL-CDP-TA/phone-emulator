@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { broadcastPushToPhone } from "./stream/route"
+import { broadcastToUnifiedStream } from "@/app/api/stream/route"
 
 export async function POST(request: Request) {
   try {
@@ -48,7 +49,9 @@ export async function POST(request: Request) {
       timestamp: Date.now(),
     }
 
-    const delivered = broadcastPushToPhone(phoneNumber, pushData)
+    const delivered =
+      broadcastPushToPhone(phoneNumber, pushData) ||
+      broadcastToUnifiedStream(phoneNumber, "push", pushData as Record<string, unknown>)
 
     if (delivered) {
       return NextResponse.json(

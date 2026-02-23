@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { queueMessage } from "./poll/route"
 import { broadcastToPhone } from "./stream/route"
+import { broadcastToUnifiedStream } from "@/app/api/stream/route"
 
 export async function POST(request: Request) {
   try {
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
 
     // If phoneNumber provided, try SSE first, fallback to queue
     if (phoneNumber) {
-      const delivered = broadcastToPhone(phoneNumber, smsData.sender, smsData.message)
+      const delivered =
+        broadcastToPhone(phoneNumber, smsData.sender, smsData.message) ||
+        broadcastToUnifiedStream(phoneNumber, "sms", { sender: smsData.sender, message: smsData.message })
 
       if (delivered) {
         // Message delivered via SSE

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { broadcastWhatsAppToPhone } from "./stream/route"
+import { broadcastToUnifiedStream } from "@/app/api/stream/route"
 import { WhatsAppButton } from "@/types/app"
 
 export async function POST(request: Request) {
@@ -44,14 +45,16 @@ export async function POST(request: Request) {
 
     // If phoneNumber provided, try SSE delivery
     if (phoneNumber) {
-      const delivered = broadcastWhatsAppToPhone(
-        phoneNumber,
-        messageData.sender,
-        messageData.message,
-        messageData.senderNumber,
-        messageData.profilePictureUrl,
-        messageData.buttons,
-      )
+      const delivered =
+        broadcastWhatsAppToPhone(
+          phoneNumber,
+          messageData.sender,
+          messageData.message,
+          messageData.senderNumber,
+          messageData.profilePictureUrl,
+          messageData.buttons,
+        ) ||
+        broadcastToUnifiedStream(phoneNumber, "whatsapp", messageData as Record<string, unknown>)
 
       if (delivered) {
         // Message delivered via SSE

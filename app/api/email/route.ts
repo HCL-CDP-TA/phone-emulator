@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { broadcastEmailToPhone } from "./stream/route"
+import { broadcastToUnifiedStream } from "@/app/api/stream/route"
 
 export async function POST(request: Request) {
   try {
@@ -44,15 +45,17 @@ export async function POST(request: Request) {
 
     // If phoneNumber provided, try SSE delivery
     if (phoneNumber) {
-      const delivered = broadcastEmailToPhone(
-        phoneNumber,
-        emailData.from,
-        emailData.fromName,
-        emailData.to,
-        emailData.subject,
-        emailData.htmlContent,
-        emailData.textContent,
-      )
+      const delivered =
+        broadcastEmailToPhone(
+          phoneNumber,
+          emailData.from,
+          emailData.fromName,
+          emailData.to,
+          emailData.subject,
+          emailData.htmlContent,
+          emailData.textContent,
+        ) ||
+        broadcastToUnifiedStream(phoneNumber, "email", emailData as Record<string, unknown>)
 
       if (delivered) {
         // Message delivered via SSE
