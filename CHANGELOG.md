@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.3.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.2.0...v4.3.0) (2026-02-23)
+
+
+### Features
+
+* **ussd:** show panel shortcut only when dialer is open, fix config loading ([5ea615e](https://github.com/HCL-CDP-TA/phone-emulator/commit/5ea615e2834271bae9535f6efef876296a083e80))
+
+
+### Performance Improvements
+
+* **api:** merge 4 SSE streams into single unified endpoint ([e253d3d](https://github.com/HCL-CDP-TA/phone-emulator/commit/e253d3d5481dc4408e9eec6574eba1761cc7be2c))
+
 ## [4.2.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.1.0...v4.2.0) (2026-02-23)
 
 
