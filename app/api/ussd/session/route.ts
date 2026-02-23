@@ -59,7 +59,7 @@ async function fireCDPEvent(phoneNumber: string, event: USSDCDPEvent, inputBuffe
   try {
     const config = new ApiConfiguration(apiKey, passKey)
     const client = new ApiClient(config)
-    const identity = new UserIdentity(UserIdentityType.Primary, "phone", phoneNumber)
+    const identity = new UserIdentity(UserIdentityType.Primary, "userId", phoneNumber)
     const resolvedProps = resolveProperties(event.properties, inputBuffer)
     const request = new ApiRequest(EventType.Track, event.eventId, identity, resolvedProps)
 
