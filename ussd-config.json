@@ -5,7 +5,7 @@
       "response": "Safaricom Self Service\n1. My Balance\n2. Buy Airtime\n3. Transfer Airtime\n0. Exit",
       "cdpEvent": {
         "eventId": "ussd_session_started",
-        "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*100#" }
+        "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*100#", "network_type": "$network_type", "is_roaming": "$is_roaming", "plmn": "$plmn" }
       },
       "options": {
         "1": {
@@ -60,14 +60,14 @@
               "response": "Confirm airtime purchase?\n\n1. Confirm\n2. Cancel",
               "cdpEvent": {
                 "eventId": "airtime_purchase_amount_entered",
-                "properties": { "channel": "ussd", "operator": "safaricom", "amount_kes": "$input" }
+                "properties": { "channel": "ussd", "operator": "safaricom", "amount_kes": "$input", "cell_id": "$cell_id", "signal_dbm": "$signal_dbm" }
               },
               "options": {
                 "1": {
                   "response": "Airtime purchase successful!\nYour balance will be updated shortly.\n\n0. Main Menu",
                   "cdpEvent": {
                     "eventId": "airtime_purchased",
-                    "properties": { "channel": "ussd", "operator": "safaricom", "service": "airtime_purchase", "amount_kes": "$input" }
+                    "properties": { "channel": "ussd", "operator": "safaricom", "service": "airtime_purchase", "amount_kes": "$input", "session_path": "$session_path", "session_depth": "$session_depth", "session_duration_s": "$session_duration_s" }
                   },
                   "options": {
                     "0": { "goto": "*100#", "response": "" }
@@ -132,7 +132,7 @@
       "response": "Safaricom Data Bundles\n1. Daily Bundles\n2. Weekly Bundles\n3. Monthly Bundles\n4. My Data Balance\n0. Exit",
       "cdpEvent": {
         "eventId": "ussd_session_started",
-        "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*544#" }
+        "properties": { "channel": "ussd", "operator": "safaricom", "service_code": "*544#", "imsi": "$imsi", "network_type": "$network_type" }
       },
       "options": {
         "1": {
@@ -153,7 +153,7 @@
                   "response": "Success!\n100MB added to your account.\nValid for 24 hours.\nKES 20.00 charged.\n\n0. Main Menu",
                   "cdpEvent": {
                     "eventId": "bundle_purchased",
-                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "100MB", "price_kes": 20 }
+                    "properties": { "channel": "ussd", "operator": "safaricom", "bundle_type": "daily", "bundle_size": "100MB", "price_kes": 20, "session_path": "$session_path", "session_duration_s": "$session_duration_s", "network_type": "$network_type" }
                   },
                   "options": {
                     "0": { "goto": "*544#", "response": "" }
@@ -698,7 +698,7 @@
                           "response": "Loan application submitted!\nYou will receive an SMS\nwith the outcome shortly.\n\n0. Main Menu",
                           "cdpEvent": {
                             "eventId": "loan_applied",
-                            "properties": { "channel": "ussd", "bank": "equity", "service": "loan_application", "source": "eligibility_check", "amount_kes": "$input_prev" }
+                            "properties": { "channel": "ussd", "bank": "equity", "service": "loan_application", "source": "eligibility_check", "amount_kes": "$input_prev", "session_path": "$session_path", "session_depth": "$session_depth", "network_type": "$network_type", "is_roaming": "$is_roaming" }
                           },
                           "options": {
                             "0": { "goto": "*247#", "response": "" }
@@ -731,7 +731,7 @@
                       "response": "Loan application submitted!\nYou will receive an SMS\nwith the outcome shortly.\n\n0. Main Menu",
                       "cdpEvent": {
                         "eventId": "loan_applied",
-                        "properties": { "channel": "ussd", "bank": "equity", "service": "loan_application", "source": "direct", "amount_kes": "$input_prev" }
+                        "properties": { "channel": "ussd", "bank": "equity", "service": "loan_application", "source": "direct", "amount_kes": "$input_prev", "session_path": "$session_path", "session_depth": "$session_depth", "network_type": "$network_type", "is_roaming": "$is_roaming" }
                       },
                       "options": {
                         "0": { "goto": "*247#", "response": "" }

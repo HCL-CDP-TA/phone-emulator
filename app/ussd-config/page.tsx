@@ -162,6 +162,7 @@ export default function USSDConfigPage() {
   const [editCDPEventId, setEditCDPEventId] = useState("")
   const [editCDPProps, setEditCDPProps] = useState<CDPProp[]>([])
   const [newOptionKey, setNewOptionKey] = useState("")
+  const [showPlaceholders, setShowPlaceholders] = useState(false)
 
   const fetchConfig = useCallback(async () => {
     setIsLoading(true)
@@ -526,7 +527,7 @@ export default function USSDConfigPage() {
                             setEditCDPProps(updated)
                           }}
                           onBlur={applyNodeEdit}
-                          placeholder="value"
+                          placeholder="value or $placeholder"
                           className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs"
                         />
                         <button
@@ -539,6 +540,76 @@ export default function USSDConfigPage() {
                         </button>
                       </div>
                     ))}
+
+                    {/* Placeholder reference */}
+                    <div className="pt-1">
+                      <button
+                        onClick={() => setShowPlaceholders(v => !v)}
+                        className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium">
+                        <svg
+                          className={`w-3 h-3 transition-transform ${showPlaceholders ? "rotate-90" : ""}`}
+                          fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        {showPlaceholders ? "Hide" : "Show"} available placeholders
+                      </button>
+                      {showPlaceholders && (
+                        <div className="mt-2 rounded-lg border border-purple-200 bg-white p-3 space-y-3 text-xs">
+                          <div>
+                            <p className="font-semibold text-purple-700 mb-1">User Input</p>
+                            <div className="space-y-1">
+                              {[
+                                ["$input", "Most recent free-text entry"],
+                                ["$input_prev", "Second-most-recent free-text entry"],
+                                ["$input_prev2", "Third-most-recent free-text entry"],
+                              ].map(([token, desc]) => (
+                                <div key={token} className="flex items-baseline gap-2">
+                                  <code className="font-mono bg-purple-50 text-purple-800 px-1 rounded shrink-0">{token}</code>
+                                  <span className="text-gray-500">{desc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-purple-700 mb-1">Network</p>
+                            <div className="space-y-1">
+                              {[
+                                ["$imsi", "15-digit SIM identifier"],
+                                ["$imei", "15-digit device identifier"],
+                                ["$cell_id", "5-digit cell tower ID"],
+                                ["$lac", "4-digit Location Area Code"],
+                                ["$plmn", "MCC+MNC e.g. \"63910\" (Safaricom Kenya)"],
+                                ["$network_type", "\"2G\", \"3G\", or \"4G\""],
+                                ["$is_roaming", "true or false (boolean)"],
+                                ["$signal_dbm", "Signal strength e.g. -71 (number)"],
+                              ].map(([token, desc]) => (
+                                <div key={token} className="flex items-baseline gap-2">
+                                  <code className="font-mono bg-purple-50 text-purple-800 px-1 rounded shrink-0">{token}</code>
+                                  <span className="text-gray-500">{desc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-purple-700 mb-1">Session</p>
+                            <div className="space-y-1">
+                              {[
+                                ["$session_path", "Menu navigation path e.g. \"1>2>1\""],
+                                ["$session_depth", "Number of steps taken (number)"],
+                                ["$session_duration_s", "Seconds since session started (number)"],
+                              ].map(([token, desc]) => (
+                                <div key={token} className="flex items-baseline gap-2">
+                                  <code className="font-mono bg-purple-50 text-purple-800 px-1 rounded shrink-0">{token}</code>
+                                  <span className="text-gray-500">{desc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-gray-400 italic">Network &amp; session properties are auto-merged into every CDP event — no need to add them manually unless renaming.</p>
+                        </div>
+                      )}
+                    </div>
+
                     <button
                       onClick={() => setEditCDPProps([...editCDPProps, { key: "", value: "" }])}
                       className="text-xs text-purple-600 hover:text-purple-800 font-medium">

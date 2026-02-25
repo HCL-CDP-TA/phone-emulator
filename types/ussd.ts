@@ -17,6 +17,17 @@ export interface USSDConfig {
   networkName?: string
 }
 
+export interface USSDSessionMetadata {
+  imsi: string        // 15-digit SIM identifier
+  imei: string        // 15-digit device identifier (from client)
+  cellId: string      // 5-digit cell tower ID
+  lac: string         // 4-digit Location Area Code
+  plmn: string        // MCC+MNC e.g. "63910" = Safaricom Kenya
+  networkType: "2G" | "3G" | "4G"
+  isRoaming: boolean
+  signalDbm: number   // -55 to -95
+}
+
 export interface USSDSession {
   sessionId: string
   phoneNumber: string
@@ -25,6 +36,7 @@ export interface USSDSession {
   history: string[]
   inputBuffer: string[] // wildcard-matched inputs only, for $input placeholder resolution
   startedAt: number
+  metadata: USSDSessionMetadata
 }
 
 export interface USSDSessionResponse {
@@ -33,4 +45,5 @@ export interface USSDSessionResponse {
   sessionActive: boolean
   requiresInput: boolean
   networkName: string
+  sessionMetadata?: Pick<USSDSessionMetadata, "networkType" | "isRoaming" | "cellId" | "signalDbm">
 }

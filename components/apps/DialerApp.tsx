@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { AppProps } from "@/types/app"
+import { USSDSessionMetadata } from "@/types/ussd"
 
 type SessionState = "idle" | "loading" | "active" | "ended" | "imei"
+type SessionMeta = Pick<USSDSessionMetadata, "networkType" | "isRoaming" | "cellId" | "signalDbm">
 
 const KEYS = [
   { digit: "1", letters: "" },
@@ -75,6 +77,7 @@ export default function DialerApp({ onClose }: AppProps) {
   const [dialedCode, setDialedCode] = useState("")
   const [requiresInput, setRequiresInput] = useState(false)
   const [imei, setImei] = useState("")
+  const [sessionMeta, setSessionMeta] = useState<SessionMeta | null>(null)
 
   useEffect(() => {
     setImei(getOrCreateIMEI())
@@ -144,12 +147,13 @@ export default function DialerApp({ onClose }: AppProps) {
       const res = await fetch("/api/ussd/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, ussdCode: code }),
+        body: JSON.stringify({ phoneNumber, ussdCode: code, imei: getOrCreateIMEI() }),
       })
       const data = await res.json()
       setNetworkName(data.networkName ?? "Network")
       setUssdText(data.response)
       setRequiresInput(!!data.requiresInput)
+      if (data.sessionMetadata) setSessionMeta(data.sessionMetadata)
       if (data.sessionActive && data.sessionId) {
         setSessionId(data.sessionId)
         setSessionState("active")
@@ -176,6 +180,7 @@ export default function DialerApp({ onClose }: AppProps) {
       const data = await res.json()
       setUssdText(data.response)
       setRequiresInput(!!data.requiresInput)
+      if (data.sessionMetadata) setSessionMeta(data.sessionMetadata)
       if (data.sessionActive && data.sessionId) {
         setSessionId(data.sessionId)
         setSessionState("active")
@@ -220,6 +225,7 @@ export default function DialerApp({ onClose }: AppProps) {
     setDisplay("")
     setDialedCode("")
     setRequiresInput(false)
+    setSessionMeta(null)
   }
 
   const inSession = sessionState !== "idle"
@@ -259,9 +265,25 @@ export default function DialerApp({ onClose }: AppProps) {
                   <span className="text-sm">Connecting...</span>
                 </div>
               ) : (
-                <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">
-                  {ussdText}
-                </pre>
+                <>
+                  {sessionMeta && (
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                        sessionMeta.networkType === "4G" ? "bg-green-100 text-green-700"
+                        : sessionMeta.networkType === "3G" ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-600"
+                      }`}>{sessionMeta.networkType}</span>
+                      {sessionMeta.isRoaming && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700">ROAMING</span>
+                      )}
+                      <span className="text-[10px] text-gray-400 font-mono">{sessionMeta.signalDbm} dBm</span>
+                      <span className="text-[10px] text-gray-400 font-mono">Cell {sessionMeta.cellId}</span>
+                    </div>
+                  )}
+                  <pre className="text-sm font-mono whitespace-pre-wrap text-gray-800 leading-relaxed">
+                    {ussdText}
+                  </pre>
+                </>
               )}
             </div>
           </div>

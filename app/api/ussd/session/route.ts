@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { ApiClient, ApiConfiguration, ApiRequest, UserIdentity, UserIdentityType, EventType } from "@hcl-cdp-ta/cdp-node-sdk"
 import { USSDSession, USSDNode, USSDCDPEvent } from "@/types/ussd"
 import { getUSSDConfig } from "../config/route"
+import { generateSessionMetadata } from "@/lib/ussdSessionMetadata"
 
 // In-memory session store
 const sessions = new Map<string, USSDSession>()
@@ -12,6 +13,10 @@ setInterval(() => {
   const now = Date.now()
   for (const [id, session] of sessions.entries()) {
     if (now - session.startedAt > SESSION_TIMEOUT_MS) {
+      fireCDPEvent(session, {
+        eventId: "ussd_session_abandoned",
+        properties: { channel: "ussd", service_code: session.rootCode },
+      }).catch(() => {})
       sessions.delete(id)
     }
   }
@@ -21,24 +26,68 @@ function generateSessionId(): string {
   return `ussd_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-// Resolve $input, $input_prev, $input_prev2 placeholders in CDP event properties.
-// These reference the inputBuffer (wildcard-matched user inputs, oldest first).
+// Resolve placeholders in CDP event properties.
+// Supports $input/$input_prev/$input_prev2 (input buffer) and
+// network/session metadata placeholders from the session.
 function resolveProperties(
   props: Record<string, string | number | boolean> | undefined,
-  inputBuffer: string[],
+  session: USSDSession,
 ): Record<string, string | number | boolean> {
   if (!props) return {}
+  const { inputBuffer, metadata, history, startedAt } = session
   const resolved: Record<string, string | number | boolean> = {}
+
   for (const [key, value] of Object.entries(props)) {
     if (typeof value === "string") {
-      if (value === "$input" && inputBuffer.length >= 1) {
-        resolved[key] = inputBuffer[inputBuffer.length - 1]
-      } else if (value === "$input_prev" && inputBuffer.length >= 2) {
-        resolved[key] = inputBuffer[inputBuffer.length - 2]
-      } else if (value === "$input_prev2" && inputBuffer.length >= 3) {
-        resolved[key] = inputBuffer[inputBuffer.length - 3]
-      } else {
-        resolved[key] = value
+      switch (value) {
+        // Input buffer placeholders
+        case "$input":
+          resolved[key] = inputBuffer.length >= 1 ? inputBuffer[inputBuffer.length - 1] : value
+          break
+        case "$input_prev":
+          resolved[key] = inputBuffer.length >= 2 ? inputBuffer[inputBuffer.length - 2] : value
+          break
+        case "$input_prev2":
+          resolved[key] = inputBuffer.length >= 3 ? inputBuffer[inputBuffer.length - 3] : value
+          break
+        // Network metadata placeholders (string values)
+        case "$imsi":
+          resolved[key] = metadata.imsi
+          break
+        case "$imei":
+          resolved[key] = metadata.imei
+          break
+        case "$cell_id":
+          resolved[key] = metadata.cellId
+          break
+        case "$lac":
+          resolved[key] = metadata.lac
+          break
+        case "$plmn":
+          resolved[key] = metadata.plmn
+          break
+        case "$network_type":
+          resolved[key] = metadata.networkType
+          break
+        // Boolean placeholder — replaces entire value
+        case "$is_roaming":
+          resolved[key] = metadata.isRoaming
+          break
+        // Number placeholders — replaces entire value
+        case "$signal_dbm":
+          resolved[key] = metadata.signalDbm
+          break
+        case "$session_path":
+          resolved[key] = history.join(">")
+          break
+        case "$session_depth":
+          resolved[key] = history.length
+          break
+        case "$session_duration_s":
+          resolved[key] = Math.round((Date.now() - startedAt) / 1000)
+          break
+        default:
+          resolved[key] = value
       }
     } else {
       resolved[key] = value
@@ -47,7 +96,7 @@ function resolveProperties(
   return resolved
 }
 
-async function fireCDPEvent(phoneNumber: string, event: USSDCDPEvent, inputBuffer: string[] = []): Promise<void> {
+async function fireCDPEvent(session: USSDSession, event: USSDCDPEvent): Promise<void> {
   const apiKey = process.env.CDP_API_KEY
   const passKey = process.env.CDP_PASS_KEY
 
@@ -59,12 +108,29 @@ async function fireCDPEvent(phoneNumber: string, event: USSDCDPEvent, inputBuffe
   try {
     const config = new ApiConfiguration(apiKey, passKey)
     const client = new ApiClient(config)
-    const identity = new UserIdentity(UserIdentityType.Primary, "userId", phoneNumber)
-    const resolvedProps = resolveProperties(event.properties, inputBuffer)
-    const request = new ApiRequest(EventType.Track, event.eventId, identity, resolvedProps)
+    const identity = new UserIdentity(UserIdentityType.Primary, "userId", session.phoneNumber)
 
-    const response = await client.sendEvent(request)
-    console.log(`[USSD] CDP event fired: "${event.eventId}" for ${phoneNumber} — ${response.response?.message ?? "ok"}`)
+    // Base properties auto-merged into every event
+    const baseProperties: Record<string, string | number | boolean> = {
+      imsi: session.metadata.imsi,
+      imei: session.metadata.imei,
+      cell_id: session.metadata.cellId,
+      lac: session.metadata.lac,
+      plmn: session.metadata.plmn,
+      network_type: session.metadata.networkType,
+      is_roaming: session.metadata.isRoaming,
+      signal_dbm: session.metadata.signalDbm,
+      session_path: session.history.join(">"),
+      session_depth: session.history.length,
+      session_duration_s: Math.round((Date.now() - session.startedAt) / 1000),
+    }
+
+    // Node-defined properties override base (allows rename/override if desired)
+    const mergedProps = { ...baseProperties, ...resolveProperties(event.properties, session) }
+
+    const apiRequest = new ApiRequest(EventType.Track, event.eventId, identity, mergedProps)
+    const response = await client.sendEvent(apiRequest)
+    console.log(`[USSD] CDP event fired: "${event.eventId}" for ${session.phoneNumber} — ${response.response?.message ?? "ok"}`)
   } catch (err) {
     console.warn(`[USSD] CDP event failed (non-fatal):`, err instanceof Error ? err.message : err)
   }
@@ -78,7 +144,7 @@ export async function POST(request: Request) {
 
     // --- New session ---
     if (body.ussdCode) {
-      const { phoneNumber, ussdCode } = body
+      const { phoneNumber, ussdCode, imei } = body
 
       if (!phoneNumber || !ussdCode) {
         return NextResponse.json({ error: "Missing phoneNumber or ussdCode" }, { status: 400 })
@@ -100,6 +166,9 @@ export async function POST(request: Request) {
       }
 
       const sessionId = generateSessionId()
+      const startedAt = Date.now()
+      const metadata = generateSessionMetadata(phoneNumber, startedAt, imei)
+
       const session: USSDSession = {
         sessionId,
         phoneNumber,
@@ -107,12 +176,13 @@ export async function POST(request: Request) {
         rootCode: ussdCode,
         history: [],
         inputBuffer: [],
-        startedAt: Date.now(),
+        startedAt,
+        metadata,
       }
       sessions.set(sessionId, session)
 
       if (rootNode.cdpEvent) {
-        fireCDPEvent(phoneNumber, rootNode.cdpEvent, session.inputBuffer)
+        fireCDPEvent(session, rootNode.cdpEvent)
       }
 
       const sessionActive = !rootNode.sessionEnd
@@ -126,6 +196,12 @@ export async function POST(request: Request) {
         sessionActive,
         requiresInput: !!rootNode.isInput,
         networkName,
+        sessionMetadata: {
+          networkType: metadata.networkType,
+          isRoaming: metadata.isRoaming,
+          cellId: metadata.cellId,
+          signalDbm: metadata.signalDbm,
+        },
       })
     }
 
@@ -157,6 +233,12 @@ export async function POST(request: Request) {
           sessionActive: true,
           requiresInput: !!currentNode.isInput,
           networkName,
+          sessionMetadata: {
+            networkType: session.metadata.networkType,
+            isRoaming: session.metadata.isRoaming,
+            cellId: session.metadata.cellId,
+            signalDbm: session.metadata.signalDbm,
+          },
         })
       }
 
@@ -177,7 +259,7 @@ export async function POST(request: Request) {
       session.currentNode = resolvedNode
 
       if (resolvedNode.cdpEvent) {
-        fireCDPEvent(session.phoneNumber, resolvedNode.cdpEvent, session.inputBuffer)
+        fireCDPEvent(session, resolvedNode.cdpEvent)
       }
 
       const sessionActive = !resolvedNode.sessionEnd
@@ -191,6 +273,12 @@ export async function POST(request: Request) {
         sessionActive,
         requiresInput: !!resolvedNode.isInput,
         networkName,
+        sessionMetadata: {
+          networkType: session.metadata.networkType,
+          isRoaming: session.metadata.isRoaming,
+          cellId: session.metadata.cellId,
+          signalDbm: session.metadata.signalDbm,
+        },
       })
     }
 
