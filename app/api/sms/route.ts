@@ -6,7 +6,7 @@ import { broadcastToUnifiedStream } from "@/app/api/stream/route"
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { sender, message, phoneNumber } = body
+    const { sender, message, phoneNumber, avatarInitials, avatarUrl } = body
 
     // Validate required fields
     if (!sender || !message) {
@@ -26,13 +26,20 @@ export async function POST(request: Request) {
       sender: sender.trim(),
       message: message.trim(),
       timestamp: new Date().toISOString(),
+      ...(avatarInitials && { avatarInitials: String(avatarInitials) }),
+      ...(avatarUrl && { avatarUrl: String(avatarUrl) }),
     }
 
     // If phoneNumber provided, try SSE first, fallback to queue
     if (phoneNumber) {
       const delivered =
-        broadcastToPhone(phoneNumber, smsData.sender, smsData.message) ||
-        broadcastToUnifiedStream(phoneNumber, "sms", { sender: smsData.sender, message: smsData.message })
+        broadcastToPhone(phoneNumber, smsData.sender, smsData.message, smsData.avatarInitials, smsData.avatarUrl) ||
+        broadcastToUnifiedStream(phoneNumber, "sms", {
+          sender: smsData.sender,
+          message: smsData.message,
+          ...(smsData.avatarInitials && { avatarInitials: smsData.avatarInitials }),
+          ...(smsData.avatarUrl && { avatarUrl: smsData.avatarUrl }),
+        })
 
       if (delivered) {
         // Message delivered via SSE

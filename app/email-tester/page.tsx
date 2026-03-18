@@ -16,6 +16,8 @@ export default function EmailTesterPage() {
   <li>24/7 customer support</li>
 </ul>
 <p>Don't miss out on this limited-time offer!</p>`)
+  const [avatarInitials, setAvatarInitials] = useState("")
+  const [avatarUrl, setAvatarUrl] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("+12345678901")
   const [status, setStatus] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -35,12 +37,14 @@ export default function EmailTesterPage() {
     const doc = previewIframeRef.current.contentDocument
     if (!doc) return
     const senderDisplay = fromName ? fromName : from
-    const initials = senderDisplay
-      .split(" ")
-      .map((w: string) => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
+    const initials = avatarInitials
+      ? avatarInitials.substring(0, 2).toUpperCase()
+      : senderDisplay
+          .split(" ")
+          .map((w: string) => w[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
     doc.open()
     doc.write(`<!DOCTYPE html>
 <html>
@@ -55,6 +59,7 @@ export default function EmailTesterPage() {
   .avatar { width: 40px; height: 40px; border-radius: 50%; background: #3b82f6; color: white;
             display: flex; align-items: center; justify-content: center; font-weight: 600;
             font-size: 14px; flex-shrink: 0; }
+  .avatar-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
   .sender-info { flex: 1; min-width: 0; }
   .sender-name { font-weight: 600; font-size: 15px; color: #111827; }
   .sender-email { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -67,7 +72,7 @@ export default function EmailTesterPage() {
 <body>
 <div class="header">
   <div class="sender-row">
-    <div class="avatar">${initials || "?"}</div>
+    ${avatarUrl ? `<img class="avatar-img" src="${avatarUrl}" alt="Avatar" />` : `<div class="avatar">${initials || "?"}</div>`}
     <div class="sender-info">
       <div class="sender-name">${senderDisplay || "Unknown Sender"}</div>
       <div class="sender-email">${from || ""}</div>
@@ -79,7 +84,7 @@ export default function EmailTesterPage() {
 </body>
 </html>`)
     doc.close()
-  }, [activeTab, htmlContent, from, fromName, subject])
+  }, [activeTab, htmlContent, from, fromName, subject, avatarInitials, avatarUrl])
 
   // Strip HTML tags for text content
   const stripHtml = (html: string): string => {
@@ -110,6 +115,8 @@ export default function EmailTesterPage() {
           subject,
           htmlContent: htmlContent.trim(),
           textContent: stripHtml(htmlContent),
+          ...(avatarInitials.trim() && { avatarInitials: avatarInitials.trim() }),
+          ...(avatarUrl.trim() && { avatarUrl: avatarUrl.trim() }),
         }),
       })
 
@@ -328,6 +335,60 @@ export default function EmailTesterPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-xs text-gray-500 mt-1">Optional: Display name shown instead of email address</p>
+            </div>
+
+            {/* Avatar customisation */}
+            <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">Avatar (optional)</label>
+                <div className="shrink-0">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar preview"
+                      className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+                      onLoad={e => { (e.target as HTMLImageElement).style.display = "" }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-sm font-semibold text-white">
+                      {avatarInitials
+                        ? avatarInitials.substring(0, 2).toUpperCase()
+                        : (fromName || from)
+                            .split(" ")
+                            .map(w => w[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2) || "?"}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Initials override (1–2 chars)</label>
+                  <input
+                    type="text"
+                    value={avatarInitials}
+                    onChange={e => setAvatarInitials(e.target.value.substring(0, 2))}
+                    maxLength={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono uppercase"
+                    placeholder="e.g. AM"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Image URL (100×100px recommended)</label>
+                  <input
+                    type="text"
+                    value={avatarUrl}
+                    onChange={e => setAvatarUrl(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">Image URL takes precedence over initials. Both are optional.</p>
             </div>
 
             <div>

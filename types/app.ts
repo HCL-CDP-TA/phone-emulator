@@ -52,6 +52,8 @@ export interface SMS {
   message: string
   timestamp: Date
   read: boolean
+  avatarInitials?: string
+  avatarUrl?: string
 }
 
 export interface Email {
@@ -64,6 +66,8 @@ export interface Email {
   textContent: string
   timestamp: Date
   read: boolean
+  avatarInitials?: string
+  avatarUrl?: string
 }
 
 export interface WhatsAppButton {
@@ -80,6 +84,7 @@ export interface WhatsAppMessage {
   sender: string
   senderNumber?: string
   profilePictureUrl?: string
+  avatarInitials?: string
   message: string
   timestamp: Date
   read: boolean

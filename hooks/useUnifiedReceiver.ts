@@ -18,6 +18,21 @@ export function useUnifiedReceiver(phoneNumber: string | null) {
   const { addSMS, addEmail, addWhatsApp, addNotification, openApp } = usePhone()
   const eventSourceRef = useRef<EventSource | null>(null)
 
+  // Keep fresh refs so the long-lived SSE handler always calls the latest
+  // versions of these callbacks (which change every second due to currentTime)
+  const addSMSRef = useRef(addSMS)
+  const addEmailRef = useRef(addEmail)
+  const addWhatsAppRef = useRef(addWhatsApp)
+  const addNotificationRef = useRef(addNotification)
+  const openAppRef = useRef(openApp)
+  useEffect(() => {
+    addSMSRef.current = addSMS
+    addEmailRef.current = addEmail
+    addWhatsAppRef.current = addWhatsApp
+    addNotificationRef.current = addNotification
+    openAppRef.current = openApp
+  })
+
   useEffect(() => {
     if (!phoneNumber) return
 
@@ -45,35 +60,37 @@ export function useUnifiedReceiver(phoneNumber: string | null) {
           }
 
           if (data.type === "sms") {
-            const { sender, message } = data
+            const { sender, message, avatarInitials, avatarUrl } = data
             if (sender && message) {
               console.log("[Unified SSE] SMS from", sender)
-              addSMS({ sender, message })
+              addSMSRef.current({ sender, message, avatarInitials, avatarUrl })
             }
             return
           }
 
           if (data.type === "email") {
-            const { from, fromName, to, subject, htmlContent, textContent } = data
+            const { from, fromName, to, subject, htmlContent, textContent, avatarInitials, avatarUrl } = data
             if (from && subject) {
               console.log("[Unified SSE] Email from", from)
-              addEmail({
+              addEmailRef.current({
                 from,
                 fromName,
                 to: to || phoneNumber,
                 subject,
                 htmlContent,
                 textContent: textContent || subject,
+                avatarInitials,
+                avatarUrl,
               })
             }
             return
           }
 
           if (data.type === "whatsapp") {
-            const { sender, message, senderNumber, profilePictureUrl, buttons } = data
+            const { sender, message, senderNumber, profilePictureUrl, avatarInitials, buttons } = data
             if (sender && message) {
               console.log("[Unified SSE] WhatsApp from", sender)
-              addWhatsApp({ sender, message, senderNumber, profilePictureUrl, buttons })
+              addWhatsAppRef.current({ sender, message, senderNumber, profilePictureUrl, avatarInitials, buttons })
             }
             return
           }
@@ -131,7 +148,7 @@ export function useUnifiedReceiver(phoneNumber: string | null) {
             }
 
             console.log("[Unified SSE] Push notification for app", appId)
-            addNotification({
+            addNotificationRef.current({
               appId,
               appName,
               title,
@@ -140,7 +157,7 @@ export function useUnifiedReceiver(phoneNumber: string | null) {
               iconColor,
               imageUrl,
               actionButtons,
-              onClick: () => openApp(appId),
+              onClick: () => openAppRef.current(appId),
             })
           }
         } catch (error) {

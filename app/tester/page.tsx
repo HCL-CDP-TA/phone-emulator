@@ -16,6 +16,8 @@ function TesterContent() {
   const [sessionId] = useState(() => searchParams.get("session") || "")
   const [deliveryMethod, setDeliveryMethod] = useState<"local" | "remote">("remote")
   const [phoneNumber, setPhoneNumber] = useState("+12345678901")
+  const [avatarInitials, setAvatarInitials] = useState("")
+  const [avatarUrl, setAvatarUrl] = useState("")
   const [isLoaded, setIsLoaded] = useState(false)
   const [savedNumbers, setSavedNumbers] = useState<string[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
@@ -77,8 +79,16 @@ function TesterContent() {
 
   const handleSendSMS = async () => {
     try {
+      const avatarFields = {
+        ...(avatarInitials.trim() && { avatarInitials: avatarInitials.trim() }),
+        ...(avatarUrl.trim() && { avatarUrl: avatarUrl.trim() }),
+      }
+
       // Build request body based on delivery method
-      const requestBody = deliveryMethod === "remote" ? { phoneNumber, sender, message } : { sender, message }
+      const requestBody =
+        deliveryMethod === "remote"
+          ? { phoneNumber, sender, message, ...avatarFields }
+          : { sender, message, ...avatarFields }
 
       // Call the API endpoint
       const response = await fetch("/api/sms", {
@@ -94,7 +104,7 @@ function TesterContent() {
       if (response.ok) {
         if (deliveryMethod === "local") {
           // Trigger the SMS on the phone using BroadcastChannel
-          sendSMSToPhone(sender, message, sessionId)
+          sendSMSToPhone(sender, message, sessionId, avatarFields.avatarInitials, avatarFields.avatarUrl)
         }
         setStatus(`✅ SMS sent successfully via ${deliveryMethod === "remote" ? "remote" : "local"} delivery!`)
       } else {
@@ -268,6 +278,54 @@ function TesterContent() {
               />
             </div>
 
+            {/* Avatar customisation */}
+            <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">Avatar (optional)</label>
+                {/* Live preview */}
+                <div className="shrink-0">
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar preview"
+                      className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none" }}
+                      onLoad={e => { (e.target as HTMLImageElement).style.display = "" }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-500">
+                      {avatarInitials ? avatarInitials.substring(0, 2).toUpperCase() : (sender ? (sender.trim().split(/\s+/).length > 1 ? (sender.trim().split(/\s+/)[0][0] + sender.trim().split(/\s+/)[1][0]).toUpperCase() : sender.trim().substring(0, 2).toUpperCase()) : "?")}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Initials override (1–2 chars)</label>
+                  <input
+                    type="text"
+                    value={avatarInitials}
+                    onChange={e => setAvatarInitials(e.target.value.substring(0, 2))}
+                    maxLength={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono uppercase"
+                    placeholder="e.g. AM"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Image URL (100×100px recommended)</label>
+                  <input
+                    type="text"
+                    value={avatarUrl}
+                    onChange={e => setAvatarUrl(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">Image URL takes precedence over initials. Both are optional.</p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
               <textarea
@@ -335,7 +393,17 @@ function TesterContent() {
                 </div>
                 <div className="ml-4">
                   <span className="text-blue-400">"message"</span>:{" "}
-                  <span className="text-yellow-400">"Your message here"</span>
+                  <span className="text-yellow-400">"Your message here"</span>,
+                </div>
+                <div className="ml-4 text-gray-500">
+                  <span className="text-blue-300">"avatarInitials"</span>:{" "}
+                  <span className="text-yellow-300">"DM"</span>
+                  <span className="text-gray-500 text-xs ml-2">// optional</span>
+                </div>
+                <div className="ml-4 text-gray-500">
+                  <span className="text-blue-300">"avatarUrl"</span>:{" "}
+                  <span className="text-yellow-300">"https://..."</span>
+                  <span className="text-gray-500 text-xs ml-2">// optional, overrides initials</span>
                 </div>
                 <div className="text-gray-400">{"}"}</div>
               </div>

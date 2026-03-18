@@ -5,14 +5,25 @@ import { NextRequest } from "next/server"
 const activeConnections = new Map<string, Set<ReadableStreamDefaultController>>()
 
 // Helper to broadcast message to all connections for a phone number
-export function broadcastToPhone(phoneNumber: string, sender: string, message: string) {
+export function broadcastToPhone(
+  phoneNumber: string,
+  sender: string,
+  message: string,
+  avatarInitials?: string,
+  avatarUrl?: string,
+) {
   const connections = activeConnections.get(phoneNumber)
   if (!connections || connections.size === 0) {
     console.log(`[SSE] No active connections for ${phoneNumber}`)
     return false
   }
 
-  const data = JSON.stringify({ sender, message })
+  const data = JSON.stringify({
+    sender,
+    message,
+    ...(avatarInitials && { avatarInitials }),
+    ...(avatarUrl && { avatarUrl }),
+  })
   const sseMessage = `data: ${data}\n\n`
 
   console.log(`[SSE] Broadcasting to ${connections.size} connection(s) for ${phoneNumber}`)

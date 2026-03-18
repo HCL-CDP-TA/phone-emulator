@@ -13,6 +13,8 @@ export function broadcastEmailToPhone(
   subject: string,
   htmlContent: string | undefined,
   textContent: string,
+  avatarInitials?: string,
+  avatarUrl?: string,
 ) {
   const connections = activeConnections.get(phoneNumber)
   if (!connections || connections.size === 0) {
@@ -28,6 +30,8 @@ export function broadcastEmailToPhone(
     htmlContent,
     textContent,
     timestamp: Date.now(),
+    ...(avatarInitials && { avatarInitials }),
+    ...(avatarUrl && { avatarUrl }),
   })
   const sseMessage = `data: ${data}\n\n`
 

@@ -13,6 +13,7 @@ export function broadcastWhatsAppToPhone(
   senderNumber?: string,
   profilePictureUrl?: string,
   buttons?: WhatsAppButton[],
+  avatarInitials?: string,
 ) {
   const connections = activeConnections.get(phoneNumber)
   if (!connections || connections.size === 0) {
@@ -25,6 +26,7 @@ export function broadcastWhatsAppToPhone(
     message,
     senderNumber,
     profilePictureUrl,
+    ...(avatarInitials && { avatarInitials }),
     buttons,
     timestamp: Date.now(),
   })

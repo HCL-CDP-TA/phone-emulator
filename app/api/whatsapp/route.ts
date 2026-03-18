@@ -6,7 +6,7 @@ import { WhatsAppButton } from "@/types/app"
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { sender, message, phoneNumber, senderNumber, profilePictureUrl, buttons } = body
+    const { sender, message, phoneNumber, senderNumber, profilePictureUrl, avatarInitials, buttons } = body
 
     // Validate required fields
     if (!sender || !message) {
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       message: message.trim(),
       senderNumber: senderNumber?.trim(),
       profilePictureUrl: profilePictureUrl?.trim(),
+      ...(avatarInitials && { avatarInitials: String(avatarInitials) }),
       buttons: buttons as WhatsAppButton[] | undefined,
       timestamp: new Date().toISOString(),
     }
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
           messageData.senderNumber,
           messageData.profilePictureUrl,
           messageData.buttons,
+          messageData.avatarInitials,
         ) ||
         broadcastToUnifiedStream(phoneNumber, "whatsapp", messageData as Record<string, unknown>)
 

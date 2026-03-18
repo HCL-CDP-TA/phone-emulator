@@ -274,8 +274,7 @@ function PhoneEmulator() {
         if (!response.ok) throw new Error("Failed to fetch presets")
         const data = await response.json()
         setLocationPresets(data.data)
-      } catch (error) {
-        console.error("Failed to load location presets:", error)
+      } catch {
         setLocationPresets([])
       }
     }

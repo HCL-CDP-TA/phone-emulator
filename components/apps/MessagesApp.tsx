@@ -10,6 +10,8 @@ interface Conversation {
   messages: SMS[]
   lastMessage: SMS
   unreadCount: number
+  avatarInitials?: string
+  avatarUrl?: string
 }
 
 // Generate initials from sender name (1-2 letters)
@@ -55,19 +57,42 @@ function getAvatarColor(name: string): string {
 }
 
 // Avatar component
-function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
+function Avatar({
+  name,
+  size = "md",
+  avatarInitials,
+  avatarUrl,
+}: {
+  name: string
+  size?: "sm" | "md" | "lg"
+  avatarInitials?: string
+  avatarUrl?: string
+}) {
   const sizeClasses = {
     sm: "w-8 h-8 text-xs",
     md: "w-10 h-10 text-sm",
     lg: "w-12 h-12 text-base",
   }
 
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt={name}
+        className={`${sizeClasses[size]} rounded-full object-cover shrink-0`}
+      />
+    )
+  }
+
+  const initials = avatarInitials ? avatarInitials.substring(0, 2).toUpperCase() : getInitials(name)
+
   return (
     <div
       className={`${sizeClasses[size]} ${getAvatarColor(
         name,
       )} rounded-full flex items-center justify-center text-white font-semibold shrink-0`}>
-      {getInitials(name)}
+      {initials}
     </div>
   )
 }
@@ -89,11 +114,14 @@ export default function MessagesApp({ onClose }: AppProps) {
     const conversationList: Conversation[] = []
     grouped.forEach((messages, sender) => {
       const sortedMessages = messages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      const lastMessage = sortedMessages[0]
       conversationList.push({
         sender,
         messages: sortedMessages,
-        lastMessage: sortedMessages[0],
+        lastMessage,
         unreadCount: sortedMessages.filter(m => !m.read).length,
+        avatarInitials: lastMessage.avatarInitials,
+        avatarUrl: lastMessage.avatarUrl,
       })
     })
 
@@ -211,7 +239,7 @@ export default function MessagesApp({ onClose }: AppProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <Avatar name={conversation.sender} size="md" />
+          <Avatar name={conversation.sender} size="md" avatarInitials={conversation.avatarInitials} avatarUrl={conversation.avatarUrl} />
           <div className="flex-1">
             <h1 className="text-lg font-semibold">{conversation.sender}</h1>
           </div>
@@ -325,7 +353,7 @@ export default function MessagesApp({ onClose }: AppProps) {
                 onClick={() => handleConversationClick(conversation.sender)}
                 className={`p-4 cursor-pointer hover:bg-gray-50 ${conversation.unreadCount > 0 ? "bg-blue-50" : ""}`}>
                 <div className="flex items-start gap-3">
-                  <Avatar name={conversation.sender} size="md" />
+                  <Avatar name={conversation.sender} size="md" avatarInitials={conversation.avatarInitials} avatarUrl={conversation.avatarUrl} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">

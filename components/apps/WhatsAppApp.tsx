@@ -55,19 +55,29 @@ function getAvatarColor(name: string): string {
 }
 
 // Avatar component
-function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
+function Avatar({
+  name,
+  size = "md",
+  avatarInitials,
+}: {
+  name: string
+  size?: "sm" | "md" | "lg"
+  avatarInitials?: string
+}) {
   const sizeClasses = {
     sm: "w-8 h-8 text-xs",
     md: "w-10 h-10 text-sm",
     lg: "w-12 h-12 text-base",
   }
 
+  const initials = avatarInitials ? avatarInitials.substring(0, 2).toUpperCase() : getInitials(name)
+
   return (
     <div
       className={`${sizeClasses[size]} ${getAvatarColor(
         name,
       )} rounded-full flex items-center justify-center text-white font-semibold shrink-0`}>
-      {getInitials(name)}
+      {initials}
     </div>
   )
 }
@@ -77,10 +87,12 @@ function ProfilePicture({
   src,
   name,
   size = "md",
+  avatarInitials,
 }: {
   src?: string
   name: string
   size?: "sm" | "md" | "lg"
+  avatarInitials?: string
 }) {
   const [imageError, setImageError] = useState(false)
 
@@ -91,7 +103,7 @@ function ProfilePicture({
   }
 
   if (!src || imageError) {
-    return <Avatar name={name} size={size} />
+    return <Avatar name={name} size={size} avatarInitials={avatarInitials} />
   }
 
   return (
@@ -222,6 +234,7 @@ export default function WhatsAppApp({ onClose }: AppProps) {
             src={conversation.lastMessage.profilePictureUrl}
             name={conversation.sender}
             size="md"
+            avatarInitials={conversation.lastMessage.avatarInitials}
           />
           <div className="flex-1">
             <h1 className="text-lg font-semibold">{conversation.sender}</h1>
@@ -374,6 +387,7 @@ export default function WhatsAppApp({ onClose }: AppProps) {
                     src={conversation.lastMessage.profilePictureUrl}
                     name={conversation.sender}
                     size="md"
+                    avatarInitials={conversation.lastMessage.avatarInitials}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">

@@ -49,19 +49,42 @@ function getAvatarColor(email: string): string {
 }
 
 // Avatar component
-function Avatar({ email, size = "md" }: { email: string; size?: "sm" | "md" | "lg" }) {
+function Avatar({
+  email,
+  size = "md",
+  avatarInitials,
+  avatarUrl,
+}: {
+  email: string
+  size?: "sm" | "md" | "lg"
+  avatarInitials?: string
+  avatarUrl?: string
+}) {
   const sizeClasses = {
     sm: "w-8 h-8 text-xs",
     md: "w-10 h-10 text-sm",
     lg: "w-12 h-12 text-base",
   }
 
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt={email}
+        className={`${sizeClasses[size]} rounded-full object-cover shrink-0`}
+      />
+    )
+  }
+
+  const initials = avatarInitials ? avatarInitials.substring(0, 2).toUpperCase() : getInitials(email)
+
   return (
     <div
       className={`${sizeClasses[size]} ${getAvatarColor(
         email,
       )} rounded-full flex items-center justify-center text-white font-semibold shrink-0`}>
-      {getInitials(email)}
+      {initials}
     </div>
   )
 }
@@ -221,7 +244,7 @@ export default function EmailApp({ onClose }: AppProps) {
           {/* From/To/Date */}
           <div className="mb-4 pb-4 border-b">
             <div className="flex items-start gap-3 mb-2">
-              <Avatar email={email.from} size="md" />
+              <Avatar email={email.from} size="md" avatarInitials={email.avatarInitials} avatarUrl={email.avatarUrl} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{email.fromName || email.from}</div>
                 {email.fromName && <div className="text-xs text-gray-500 truncate">{email.from}</div>}
@@ -289,7 +312,7 @@ export default function EmailApp({ onClose }: AppProps) {
                   onClick={() => handleEmailClick(email.id)}
                   className={`p-4 cursor-pointer hover:bg-gray-50 ${!email.read ? "bg-blue-50" : ""}`}>
                   <div className="flex items-start gap-3">
-                    <Avatar email={email.from} size="md" />
+                    <Avatar email={email.from} size="md" avatarInitials={email.avatarInitials} avatarUrl={email.avatarUrl} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className={`font-semibold truncate ${!email.read ? "text-blue-600" : "text-gray-900"}`}>

@@ -29,14 +29,14 @@ export function useSMSReceiver() {
     const channel = new BroadcastChannel("phone-sms-channel")
 
     channel.onmessage = event => {
-      const { sender, message, targetSession } = event.data
+      const { sender, message, targetSession, avatarInitials, avatarUrl } = event.data
       console.log("[BroadcastChannel] Received:", { sender, message, targetSession, mySession: sessionId })
 
       // Only process if message is for this session (or broadcast to all)
       if (targetSession === sessionId || targetSession === "*") {
         if (sender && message) {
           console.log("[BroadcastChannel] Processing SMS")
-          addSMS({ sender, message })
+          addSMS({ sender, message, avatarInitials, avatarUrl })
         }
       } else {
         console.log("[BroadcastChannel] Ignoring - not for this session")
@@ -46,11 +46,11 @@ export function useSMSReceiver() {
     // Also listen for same-window events (for backward compatibility)
     const handleSMSEvent = (event: Event) => {
       const customEvent = event as CustomEvent
-      const { sender, message } = customEvent.detail
+      const { sender, message, avatarInitials, avatarUrl } = customEvent.detail
       console.log("[CustomEvent] Received:", { sender, message })
       if (sender && message) {
         console.log("[CustomEvent] Processing SMS")
-        addSMS({ sender, message })
+        addSMS({ sender, message, avatarInitials, avatarUrl })
       }
     }
 
@@ -66,7 +66,13 @@ export function useSMSReceiver() {
 }
 
 // Global function to send SMS (can be called from tester page or API)
-export function sendSMSToPhone(sender: string, message: string, targetSession?: string) {
+export function sendSMSToPhone(
+  sender: string,
+  message: string,
+  targetSession?: string,
+  avatarInitials?: string,
+  avatarUrl?: string,
+) {
   console.log("[sendSMSToPhone] Called with:", { sender, message, targetSession })
 
   // If no targetSession specified, use CustomEvent (same window - on-page tester)
@@ -74,7 +80,7 @@ export function sendSMSToPhone(sender: string, message: string, targetSession?: 
   if (!targetSession) {
     console.log("[sendSMSToPhone] No targetSession - using CustomEvent (same window)")
     const event = new CustomEvent("sms-received", {
-      detail: { sender, message },
+      detail: { sender, message, avatarInitials, avatarUrl },
     })
     window.dispatchEvent(event)
   } else {
@@ -85,6 +91,8 @@ export function sendSMSToPhone(sender: string, message: string, targetSession?: 
       sender,
       message,
       targetSession: targetSession,
+      avatarInitials,
+      avatarUrl,
     })
     channel.close()
   }

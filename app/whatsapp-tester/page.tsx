@@ -16,6 +16,7 @@ function TesterContent() {
   const [sender, setSender] = useState("Demo Shop")
   const [senderNumber, setSenderNumber] = useState("+15555551234")
   const [profilePictureUrl, setProfilePictureUrl] = useState("")
+  const [avatarInitials, setAvatarInitials] = useState("")
   const [message, setMessage] = useState("Your order #12345 is ready for pickup!")
   const [buttons, setButtons] = useState<ButtonConfig[]>([
     { id: "btn1", text: "Confirm Pickup", type: "quick_reply" },
@@ -165,6 +166,7 @@ function TesterContent() {
         sender,
         senderNumber: senderNumber || undefined,
         profilePictureUrl: profilePictureUrl || undefined,
+        avatarInitials: avatarInitials.trim() || undefined,
         message,
         buttons: buttons.length > 0 ? buttons : undefined,
       }
@@ -295,6 +297,24 @@ function TesterContent() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono"
                 placeholder="+15555551234"
               />
+            </div>
+
+            {/* Avatar Initials (Optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Avatar Initials <span className="text-gray-400">(optional, 1–2 chars)</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={avatarInitials}
+                  onChange={e => setAvatarInitials(e.target.value.substring(0, 2))}
+                  maxLength={2}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono uppercase text-sm"
+                  placeholder="e.g. DS"
+                />
+                <p className="text-xs text-gray-500">Overrides auto-generated initials. Ignored when a profile picture URL is set.</p>
+              </div>
             </div>
 
             {/* Profile Picture URL (Optional) */}

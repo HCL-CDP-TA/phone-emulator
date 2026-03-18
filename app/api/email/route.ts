@@ -5,7 +5,7 @@ import { broadcastToUnifiedStream } from "@/app/api/stream/route"
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { from, fromName, to, subject, htmlContent, textContent, phoneNumber } = body
+    const { from, fromName, to, subject, htmlContent, textContent, phoneNumber, avatarInitials, avatarUrl } = body
 
     // Validate required fields
     if (!from || !subject) {
@@ -41,6 +41,8 @@ export async function POST(request: Request) {
       htmlContent: htmlContent?.trim(),
       textContent: textContent?.trim() || subject.trim(),
       timestamp: new Date().toISOString(),
+      ...(avatarInitials && { avatarInitials: String(avatarInitials) }),
+      ...(avatarUrl && { avatarUrl: String(avatarUrl) }),
     }
 
     // If phoneNumber provided, try SSE delivery
@@ -54,6 +56,8 @@ export async function POST(request: Request) {
           emailData.subject,
           emailData.htmlContent,
           emailData.textContent,
+          emailData.avatarInitials,
+          emailData.avatarUrl,
         ) ||
         broadcastToUnifiedStream(phoneNumber, "email", emailData as Record<string, unknown>)
 
