@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 export default function EmailTesterPage() {
+  const [activeTab, setActiveTab] = useState<"compose" | "preview">("compose")
   const [from, setFrom] = useState("marketing@acmecorp.com")
   const [fromName, setFromName] = useState("Acme Marketing")
   const [subject, setSubject] = useState("Special Offer - 50% Off Today!")
@@ -18,6 +19,7 @@ export default function EmailTesterPage() {
   const [phoneNumber, setPhoneNumber] = useState("+12345678901")
   const [status, setStatus] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const previewIframeRef = useRef<HTMLIFrameElement>(null)
 
   // Load phone number from localStorage on mount (same as SMS tester)
   useEffect(() => {
@@ -26,6 +28,58 @@ export default function EmailTesterPage() {
       setPhoneNumber(storedPhoneNumber)
     }
   }, [])
+
+  // Update iframe content when preview tab is shown or content changes
+  useEffect(() => {
+    if (activeTab !== "preview" || !previewIframeRef.current) return
+    const doc = previewIframeRef.current.contentDocument
+    if (!doc) return
+    const senderDisplay = fromName ? fromName : from
+    const initials = senderDisplay
+      .split(" ")
+      .map((w: string) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+    doc.open()
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9fafb; }
+  .header { background: white; border-bottom: 1px solid #e5e7eb; padding: 16px; }
+  .sender-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: #3b82f6; color: white;
+            display: flex; align-items: center; justify-content: center; font-weight: 600;
+            font-size: 14px; flex-shrink: 0; }
+  .sender-info { flex: 1; min-width: 0; }
+  .sender-name { font-weight: 600; font-size: 15px; color: #111827; }
+  .sender-email { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .subject { font-size: 18px; font-weight: 700; color: #111827; line-height: 1.3; }
+  .body { padding: 16px; background: white; }
+  .body img { max-width: 100%; height: auto; }
+  .body a { color: #2563eb; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="sender-row">
+    <div class="avatar">${initials || "?"}</div>
+    <div class="sender-info">
+      <div class="sender-name">${senderDisplay || "Unknown Sender"}</div>
+      <div class="sender-email">${from || ""}</div>
+    </div>
+  </div>
+  <div class="subject">${subject || "(No subject)"}</div>
+</div>
+<div class="body">${htmlContent}</div>
+</body>
+</html>`)
+    doc.close()
+  }, [activeTab, htmlContent, from, fromName, subject])
 
   // Strip HTML tags for text content
   const stripHtml = (html: string): string => {
@@ -165,6 +219,49 @@ export default function EmailTesterPage() {
             </div>
           </div>
 
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              onClick={() => setActiveTab("compose")}
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "compose"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}>
+              Compose
+            </button>
+            <button
+              onClick={() => setActiveTab("preview")}
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "preview"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}>
+              Preview
+            </button>
+          </div>
+
+          {/* Preview Tab */}
+          {activeTab === "preview" && (
+            <div className="flex flex-col items-center gap-3 mb-6">
+              <p className="text-xs text-gray-500 self-start">Mobile preview (390px wide)</p>
+              <div
+                className="border border-gray-300 rounded-2xl overflow-hidden shadow-lg bg-white"
+                style={{ width: 390 }}>
+                <iframe
+                  ref={previewIframeRef}
+                  title="Email preview"
+                  className="block w-full"
+                  style={{ height: 600, border: "none" }}
+                  sandbox="allow-same-origin"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Compose Tab Content */}
+          {activeTab === "compose" && (
+          <>
           {/* Example Templates */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Quick Templates</label>
@@ -376,6 +473,8 @@ export default function EmailTesterPage() {
               <li>• Phone must be logged in with matching phone number to receive emails</li>
             </ul>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>
