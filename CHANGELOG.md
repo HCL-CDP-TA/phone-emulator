@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.4.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.3.0...v4.4.0) (2026-02-25)
+
+
+### Features
+
+* **ussd:** add session metadata and CDP enrichment ([bc0b902](https://github.com/HCL-CDP-TA/phone-emulator/commit/bc0b902ea659c4c26df81a09b173929b2e4438ed))
+
+
+### Bug Fixes
+
+* **deploy:** pass CDP_API_KEY and CDP_PASS_KEY to container ([97086c0](https://github.com/HCL-CDP-TA/phone-emulator/commit/97086c0005b5941895f5ca35f17d1c4a1bdb4b58))
+
 ## [4.3.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.2.0...v4.3.0) (2026-02-23)
 
 
