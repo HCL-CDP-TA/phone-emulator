@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.5.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.4.0...v4.5.0) (2026-03-18)
+
+
+### Features
+
+* custom avatar in initials & favicon for sms/whatsapp/email ([82b5109](https://github.com/HCL-CDP-TA/phone-emulator/commit/82b51092cbd0f74e596633d011f16a2c2b85d382))
+* email preview tab ([d44dd2e](https://github.com/HCL-CDP-TA/phone-emulator/commit/d44dd2e0cad9c17448ed4d4c809e961fefd1490b))
+
 ## [4.4.0](https://github.com/HCL-CDP-TA/phone-emulator/compare/v4.3.0...v4.4.0) (2026-02-25)
 
 
